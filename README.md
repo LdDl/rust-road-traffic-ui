@@ -1,38 +1,43 @@
-# create-svelte
+# UI for Road traffic detector
 
-Everything you need to build a Svelte project, powered by [`create-svelte`](https://github.com/sveltejs/kit/tree/master/packages/create-svelte).
 
-## Creating a project
+## Table of Contents
 
-If you're seeing this, you've probably already done this step. Congrats!
+- [About](#about)
+- [Installation and usage](#installation-and-usage)
 
-```bash
-# create a new project in the current directory
-npm create svelte@latest
+## About
 
-# create a new project in my-app
-npm create svelte@latest my-app
+It's just simple UI for toy utility for monitoring road traffic from video - https://github.com/LdDl/rust-road-traffic
+
+W.I.P.
+
+Current state of UI: pretty ugly code since I'm not familiar with Svelte enough.
+
+Used tech:
+1. Svelte / SvelteKit - https://kit.svelte.dev/
+2. Maplibre - https://maplibre.org/
+3. MapboxGL Draw - https://github.com/mapbox/mapbox-gl-draw
+4. Fabric - http://fabricjs.com/
+5. Materialize CSS - https://materializecss.com/
+
+## Installation and usage
+
+1. Install dependencies
+
+```shell
+npm i
 ```
 
-## Developing
+2. Run in development mode
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
-
-```bash
+```shell
 npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
 ```
 
-## Building
+3. Build statically (e.g. for web-server). Thanks to [@sveltejs/adapter-static](https://www.npmjs.com/package/@sveltejs/adapter-static)
 
-To create a production version of your app:
-
-```bash
+```shell
 npm run build
+# Final index.html and assets files will be placed in `build` directory
 ```
-
-You can preview the production build with `npm run preview`.
-
-> To deploy your app, you may need to install an [adapter](https://kit.svelte.dev/docs/adapters) for your target environment.
