@@ -13,7 +13,7 @@
     
     onMount(() => {
         const apiKey = 'dznzK4GQ1Lj5U7XsI22j';
-        const initialState = { lng: 37.61499642177023, lat: 54.18902339819647, zoom: 14 };
+        const initialState = { lng: 38.447050424171266, lat: 56.35162245676929, zoom: 5.16 };
         map.set(new MMap({
             container: mapContainer,
             // style: `https://api.maptiler.com/maps/streets/style.json?key=${apiKey}`,
@@ -99,7 +99,6 @@
     });
 
     export function attachDraw(draw: any) {
-        console.log('Attach draw')
         // @ts-ignore
         $map.addControl(draw);
     }
@@ -174,8 +173,6 @@
         feature.properties.road_lane_num = Number(options.road_lane_num);
         feature.geometry.coordinates = options.coordinates;
         $dataStorage.set(canvasID, feature);
-        // Update collapsible table (very simple reactivity)
-        // this.updateCollapsible();
     }
 </script>
   

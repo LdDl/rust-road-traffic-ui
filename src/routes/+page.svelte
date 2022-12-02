@@ -46,28 +46,35 @@
             unsubscribeMJPEG()
             unsubscribeGeoData()
             $dataStorage.clear()
-            //@ts-ignore
-            fbCanvas.getObjects().forEach( (contour: { unid: string; }) => {
+            
+            if (fbCanvas !== undefined && fbCanvas != null) {
                 //@ts-ignore
-                fbCanvas.remove(contour);
-                if ($draw !== null) {
-                    $draw.delete(contour.unid)
-                }
-            })
+                fbCanvas.getObjects().forEach( (contour: { unid: string; }) => {
+                    console.log('here1', contour)
+                    //@ts-ignore
+                    fbCanvas.remove(contour);
+                    if ($draw !== null) {
+                        $draw.delete(contour.unid)
+                    }
+                })
+            }
 
             /* Re-init */
             unsubscribeMJPEG = mjpegReady.subscribe(value => {
             if (value === true) {
-                    initializeCanvas()
+                    // Initialize canvas if it's empty (due the MJPEG error)
+                    if (fbCanvas === undefined || fbCanvas == null) {
+                        initializeCanvas()
+                    }
                 }
                 if (value === true && $dataReady == true) {
-                    console.log(`MJPEG is loaded before geo data`)
+                    // console.log(`MJPEG is loaded before geo data`)
                     drawCanvasPolygons()
                 }
             })
             unsubscribeGeoData = dataReady.subscribe(value => {
                 if (value === true && $mjpegReady == true) {
-                    console.log(`Geo data is loaded before MJPEG`)
+                    // console.log(`Geo data is loaded before MJPEG`)
                     drawCanvasPolygons()
                 }
             })
@@ -85,10 +92,9 @@
                     });
                     mapComponent.drawGeoPolygons($draw, $dataStorage);
                     dataReady.set(true)
-                    // updateCollapsible();
                 })
                 .catch((error) => {
-                    window.alert('There was an error')
+                    console.log('Error on loading polygons', error)
                 })
         }
     })
@@ -160,10 +166,9 @@
                     mapComponent.drawGeoPolygons($draw, $dataStorage);
                 });
                 dataReady.set(true)
-                // updateCollapsible();
             })
             .catch((error) => {
-                window.alert('There was an error')
+                console.log('Error on loading polygons [initial]', error)
             })
     });
 
@@ -480,7 +485,40 @@
     }
 
     const saveTOML = () => {
-        console.log('Save')
+        const sendData = {
+            data: Array.from($dataStorage.values()).map(element => {
+                return {
+                    lane_number: element.properties.road_lane_num,  
+                    lane_direction: element.properties.road_lane_direction,
+                    color_rgb: element.properties.color_rgb,
+                    pixel_points: element.properties.coordinates,
+                    spatial_points: [...element.geometry.coordinates[0].slice(0, -1)]
+                };
+            })
+        };
+        console.log('Replacing data')
+        const endpointReplace = `${initialAPIURL}/api/mutations/replace_all`
+        fetch(`${endpointReplace}`, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(sendData)})
+            .then((response) => {
+                return response.json()
+            })
+            .then((data) => {
+                const endpointSave = `${initialAPIURL}/api/mutations/save_toml`
+                console.log('Replacing configuration with polygons:', data)
+                fetch(`${endpointSave}`, {method: 'GET'})
+                    .then((response) => {
+                        return response.json()
+                    })
+                    .then((data) => {
+                        console.log("Configuration has been updated. Reply from server:", data)
+                    })
+                    .catch((error) => {
+                        console.log('Error on updating configuration:', error)
+                    })
+            })
+            .catch((error) => {
+                console.log('Error on replacing data', error)
+            })
     }
 
     function getRandomRGB() {
@@ -592,11 +630,12 @@
             <div id="configuration">
                 <div id="configuration-content">
                     <ul id="collapsible-data" class="collapsible">
-                        <!-- memes: {$dataStorage.size} -->
                         {#if $dataReady === true}
                             {#each [...$dataStorage] as [k, element]}
                                 <li>
-                                    <div class="collapsible-header"><i class="material-icons">place</i>Polygon identifier: {element.id}</div>
+                                    <div class="collapsible-header">
+                                        <i class="material-icons">place</i>Polygon identifier: {element.id}
+                                    </div>
                                     <div class="collapsible-body">
                                         <table class="collapsible-table">
                                             <thead>
@@ -719,6 +758,7 @@
         grid-area: B;
         /* background: blue; */
         overflow-y: auto;
+        max-height: 185px;
     }
 
     .collapsible-table {
