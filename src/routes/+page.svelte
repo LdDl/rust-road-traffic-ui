@@ -687,7 +687,6 @@
         padding: 0;
         font-family: 'Roboto', sans-serif;
 	}
-    /* body { margin: 0; padding: 0; font-family: 'Roboto', sans-serif;} */
 
     .fixed-action-btn.spin-close .btn-large {
         position: relative;
@@ -797,6 +796,14 @@
     }
     #configuration::-webkit-scrollbar-button {
         display:none
+    }
+
+    /* Maplibre pointer overwrite for mapbox-gl-draw */
+    .maplibregl-map.mouse-pointer .maplibregl-canvas-container.maplibregl-interactive {
+        cursor: pointer;
+    }
+    .maplibregl-map.mouse-move .maplibregl-canvas-container.maplibregl-interactive {
+        cursor: move;
     }
 
 </style>
