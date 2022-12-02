@@ -14,6 +14,9 @@ W.I.P.
 
 Current state of UI: pretty ugly code since I'm not familiar with Svelte enough.
 
+Current plans: eliminate vanilla JS from main repository and use build from this one.
+
+
 Used tech:
 1. Svelte / SvelteKit - https://kit.svelte.dev/
 2. Maplibre - https://maplibre.org/
