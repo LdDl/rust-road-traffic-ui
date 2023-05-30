@@ -1,0 +1,57 @@
+name: Build and Release
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build static files
+        run: npm run build
+
+      - name: Zip artifact for static deployment
+        run: zip dist.zip ./dist/* -r
+        
+      - name: Archive build files
+        uses: actions/upload-artifact@v3
+        with:
+          name: dist
+          path: dist.zip
+          if-no-files-found: error
+          
+      - name: Create release
+        id: create_release
+        uses: ncipollo/release-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag: ver-${{ github.sha }}
+          name: Release ${{ github.ref }}
+          body: Automated release created by GitHub Actions.
+          draft: false
+          prerelease: false
+          token: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Upload release assets
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./dist.zip
+          asset_name: dist.zip
+          asset_content_type: application/gzip
