@@ -23,8 +23,8 @@ jobs:
       - name: Build static files
         run: npm run build
 
-      - name: Zip artifact for static deployment
-        run: zip dist.zip ./dist/* -r
+      - name: Zip artifact for static deployment (Notitce that static files are in folder 'build')
+        run: zip dist.zip ./build/* -r
         
       - name: Archive build files
         uses: actions/upload-artifact@v3
