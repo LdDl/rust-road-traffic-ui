@@ -22,6 +22,11 @@
         y: number
     }
 
+    interface ContourWrap {
+        inner: fabric.Polygon,
+        unid: string
+    }
+
 	const title = 'Rust Road Traffic UI'
     // const apiURL = 'http://localhost:42001'
     let scaleWidth: number, scaleHeight: number
@@ -253,7 +258,7 @@
                 fbCanvas.remove(value)
             })
             const contour = makeContour(contourFinalized)
-            contour.on('mousedown', (options: any) => {
+            contour.inner.on('mousedown', (options: any) => {
                 options.e.preventDefault();
                 options.e.stopPropagation();
                 // Handle right-click
@@ -266,7 +271,7 @@
                         //@ts-ignore
                         let existingContour = $dataStorage.get(contour.unid);
                         //@ts-ignore
-                        existingContour.properties.coordinates = contour.current_points.map((element: { x: number; y: number; }) => {
+                        existingContour.properties.coordinates = contour.inner.current_points.map((element: { x: number; y: number; }) => {
                             return [
                                 Math.floor(element.x/scaleWidth),
                                 Math.floor(element.y/scaleHeight)
@@ -275,26 +280,26 @@
                         //@ts-ignore
                         $dataStorage.set(contour.unid, existingContour);
                     }
-                    editContour(contour, fbCanvas);
+                    editContour(contour.inner, fbCanvas);
                 }
             });
-            contour.on('modified', (options: any) => {
+            contour.inner.on('modified', (options: any) => {
                 // Recalculate points
-                const matrix = contour.calcTransformMatrix();
-                const transformedPoints = contour.points?.map(function (p) {
+                const matrix = contour.inner.calcTransformMatrix();
+                const transformedPoints = contour.inner.points?.map(function (p) {
                         return new fabric.Point(
-                            p.x - contour.pathOffset.x,
-                            p.y - contour.pathOffset.y
+                            p.x - contour.inner.pathOffset.x,
+                            p.y - contour.inner.pathOffset.y
                         );
                     }).map(function (p: any) {
                         return fabric.util.transformPoint(p, matrix);
                     });
                 //@ts-ignore
-                contour.current_points = transformedPoints;
+                contour.inner.current_points = transformedPoints;
                 //@ts-ignore
                 let existingContour = $dataStorage.get(contour.unid);
                 //@ts-ignore
-                existingContour.properties.coordinates = contour.current_points.map((element: { x: number; y: number; }) => {
+                existingContour.properties.coordinates = contour.inner.current_points.map((element: { x: number; y: number; }) => {
                     return [
                         Math.floor(element.x/scaleWidth),
                         Math.floor(element.y/scaleHeight)
@@ -306,16 +311,18 @@
             //@ts-ignore
             contour.unid = new UUIDv4().generate();
             //@ts-ignore
+            contour.inner.unid = contour.unid;
+            //@ts-ignore
             $dataStorage.set(contour.unid, {
                 type: 'Feature',
                 //@ts-ignore
                 id: contour.unid,
                 properties: {
                     //@ts-ignore
-                    'color_rgb': rgba2array(contour.stroke),
-                    'color_rgb_str': contour.stroke,
+                    'color_rgb': rgba2array(contour.inner.stroke),
+                    'color_rgb_str': contour.inner.stroke,
                     //@ts-ignore
-                    'coordinates': contour.current_points.map((element: { x: number; y: number; }) => {
+                    'coordinates': contour.inner.current_points.map((element: { x: number; y: number; }) => {
                         return [
                             Math.floor(element.x/scaleWidth),
                             Math.floor(element.y/scaleHeight)
@@ -331,7 +338,7 @@
                     coordinates: [[[], [], [], [], []]]
                 }
             });
-            fbCanvas.add(contour)
+            fbCanvas.add(contour.inner)
             fbCanvas.renderAll()
             contourTemporary = []
             contourFinalized = []
@@ -349,7 +356,7 @@
                 }
             });
             let contour = makeContour(contourFinalized, `rgb(${feature.properties.color_rgb[0]},${feature.properties.color_rgb[1]},${feature.properties.color_rgb[2]})`);
-            contour.on('mousedown', (options: any) => {
+            contour.inner.on('mousedown', (options: any) => {
                 options.e.preventDefault();
                 options.e.stopPropagation();
                 // state = States.PickPolygon;
@@ -361,7 +368,7 @@
                         //@ts-ignore
                         let existingContour = $dataStorage.get(contour.unid);
                         //@ts-ignore
-                        existingContour.properties.coordinates = contour.current_points.map((element: any) => {
+                        existingContour.properties.coordinates = contour.inner.current_points.map((element: any) => {
                             return [
                                 Math.floor(element.x/scaleWidth),
                                 Math.floor(element.y/scaleHeight)
@@ -370,27 +377,27 @@
                         //@ts-ignore
                         $dataStorage.set(contour.unid, existingContour);
                     }
-                    editContour(contour, fbCanvas);
+                    editContour(contour.inner, fbCanvas);
                 }
             });
-            contour.on('modified', (options: any) => {
+            contour.inner.on('modified', (options: any) => {
                 // Recalculate points
-                const matrix = contour.calcTransformMatrix();
+                const matrix = contour.inner.calcTransformMatrix();
                 //@ts-ignore
-                const transformedPoints = contour.points.map(function (p) {
+                const transformedPoints = contour.inner.points.map(function (p) {
                     return new fabric.Point(
-                        p.x - contour.pathOffset.x,
-                        p.y - contour.pathOffset.y
+                        p.x - contour.inner.pathOffset.x,
+                        p.y - contour.inner.pathOffset.y
                     );
                 }).map(function (p) {
                     return fabric.util.transformPoint(p, matrix);
                 });
                 //@ts-ignore
-                contour.current_points = transformedPoints;
+                contour.inner.current_points = transformedPoints;
                 //@ts-ignore
                 let existingContour = $dataStorage.get(contour.unid);
                 //@ts-ignore
-                existingContour.properties.coordinates = contour.current_points.map((element: any) => {
+                existingContour.properties.coordinates = contour.inner.current_points.map((element: any) => {
                     return [
                         Math.floor(element.x/scaleWidth),
                         Math.floor(element.y/scaleHeight)
@@ -401,12 +408,14 @@
             })
             //@ts-ignore
             contour.unid = feature.id;
-            fbCanvas.add(contour);
+            //@ts-ignore
+            contour.inner.unid = feature.id;
+            fbCanvas.add(contour.inner);
             fbCanvas.renderAll();
         })
     }
 
-    const makeContour = (coordinates: any, color = getRandomRGB()) => {
+    const makeContour = (coordinates: any, color = getRandomRGB()): ContourWrap => {
         let left = findLefTopX(coordinates)
         let top = findLeftTopY(coordinates)
         let contour = new fabric.Polygon(coordinates, {
@@ -422,7 +431,7 @@
         // Before `current_points` is undefined
         //@ts-ignore
         contour.current_points = contour.points;
-        return contour;
+        return { inner: contour , unid: '00000000-0000-0000-0000-000000000000'};
     }
 
     function editContour(contour: fabric.Polygon, fbCanvas: fabric.Canvas) {
@@ -458,11 +467,11 @@
     const deletePolygon = (fbCanvas: any, polygonID: string) => {
         fbCanvas.getObjects().forEach( (contour: { unid: string; }) => {
             if (contour.unid === polygonID) {
-                fbCanvas.remove(contour);
+                fbCanvas.remove(contour)
                 return
             }
         })
-        $dataStorage.delete(polygonID);
+        $dataStorage.delete(polygonID)
         $draw.delete(polygonID)
     }
 
