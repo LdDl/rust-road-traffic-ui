@@ -17,7 +17,7 @@
     const { apiURL } = apiUrlStore
     let initialAPIURL = $apiURL
 
-    interface ControudPoint {
+    interface ContourPoint {
         x: number,
         y: number
     }
@@ -30,7 +30,7 @@
     let fbCanvas: fabric.Canvas
     let fbCanvasParent: Element
     let contourTemporary = new Array<fabric.Line>()
-    let contourFinalized = new Array<ControudPoint>()
+    let contourFinalized = new Array<ContourPoint>()
     let mapComponent: any
     let unsubscribeMJPEG: Unsubscriber
     let unsubscribeGeoData: Unsubscriber
