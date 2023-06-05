@@ -24,7 +24,8 @@
 
     interface ContourWrap {
         inner: fabric.Polygon,
-        unid: string
+        unid: string,
+        notation: fabric.Text[]
     }
 
 	const title = 'Rust Road Traffic UI'
@@ -35,7 +36,9 @@
     let fbCanvas: fabric.Canvas
     let fbCanvasParent: Element
     let contourTemporary = new Array<fabric.Line>()
+    let contourNotationTemporary = new Array<fabric.Text>()
     let contourFinalized = new Array<ContourPoint>()
+    const verticesChars = ['A', 'B', 'C', 'D']
     let mapComponent: any
     let unsubscribeMJPEG: Unsubscriber
     let unsubscribeGeoData: Unsubscriber
@@ -55,7 +58,6 @@
             if (fbCanvas !== undefined && fbCanvas != null) {
                 //@ts-ignore
                 fbCanvas.getObjects().forEach( (contour: { unid: string; }) => {
-                    console.log('here1', contour)
                     //@ts-ignore
                     fbCanvas.remove(contour);
                     if ($draw !== null) {
@@ -245,8 +247,20 @@
                 selectable: false,
                 stroke: 'purple',
             })
-            contourTemporary.push(newLine);
+            const newVertexNotation = new fabric.Text(verticesChars[contourFinalized.length-1], {
+                left: clicked.x,
+                top: clicked.y,
+                fontSize: 24,
+                fontFamily: 'Roboto',
+                fill: 'purple',
+                shadow: '0 0 10px rgba(255, 255, 255, 0.7)',
+                stroke: 'rgb(0, 0, 0)',
+                strokeWidth: 0.9,
+            })
+            contourNotationTemporary.push(newVertexNotation)
+            contourTemporary.push(newLine)
             fbCanvas.add(newLine)
+            fbCanvas.add(newVertexNotation)
             fbCanvas.on('mouse:up', function (options: any) {
                 fbCanvas.selection = true;
             })
@@ -255,6 +269,9 @@
                 return
             }
             contourTemporary.forEach((value) => {
+                fbCanvas.remove(value)
+            })
+            contourNotationTemporary.forEach((value) => {
                 fbCanvas.remove(value)
             })
             const contour = makeContour(contourFinalized)
@@ -296,6 +313,14 @@
                     });
                 //@ts-ignore
                 contour.inner.current_points = transformedPoints;
+
+                // Update notation
+                contour.notation.forEach((vertextNotation: fabric.Text, idx: number) => {
+                    //@ts-ignore
+                    const vertex = contour.inner.current_points[idx];
+                    vertextNotation.set({ left: vertex.x, top: vertex.y });
+                })
+
                 //@ts-ignore
                 let existingContour = $dataStorage.get(contour.unid);
                 //@ts-ignore
@@ -309,9 +334,13 @@
                 $dataStorage.set(contour.unid, existingContour);
             })
             //@ts-ignore
-            contour.unid = new UUIDv4().generate();
+            contour.unid = new UUIDv4().generate()
             //@ts-ignore
-            contour.inner.unid = contour.unid;
+            contour.inner.unid = contour.unid
+            contour.notation.forEach((_, idx) => {
+                //@ts-ignore
+                contour.notation[idx].text_id = contour.unid
+            })
             //@ts-ignore
             $dataStorage.set(contour.unid, {
                 type: 'Feature',
@@ -337,10 +366,14 @@
                     type: 'Polygon',
                     coordinates: [[[], [], [], [], []]]
                 }
-            });
+            })
             fbCanvas.add(contour.inner)
+            contour.notation.forEach((vertextNotation: fabric.Text) => {
+                fbCanvas.add(vertextNotation)
+            })
             fbCanvas.renderAll()
             contourTemporary = []
+            contourNotationTemporary = []
             contourFinalized = []
             state.set(States.Waiting)
             $draw.changeMode('simple_select')
@@ -394,6 +427,14 @@
                 });
                 //@ts-ignore
                 contour.inner.current_points = transformedPoints;
+
+                // Update notation
+                contour.notation.forEach((vertextNotation: fabric.Text, idx: number) => {
+                    //@ts-ignore
+                    const vertex = contour.inner.current_points[idx]
+                    vertextNotation.set({ left: vertex.x, top: vertex.y })
+                })
+
                 //@ts-ignore
                 let existingContour = $dataStorage.get(contour.unid);
                 //@ts-ignore
@@ -404,14 +445,21 @@
                     ]
                 })
                 //@ts-ignore
-                $dataStorage.set(contour.unid, existingContour);
+                $dataStorage.set(contour.unid, existingContour)
             })
             //@ts-ignore
-            contour.unid = feature.id;
+            contour.unid = feature.id
             //@ts-ignore
-            contour.inner.unid = feature.id;
+            contour.inner.unid = feature.id
+            contour.notation.forEach((_, idx) => {
+                //@ts-ignore
+                contour.notation[idx].text_id = feature.id
+            })
             fbCanvas.add(contour.inner);
-            fbCanvas.renderAll();
+            contour.notation.forEach((vertextNotation: fabric.Text) => {
+                fbCanvas.add(vertextNotation)
+            })
+            fbCanvas.renderAll()
         })
     }
 
@@ -428,10 +476,26 @@
             left: left,
             top: top,
         })
+
+        const denotedVertices = new Array<fabric.Text>()
+        coordinates.forEach((point: ContourPoint, idx: number) => {
+            const vertexTextObject = new fabric.Text(verticesChars[idx], {
+                left: point.x,
+                top: point.y,
+                fontSize: 24,
+                fontFamily: 'Roboto',
+                fill: color,
+                shadow: '0 0 10px rgba(255, 255, 255, 0.7)',
+                stroke: 'rgb(0, 0, 0)',
+                strokeWidth: 0.9,
+            });
+            denotedVertices.push(vertexTextObject)
+        })
+
         // Before `current_points` is undefined
         //@ts-ignore
         contour.current_points = contour.points;
-        return { inner: contour , unid: '00000000-0000-0000-0000-000000000000'};
+        return { inner: contour , unid: '00000000-0000-0000-0000-000000000000', notation: denotedVertices};
     }
 
     function editContour(contour: fabric.Polygon, fbCanvas: fabric.Canvas) {
@@ -468,6 +532,12 @@
         fbCanvas.getObjects().forEach( (contour: { unid: string; }) => {
             if (contour.unid === polygonID) {
                 fbCanvas.remove(contour)
+                return
+            }
+        })
+        fbCanvas.getObjects().forEach( (textObject: { text_id: string; }) => {
+            if (textObject.text_id === polygonID) {
+                fbCanvas.remove(textObject)
                 return
             }
         })
