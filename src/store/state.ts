@@ -1,5 +1,5 @@
 import { derived, writable, type Writable } from 'svelte/store';
-
+import { apiURL } from '../store/polygons'
 
 export enum States {
     AddingPolygon = 1,
@@ -14,15 +14,7 @@ export const state = writable(States.Waiting);
 export const mjpegReady = writable(false);
 export const dataReady = writable(false);
 
-// interface ApiSchema {
-//     schema: string
-//     host: string
-//     port: number
-// }
-
-// export const apiURL = writable()
-
-export const changeAPI = writable('http://localhost:42001')
+export const changeAPI = writable(apiURL)
 
 class ApiSchema {
     constructor(

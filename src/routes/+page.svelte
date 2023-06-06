@@ -29,7 +29,6 @@
     }
 
 	const title = 'Rust Road Traffic UI'
-    // const apiURL = 'http://localhost:42001'
     let scaleWidth: number, scaleHeight: number
     let canvas: HTMLCanvasElement
     let image: HTMLImageElement

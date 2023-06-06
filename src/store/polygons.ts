@@ -1,20 +1,3 @@
-// import axios from 'axios'
-
-// const apiURL = 'http://localhost:42001'
-
-// export async function getPolygons() {
-//     return await axios({
-//         method: 'GET',
-//         url: `${apiURL}/api/polygons/geojson`,
-//         timeout: 5000,
-//         headers: {
-//             'Content-Type': 'application/json'
-//         }
-//     })
-//     .then(res => res.data)
-//     .catch (err => console.error(err));
-// }
-
 import { writable } from 'svelte/store'
 
 export const apiURL = 'http://localhost:42001'
