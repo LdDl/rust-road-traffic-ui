@@ -13,11 +13,11 @@
     
     onMount(() => {
         const apiKey = 'dznzK4GQ1Lj5U7XsI22j';
-        const initialState = { lng: 38.447050424171266, lat: 56.35162245676929, zoom: 5.16 };
+        const initialState = { lng: 0, lat: 0, zoom: 5 };
         map.set(new MMap({
             container: mapContainer,
-            // style: `https://api.maptiler.com/maps/streets/style.json?key=${apiKey}`,
-            style: `https://api.maptiler.com/maps/streets/style.json?key=get_your_own_OpIi9ZULNHzrESv6T2vL`,
+            style: `https://api.maptiler.com/maps/streets/style.json?key=${apiKey}`,
+            // style: `https://api.maptiler.com/maps/streets/style.json?key=get_your_own_OpIi9ZULNHzrESv6T2vL`,
             center: [initialState.lng, initialState.lat],
             zoom: initialState.zoom
         }));
