@@ -4,7 +4,7 @@
     import { fabric } from "fabric"
     import MapComponent from '../components/MapComponent.svelte'
     import CanvasComponent from '../components/CanvasComponent.svelte'
-    import IPForm from '../components/IPForm.svelte'
+    import Switchers from '../components/Switchers.svelte'
     import { States, state, mjpegReady, dataReady, apiUrlStore, changeAPI } from '../store/state.js'
     import MapboxDraw from "@mapbox/mapbox-gl-draw"
     import { dataStorage } from '../store/data_storage'
@@ -12,7 +12,6 @@
     import { CUSTOM_GL_DRAW_STYLES, EMPTY_POLYGON_RGB } from '../lib/gl_draw_styles.js'
     import { PolygonFourPointsOnly } from '../lib/custom_poly.js'
     import { getClickPoint, findLeftTopY, findLefTopX, getObjectSizeWithStroke, UUIDv4 } from '../lib/utils'
-	import { element } from 'svelte/internal';
 
     const { apiURL } = apiUrlStore
     let initialAPIURL = $apiURL
@@ -754,7 +753,7 @@
             </div>
         </div>
         <MapComponent  bind:this={mapComponent}/>
-        <IPForm />
+        <Switchers />
     </div>
 </div>
 
@@ -765,7 +764,7 @@
         padding: 0;
         font-family: 'Roboto', sans-serif;
 	}
-
+    
     .fixed-action-btn.spin-close .btn-large {
         position: relative;
     }

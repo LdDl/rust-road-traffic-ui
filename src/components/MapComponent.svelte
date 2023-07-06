@@ -1,29 +1,39 @@
 <script lang="ts">
     import { onMount, onDestroy } from 'svelte'
 
-    import maplibregl, { Map as MMap} from 'maplibre-gl';
+    import maplibregl, { Map as MMap} from 'maplibre-gl'
     import type MapboxDraw from "@mapbox/mapbox-gl-draw"
-    import 'maplibre-gl/dist/maplibre-gl.css';
+    import 'maplibre-gl/dist/maplibre-gl.css'
     import { map, draw } from '../store/map'
+    import { mapStyleStore, changeStyle } from '../store/state'
     import { dataStorage } from '../store/data_storage'
     import { EMPTY_POLYGON_RGB } from '../lib/gl_draw_styles.js'
-
+    
     // let map: MMap;
     let mapContainer: HTMLElement;
-    
+    const { accepted_uri } = mapStyleStore;
+    let initialStylesURI = $accepted_uri
+
+    const unsubStylesChange = accepted_uri.subscribe(value => {
+        if (initialStylesURI !== value) {
+            $map.setStyle(value)
+            initialStylesURI = $accepted_uri
+        }
+    })
+
     onMount(() => {
-        const apiKey = 'dznzK4GQ1Lj5U7XsI22j';
         const initialState = { lng: 0, lat: 0, zoom: 5 };
         map.set(new MMap({
             container: mapContainer,
-            style: `https://api.maptiler.com/maps/streets/style.json?key=${apiKey}`,
-            // style: `https://api.maptiler.com/maps/streets/style.json?key=get_your_own_OpIi9ZULNHzrESv6T2vL`,
+            style: initialStylesURI,
             center: [initialState.lng, initialState.lat],
             zoom: initialState.zoom
         }));
 
         // Fix maplibre-gl canvas size
-        $map.resize()
+        $map.on('load', () => {
+            $map.resize()
+        })
 
         $map.on('click', 'gl-draw-polygon-fill-inactive.cold', function (e) {
             const options = Array.from($dataStorage.values()).map((feature, idx) => { return `<option value="${feature.id}">${feature.id}</option>`});
@@ -95,7 +105,8 @@
     });
 
     onDestroy(() => {
-        $map.remove();
+        unsubStylesChange()
+        $map.remove()
     });
 
     export function attachDraw(draw: any) {

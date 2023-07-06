@@ -50,7 +50,6 @@
     @import url("https://fonts.googleapis.com/css?family=Roboto");
 
     .addr-container{
-        position: absolute;
         display: flex;
         flex-direction: column;
         right: 0;
