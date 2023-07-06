@@ -41,11 +41,6 @@ class MapStyle {
         public uri: Writable<string> = writable('https://api.maptiler.com/maps/streets/style.json?key=get_your_own_OpIi9ZULNHzrESv6T2vL'),
         public accepted_uri: Writable<string> = writable('https://api.maptiler.com/maps/streets/style.json?key=get_your_own_OpIi9ZULNHzrESv6T2vL')
     ) {}
-    set update_uri(new_uri: string) {
-        console.log('here')
-        this.uri = writable(new_uri)
-        this.accepted_uri = writable(new_uri)
-    }
 }
 
 export const mapStyleStore = new MapStyle();
