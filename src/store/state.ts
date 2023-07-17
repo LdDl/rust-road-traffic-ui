@@ -1,5 +1,5 @@
 import { derived, writable, type Writable } from 'svelte/store';
-import { apiURL } from '../store/polygons'
+// import { apiURL } from '../store/polygons'
 
 export enum States {
     AddingPolygon = 1,
@@ -14,13 +14,15 @@ export const state = writable(States.Waiting);
 export const mjpegReady = writable(false)
 export const dataReady = writable(false)
 
-export const changeAPI = writable(apiURL)
+const defaultSchema = 'http'
+const defaultHost = 'localhost'
+const defaultPort = 42001
 
 class ApiSchema {
     constructor(
-        public schema: Writable<string> = writable('http'),
-        public host: Writable<string> = writable('localhost'),
-        public port: Writable<number> = writable(42001)
+        public schema: Writable<string> = writable(defaultSchema),
+        public host: Writable<string> = writable(defaultHost),
+        public port: Writable<number> = writable(defaultPort)
     ) {}
 
     get apiURL() {
@@ -35,6 +37,7 @@ class ApiSchema {
 
 // Singleton
 export const apiUrlStore = new ApiSchema();
+export const changeAPI = writable(`${defaultSchema}://${defaultHost}:${defaultPort}`)
 
 class MapStyle {
     constructor(
