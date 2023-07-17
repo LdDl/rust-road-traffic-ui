@@ -18,11 +18,17 @@ const defaultSchema = 'http'
 const defaultHost = 'localhost'
 const defaultPort = 42001
 
+const currentURL = window.location.href
+const appURL = new URL(currentURL)
+const appSchema = appURL.protocol.replace(/:/g,'') || defaultSchema
+const appHost = appURL.hostname || defaultHost
+const appPort = process.env.NODE_ENV === 'development'? defaultPort : parseInt(appURL.port) || ((appSchema === 'https:') ? 443 : 80) || defaultPort
+
 class ApiSchema {
     constructor(
-        public schema: Writable<string> = writable(defaultSchema),
-        public host: Writable<string> = writable(defaultHost),
-        public port: Writable<number> = writable(defaultPort)
+        public schema: Writable<string> = writable(appSchema),
+        public host: Writable<string> = writable(appHost),
+        public port: Writable<number> = writable(appPort)
     ) {}
 
     get apiURL() {
@@ -37,7 +43,7 @@ class ApiSchema {
 
 // Singleton
 export const apiUrlStore = new ApiSchema();
-export const changeAPI = writable(`${defaultSchema}://${defaultHost}:${defaultPort}`)
+export const changeAPI = writable(`${appSchema}://${appHost}:${appPort}`)
 
 class MapStyle {
     constructor(
