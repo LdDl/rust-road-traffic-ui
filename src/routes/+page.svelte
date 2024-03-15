@@ -687,18 +687,18 @@
             <i class="material-icons">edit</i>
         </a>
         <ul>
-        <li>
-            <!-- svelte-ignore a11y-click-events-have-key-events -->
-            <a id="add-btn" class="btn-floating green" on:click={stateAdd}><i class="material-icons">add</i></a>
-        </li>
-        <li>
-            <!-- svelte-ignore a11y-click-events-have-key-events -->
-            <a id="del-btn" class="btn-floating blue" on:click={stateDel}><i class="material-icons">delete</i></a>
-        </li>
-        <li>
-            <!-- svelte-ignore a11y-click-events-have-key-events -->
-            <a id="save-btn" class="btn-floating grey" on:click={saveTOML}><i class="material-icons">save</i></a>
-        </li>
+            <li>
+                <!-- svelte-ignore a11y-click-events-have-key-events -->
+                <a id="add-btn" class="btn-floating green" on:click={stateAdd} title="Add zone" aria-label="Add zone" role="button" tabindex="0"><i class="material-icons">add</i></a>
+            </li>
+            <li>
+                <!-- svelte-ignore a11y-click-events-have-key-events -->
+                <a id="del-btn" class="btn-floating blue" on:click={stateDel} title="Delete zone" aria-label="Delete zone" role="button" tabindex="0"><i class="material-icons">delete</i></a>
+            </li>
+            <li>
+                <!-- svelte-ignore a11y-click-events-have-key-events -->
+                <a id="save-btn" class="btn-floating grey" on:click={saveTOML} title="Apply and save changes" aria-label="Apply and save changes" role="button" tabindex="0"><i class="material-icons">save</i></a>
+            </li>
         </ul>
     </div>
     <div id="flex_component">
