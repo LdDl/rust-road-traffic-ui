@@ -43,7 +43,6 @@ export const doubleClickZoom = {
     },
     // @ts-ignore
     disable(ctx) {
-      console.log('clicked dd')
       setTimeout(() => {
         if (!ctx.map || !ctx.map.doubleClickZoom) return;
   

@@ -36,9 +36,13 @@
         })
 
         $map.on('click', 'gl-draw-polygon-fill-inactive.cold', function (e) {
-            const options = Array.from($dataStorage.values()).map((feature, idx) => { return `<option value="${feature.id}">${feature.id}</option>`});
             // @ts-ignore
             const mapFeature = $draw.get(e.features[0].properties.id);
+            if (!mapFeature) {
+                // mapFeature could be undefined if it's not found in the draw storage since some other process removed it
+                return
+            }
+            const options = Array.from($dataStorage.values()).map((feature, idx) => { return `<option value="${feature.id}">${feature.id}</option>`});
             const popupContent = `
                 <div id="custom-popup">
                     <div class="row">
@@ -81,7 +85,7 @@
             Array.from($dataStorage.values()).some(element => {
                 // Pick default value if it's possible
                 // @ts-ignore
-                if (element.properties.spatial_object_id === mapFeature.id) {
+                if (element.properties.spatial_object_id === mapFeature?.id) {
                     // @ts-ignore
                     selectElem.value = element.id;
                     return true;

@@ -11,6 +11,7 @@
     import { map, draw } from '../store/map'
     import { CUSTOM_GL_DRAW_STYLES, EMPTY_POLYGON_RGB } from '../lib/gl_draw_styles.js'
     import { PolygonFourPointsOnly } from '../lib/custom_poly.js'
+    import { DeleteClickedZone } from '../lib/custom_delete.js'
     import { getClickPoint, findLeftTopY, findLefTopX, getObjectSizeWithStroke, UUIDv4 } from '../lib/utils'
 
     const { apiURL } = apiUrlStore
@@ -125,7 +126,17 @@
             }
         })
 
-        //
+        // Override DeleteClickedZone click event
+        DeleteClickedZone.onClick = (s: any, e: any) => {
+            if (e.featureTarget && $state !== States.Waiting) {
+                const feature = e.featureTarget
+                const id = feature.properties.id
+                state.set(States.Waiting)
+                deleteZoneFromCanvas(fbCanvas, id)
+                $draw.changeMode("simple_select")
+            }
+            return
+        }
         draw.set(new MapboxDraw({
             userProperties: true,
             displayControlsDefault: false,
@@ -135,7 +146,9 @@
             },
             // @ts-ignore
             modes: Object.assign({
+                // draw_delete_zone: DeleteZoneOnClick,
                 draw_restricted_polygon: PolygonFourPointsOnly,
+                delete_zone: DeleteClickedZone
             }, MapboxDraw.modes),
             styles: CUSTOM_GL_DRAW_STYLES
         }))
@@ -214,26 +227,26 @@
         fbCanvasParent = document.getElementsByClassName('custom-container-canvas')[0];
         fbCanvasParent.id = "fbcanvas";
         fbCanvas.on('selection:created', (options: any) => {
-            if ($state === States.DeletingPolygon) {
-                deletePolygon(fbCanvas, options.selected[0].unid);
+            if ($state === States.DeletingZone) {
+                deleteZoneFromCanvas(fbCanvas, options.selected[0].unid);
                 state.set(States.Waiting)
             }
         })
         fbCanvas.on('selection:updated', (options: any) => {
-            if ($state === States.DeletingPolygon) {
-                deletePolygon(fbCanvas, options.selected[0].unid);
+            if ($state === States.DeletingZone) {
+                deleteZoneFromCanvas(fbCanvas, options.selected[0].unid);
                 state.set(States.Waiting)
             }
         })
         fbCanvas.on('mouse:move', (options: any) => {
-            if (contourTemporary[0] !== null && contourTemporary[0] !== undefined && $state === States.AddingPolygon) {
+            if (contourTemporary[0] !== null && contourTemporary[0] !== undefined && $state === States.AddingZoneCanvas) {
                 const clicked = getClickPoint(fbCanvas, options)
                 contourTemporary[contourTemporary.length - 1].set({ x2: clicked.x, y2: clicked.y })
                 fbCanvas.renderAll()
             }
         })
         fbCanvas.on('mouse:down', (options: any) => {
-            if ($state !== States.AddingPolygon) {
+            if ($state !== States.AddingZoneCanvas) {
                 return
             }
             fbCanvas.selection = false
@@ -279,8 +292,8 @@
                 // Handle right-click
                 // Turn on "Edit" mode
                 if (options.button === 3) {
-                    if ($state !== States.EditingPolygon) {
-                        $state = States.EditingPolygon;
+                    if ($state !== States.EditingZone) {
+                        $state = States.EditingZone;
                     } else {
                         $state = States.Waiting;
                         //@ts-ignore
@@ -392,8 +405,8 @@
                 options.e.stopPropagation();
                 // state = States.PickPolygon;
                 if (options.button === 3) {
-                    if ($state != States.EditingPolygon) {
-                        state.set(States.EditingPolygon);
+                    if ($state != States.EditingZone) {
+                        state.set(States.EditingZone);
                     } else {
                         state.set(States.Waiting);
                         //@ts-ignore
@@ -526,7 +539,7 @@
         fbCanvas.requestRenderAll();
     }
 
-    const deletePolygon = (fbCanvas: any, polygonID: string) => {
+    const deleteZoneFromCanvas = (fbCanvas: any, polygonID: string) => {
         fbCanvas.getObjects().forEach( (contour: { unid: string; }) => {
             if (contour.unid === polygonID) {
                 fbCanvas.remove(contour)
@@ -540,12 +553,16 @@
             }
         })
         $dataStorage.delete(polygonID)
-        $draw.delete(polygonID)
+        $draw.getAll().features.forEach(element => {
+            if ((element?.properties?.canvas_object_id === polygonID || element?.properties?.spatial_object_id === polygonID) && element.id) {
+                $draw.delete(element.id as string)
+            }
+        })
     }
 
-    const stateAdd = () => {
-        if ($state !== States.AddingPolygon) {
-            state.set(States.AddingPolygon)
+    const stateAddToCanvas = () => {
+        if ($state !== States.AddingZoneCanvas) {
+            state.set(States.AddingZoneCanvas)
             $draw.changeMode('draw_restricted_polygon');
         } else {
             state.set(States.Waiting)
@@ -553,17 +570,38 @@
         }
     }
 
-    const stateDel = () => {
-        if ($state !== States.DeletingPolygon) {
-            state.set(States.DeletingPolygon)
+    const stateAddToMap = () => {
+        if ($state !== States.AddingZoneMap) {
+            state.set(States.AddingZoneMap)
+            $draw.changeMode('draw_restricted_polygon');
+        } else {
+            state.set(States.Waiting)
+            $draw.changeMode('simple_select');
+        }
+    }
+
+    const stateDelFromCanvas = () => {
+        if ($state !== States.DeletingZone) {
+            state.set(States.DeletingZone)
         } else {
             state.set(States.Waiting)
         }
     }
 
+    const stateDelFromMap = () => {
+        if ($state !== States.DeletingZone) {
+            state.set(States.DeletingZone)
+            $draw.changeMode('delete_zone');
+        } else {
+            state.set(States.Waiting)
+            $draw.changeMode('simple_select');
+        }
+    }
+
     const saveTOML = () => {
         const sendData = {
-            data: Array.from($dataStorage.values()).map(element => {
+            // Should send only zones with both canvas and spatial object IDs
+            data: Array.from($dataStorage.values()).filter((element)=> {return (element.properties.canvas_object_id && element.properties.spatial_object_id)}).map(element => {
                 return {
                     lane_number: element.properties.road_lane_num,  
                     lane_direction: element.properties.road_lane_direction,
@@ -689,11 +727,19 @@
         <ul>
             <li>
                 <!-- svelte-ignore a11y-click-events-have-key-events -->
-                <a id="add-btn" class="btn-floating green" on:click={stateAdd} title="Add zone" aria-label="Add zone" role="button" tabindex="0"><i class="material-icons">add</i></a>
+                <a id="add-btn" class="btn-floating green" on:click={stateAddToCanvas} title="Add zone to the canvas" aria-label="Add zone to the canvas" role="button" tabindex="0"><i class="material-icons">add</i></a>
             </li>
             <li>
                 <!-- svelte-ignore a11y-click-events-have-key-events -->
-                <a id="del-btn" class="btn-floating blue" on:click={stateDel} title="Delete zone" aria-label="Delete zone" role="button" tabindex="0"><i class="material-icons">delete</i></a>
+                <a id="del-btn" class="btn-floating blue" on:click={stateDelFromCanvas} title="Delete zone from the canvas" aria-label="Delete zone from the canvas" role="button" tabindex="0"><i class="material-icons">delete</i></a>
+            </li>
+            <li>
+                <!-- svelte-ignore a11y-click-events-have-key-events -->
+                <a id="add-btn" class="btn-floating orange" on:click={stateAddToMap} title="Add zone to the map" aria-label="Add zone to the map" role="button" tabindex="0"><i class="material-icons">add_location</i></a>
+            </li>
+            <li>
+                <!-- svelte-ignore a11y-click-events-have-key-events -->
+                <a id="del-btn" class="btn-floating blue" on:click={stateDelFromMap} title="Delete zone from the map" aria-label="Delete zone from the map" role="button" tabindex="0"><i class="material-icons">location_off</i></a>
             </li>
             <li>
                 <!-- svelte-ignore a11y-click-events-have-key-events -->

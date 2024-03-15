@@ -2,10 +2,11 @@ import { derived, writable, type Writable } from 'svelte/store';
 // import { apiURL } from '../store/polygons'
 
 export enum States {
-    AddingPolygon = 1,
+    AddingZoneCanvas = 1,
+    AddingZoneMap,
     Waiting,
-    EditingPolygon,
-    DeletingPolygon,
+    EditingZone,
+    DeletingZone,
     PickPolygon
 }
 
