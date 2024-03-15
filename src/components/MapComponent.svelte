@@ -155,7 +155,13 @@
             previousFeature.properties.road_lane_direction = -1;
             previousFeature.properties.road_lane_num = -1;
             previousFeature.geometry.coordinates = [[], [], [], [], []];
-            $dataStorage.set(mapFeature.properties.canvas_object_id, previousFeature);
+            // $dataStorage.set(mapFeature.properties.canvas_object_id, previousFeature);
+            dataStorage.update(c => {
+                const updatedHashmap = new Map(c)
+                // @ts-ignore
+                updatedHashmap.set(mapFeature.properties.canvas_object_id, previousFeature)
+                return updatedHashmap
+            })
         }
 
         // Scan for other spatial objects to share same canvas ID
@@ -187,7 +193,12 @@
         feature.properties.road_lane_direction = Number(options.road_lane_direction);
         feature.properties.road_lane_num = Number(options.road_lane_num);
         feature.geometry.coordinates = options.coordinates;
-        $dataStorage.set(canvasID, feature);
+        // $dataStorage.set(canvasID, feature);
+        dataStorage.update(c => {
+            const updatedHashmap = new Map(c)
+            updatedHashmap.set(canvasID, feature)
+            return updatedHashmap
+        })
     }
 </script>
   

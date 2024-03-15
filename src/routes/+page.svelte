@@ -52,7 +52,12 @@
             dataReady.set(false)
             unsubscribeMJPEG()
             unsubscribeGeoData()
-            $dataStorage.clear()
+            // $dataStorage.clear()
+            dataStorage.update(c => {
+                const updatedHashmap = new Map(c)
+                updatedHashmap.clear()
+                return updatedHashmap
+            })
             
             if (fbCanvas !== undefined && fbCanvas != null) {
                 //@ts-ignore
@@ -94,7 +99,12 @@
                         feature.properties.spatial_object_id = feature.id;
                         feature.properties.canvas_object_id = feature.id;
                         feature.properties.color_rgb_str = `rgb(${feature.properties.color_rgb[0]},${feature.properties.color_rgb[1]},${feature.properties.color_rgb[2]})`;
-                        $dataStorage.set(feature.id, feature);
+                        // $dataStorage.set(feature.id, feature);
+                        dataStorage.update(c => {
+                            const updatedHashmap = new Map(c)
+                            updatedHashmap.set(feature.id, feature)
+                            return updatedHashmap
+                        })
                     });
                     mapComponent.drawGeoPolygons($draw, $dataStorage);
                     dataReady.set(true)
@@ -178,7 +188,12 @@
                     feature.properties.spatial_object_id = feature.id;
                     feature.properties.canvas_object_id = feature.id;
                     feature.properties.color_rgb_str = `rgb(${feature.properties.color_rgb[0]},${feature.properties.color_rgb[1]},${feature.properties.color_rgb[2]})`;
-                    $dataStorage.set(feature.id, feature);
+                    // $dataStorage.set(feature.id, feature);
+                    dataStorage.update(c => {
+                        const updatedHashmap = new Map(c)
+                        updatedHashmap.set(feature.id, feature)
+                        return updatedHashmap
+                    })
                 });
                 $map.on('load', () => {
                     mapComponent.drawGeoPolygons($draw, $dataStorage);
@@ -306,7 +321,12 @@
                             ]
                         })
                         //@ts-ignore
-                        $dataStorage.set(contour.unid, existingContour);
+                        // $dataStorage.set(contour.unid, existingContour);
+                        dataStorage.update(c => {
+                            const updatedHashmap = new Map(c)
+                            updatedHashmap.set(contour.unid, existingContour)
+                            return updatedHashmap
+                        })
                     }
                     editContour(contour.inner, fbCanvas);
                 }
@@ -341,8 +361,13 @@
                         Math.floor(element.y/scaleHeight)
                     ]
                 })
+                // $dataStorage.set(contour.unid, existingContour);
                 //@ts-ignore
-                $dataStorage.set(contour.unid, existingContour);
+                dataStorage.update(c => {
+                    const updatedHashmap = new Map(c)
+                    updatedHashmap.set(contour.unid, existingContour)
+                    return updatedHashmap
+                })
             })
             //@ts-ignore
             contour.unid = new UUIDv4().generate()
@@ -352,31 +377,36 @@
                 //@ts-ignore
                 contour.notation[idx].text_id = contour.unid
             })
+            // $dataStorage.set(contour.unid, ........);
             //@ts-ignore
-            $dataStorage.set(contour.unid, {
-                type: 'Feature',
-                //@ts-ignore
-                id: contour.unid,
-                properties: {
+            dataStorage.update(c => {
+                const updatedHashmap = new Map(c)
+                updatedHashmap.set(contour.unid, {
+                    type: 'Feature',
                     //@ts-ignore
-                    'color_rgb': rgba2array(contour.inner.stroke),
-                    'color_rgb_str': contour.inner.stroke,
-                    //@ts-ignore
-                    'coordinates': contour.inner.current_points.map((element: { x: number; y: number; }) => {
-                        return [
-                            Math.floor(element.x/scaleWidth),
-                            Math.floor(element.y/scaleHeight)
-                        ]
-                    }),
-                    'road_lane_direction': -1,
-                    'road_lane_num': -1,
-                    'spatial_object_id': null,
-                    'canvas_object_id': null,
-                },
-                geometry: {
-                    type: 'Polygon',
-                    coordinates: [[[], [], [], [], []]]
-                }
+                    id: contour.unid,
+                    properties: {
+                        //@ts-ignore
+                        'color_rgb': rgba2array(contour.inner.stroke),
+                        'color_rgb_str': contour.inner.stroke,
+                        //@ts-ignore
+                        'coordinates': contour.inner.current_points.map((element: { x: number; y: number; }) => {
+                            return [
+                                Math.floor(element.x/scaleWidth),
+                                Math.floor(element.y/scaleHeight)
+                            ]
+                        }),
+                        'road_lane_direction': -1,
+                        'road_lane_num': -1,
+                        'spatial_object_id': null,
+                        'canvas_object_id': null,
+                    },
+                    geometry: {
+                        type: 'Polygon',
+                        coordinates: [[[], [], [], [], []]]
+                    }
+                });
+                return updatedHashmap
             })
             fbCanvas.add(contour.inner)
             contour.notation.forEach((vertextNotation: fabric.Text) => {
@@ -418,8 +448,13 @@
                                 Math.floor(element.y/scaleHeight)
                             ]
                         })
+                        // $dataStorage.set(contour.unid, existingContour);
                         //@ts-ignore
-                        $dataStorage.set(contour.unid, existingContour);
+                        dataStorage.update(c => {
+                            const updatedHashmap = new Map(c)
+                            updatedHashmap.set(contour.unid, existingContour)
+                            return updatedHashmap
+                        })
                     }
                     editContour(contour.inner, fbCanvas);
                 }
@@ -455,8 +490,13 @@
                         Math.floor(element.y/scaleHeight)
                     ]
                 })
+                // $dataStorage.set(contour.unid, existingContour);
                 //@ts-ignore
-                $dataStorage.set(contour.unid, existingContour)
+                dataStorage.update(c => {
+                    const updatedHashmap = new Map(c)
+                    updatedHashmap.set(contour.unid, existingContour)
+                    return updatedHashmap
+                })
             })
             //@ts-ignore
             contour.unid = feature.id
@@ -552,7 +592,12 @@
                 return
             }
         })
-        $dataStorage.delete(polygonID)
+        // $dataStorage.delete(polygonID)
+        dataStorage.update(c => {
+            const updatedHashmap = new Map(c)
+            updatedHashmap.delete(polygonID)
+            return updatedHashmap
+        })
         $draw.getAll().features.forEach(element => {
             if ((element?.properties?.canvas_object_id === polygonID || element?.properties?.spatial_object_id === polygonID) && element.id) {
                 $draw.delete(element.id as string)
