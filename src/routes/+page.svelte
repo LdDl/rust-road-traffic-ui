@@ -7,7 +7,7 @@
     import Switchers from '../components/Switchers.svelte'
     import { States, state, mjpegReady, dataReady, apiUrlStore, changeAPI } from '../store/state.js'
     import MapboxDraw from "@mapbox/mapbox-gl-draw"
-    import { dataStorage } from '../store/data_storage'
+    import { dataStorage, updateDataStorage, deleteFromDataStorage, clearDataStorage } from '../store/data_storage'
     import { map, draw } from '../store/map'
     import { CUSTOM_GL_DRAW_STYLES, EMPTY_POLYGON_RGB } from '../lib/gl_draw_styles.js'
     import { PolygonFourPointsOnly } from '../lib/custom_poly.js'
@@ -53,11 +53,7 @@
             unsubscribeMJPEG()
             unsubscribeGeoData()
             // $dataStorage.clear()
-            dataStorage.update(c => {
-                const updatedHashmap = new Map(c)
-                updatedHashmap.clear()
-                return updatedHashmap
-            })
+            clearDataStorage()
             
             if (fbCanvas !== undefined && fbCanvas != null) {
                 //@ts-ignore
@@ -100,11 +96,7 @@
                         feature.properties.canvas_object_id = feature.id;
                         feature.properties.color_rgb_str = `rgb(${feature.properties.color_rgb[0]},${feature.properties.color_rgb[1]},${feature.properties.color_rgb[2]})`;
                         // $dataStorage.set(feature.id, feature);
-                        dataStorage.update(c => {
-                            const updatedHashmap = new Map(c)
-                            updatedHashmap.set(feature.id, feature)
-                            return updatedHashmap
-                        })
+                        updateDataStorage(feature.id, feature)
                     });
                     mapComponent.drawGeoPolygons($draw, $dataStorage);
                     dataReady.set(true)
@@ -189,11 +181,7 @@
                     feature.properties.canvas_object_id = feature.id;
                     feature.properties.color_rgb_str = `rgb(${feature.properties.color_rgb[0]},${feature.properties.color_rgb[1]},${feature.properties.color_rgb[2]})`;
                     // $dataStorage.set(feature.id, feature);
-                    dataStorage.update(c => {
-                        const updatedHashmap = new Map(c)
-                        updatedHashmap.set(feature.id, feature)
-                        return updatedHashmap
-                    })
+                    updateDataStorage(feature.id, feature)
                 });
                 $map.on('load', () => {
                     mapComponent.drawGeoPolygons($draw, $dataStorage);
@@ -320,13 +308,8 @@
                                 Math.floor(element.y/scaleHeight)
                             ]
                         })
-                        //@ts-ignore
                         // $dataStorage.set(contour.unid, existingContour);
-                        dataStorage.update(c => {
-                            const updatedHashmap = new Map(c)
-                            updatedHashmap.set(contour.unid, existingContour)
-                            return updatedHashmap
-                        })
+                        updateDataStorage(contour.unid, existingContour)
                     }
                     editContour(contour.inner, fbCanvas);
                 }
@@ -362,12 +345,7 @@
                     ]
                 })
                 // $dataStorage.set(contour.unid, existingContour);
-                //@ts-ignore
-                dataStorage.update(c => {
-                    const updatedHashmap = new Map(c)
-                    updatedHashmap.set(contour.unid, existingContour)
-                    return updatedHashmap
-                })
+                updateDataStorage(contour.unid, existingContour)
             })
             //@ts-ignore
             contour.unid = new UUIDv4().generate()
@@ -378,35 +356,30 @@
                 contour.notation[idx].text_id = contour.unid
             })
             // $dataStorage.set(contour.unid, ........);
-            //@ts-ignore
-            dataStorage.update(c => {
-                const updatedHashmap = new Map(c)
-                updatedHashmap.set(contour.unid, {
-                    type: 'Feature',
+            updateDataStorage(contour.unid, {
+                type: 'Feature',
+                //@ts-ignore
+                id: contour.unid,
+                properties: {
                     //@ts-ignore
-                    id: contour.unid,
-                    properties: {
-                        //@ts-ignore
-                        'color_rgb': rgba2array(contour.inner.stroke),
-                        'color_rgb_str': contour.inner.stroke,
-                        //@ts-ignore
-                        'coordinates': contour.inner.current_points.map((element: { x: number; y: number; }) => {
-                            return [
-                                Math.floor(element.x/scaleWidth),
-                                Math.floor(element.y/scaleHeight)
-                            ]
-                        }),
-                        'road_lane_direction': -1,
-                        'road_lane_num': -1,
-                        'spatial_object_id': null,
-                        'canvas_object_id': null,
-                    },
-                    geometry: {
-                        type: 'Polygon',
-                        coordinates: [[[], [], [], [], []]]
-                    }
-                });
-                return updatedHashmap
+                    'color_rgb': rgba2array(contour.inner.stroke),
+                    'color_rgb_str': contour.inner.stroke,
+                    //@ts-ignore
+                    'coordinates': contour.inner.current_points.map((element: { x: number; y: number; }) => {
+                        return [
+                            Math.floor(element.x/scaleWidth),
+                            Math.floor(element.y/scaleHeight)
+                        ]
+                    }),
+                    'road_lane_direction': -1,
+                    'road_lane_num': -1,
+                    'spatial_object_id': null,
+                    'canvas_object_id': null,
+                },
+                geometry: {
+                    type: 'Polygon',
+                    coordinates: [[[], [], [], [], []]]
+                }
             })
             fbCanvas.add(contour.inner)
             contour.notation.forEach((vertextNotation: fabric.Text) => {
@@ -449,12 +422,7 @@
                             ]
                         })
                         // $dataStorage.set(contour.unid, existingContour);
-                        //@ts-ignore
-                        dataStorage.update(c => {
-                            const updatedHashmap = new Map(c)
-                            updatedHashmap.set(contour.unid, existingContour)
-                            return updatedHashmap
-                        })
+                        updateDataStorage(contour.unid, existingContour)
                     }
                     editContour(contour.inner, fbCanvas);
                 }
@@ -491,12 +459,7 @@
                     ]
                 })
                 // $dataStorage.set(contour.unid, existingContour);
-                //@ts-ignore
-                dataStorage.update(c => {
-                    const updatedHashmap = new Map(c)
-                    updatedHashmap.set(contour.unid, existingContour)
-                    return updatedHashmap
-                })
+                updateDataStorage(contour.unid, existingContour)
             })
             //@ts-ignore
             contour.unid = feature.id
@@ -593,11 +556,7 @@
             }
         })
         // $dataStorage.delete(polygonID)
-        dataStorage.update(c => {
-            const updatedHashmap = new Map(c)
-            updatedHashmap.delete(polygonID)
-            return updatedHashmap
-        })
+        deleteFromDataStorage(polygonID)
         $draw.getAll().features.forEach(element => {
             if ((element?.properties?.canvas_object_id === polygonID || element?.properties?.spatial_object_id === polygonID) && element.id) {
                 $draw.delete(element.id as string)
@@ -646,7 +605,10 @@
     const saveTOML = () => {
         const sendData = {
             // Should send only zones with both canvas and spatial object IDs
-            data: Array.from($dataStorage.values()).filter((element)=> {return (element.properties.canvas_object_id && element.properties.spatial_object_id)}).map(element => {
+            data: Array.from($dataStorage.values()).filter((element)=> {
+                console.log(element, element.properties.canvas_object_id, element.properties.spatial_object_id)
+                return (element.properties.canvas_object_id && element.properties.spatial_object_id)
+            }).map(element => {
                 return {
                     lane_number: element.properties.road_lane_num,  
                     lane_direction: element.properties.road_lane_direction,

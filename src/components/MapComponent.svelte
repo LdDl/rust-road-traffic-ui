@@ -6,7 +6,7 @@
     import 'maplibre-gl/dist/maplibre-gl.css'
     import { map, draw } from '../store/map'
     import { mapStyleStore, changeStyle } from '../store/state'
-    import { dataStorage } from '../store/data_storage'
+    import { dataStorage, updateDataStorage } from '../store/data_storage'
     import { EMPTY_POLYGON_RGB } from '../lib/gl_draw_styles.js'
     
     // let map: MMap;
@@ -156,12 +156,7 @@
             previousFeature.properties.road_lane_num = -1;
             previousFeature.geometry.coordinates = [[], [], [], [], []];
             // $dataStorage.set(mapFeature.properties.canvas_object_id, previousFeature);
-            dataStorage.update(c => {
-                const updatedHashmap = new Map(c)
-                // @ts-ignore
-                updatedHashmap.set(mapFeature.properties.canvas_object_id, previousFeature)
-                return updatedHashmap
-            })
+            updateDataStorage(mapFeature.properties.canvas_object_id, previousFeature)
         }
 
         // Scan for other spatial objects to share same canvas ID
@@ -189,16 +184,13 @@
         $draw.add(mapFeature);
         $draw.setFeatureProperty(spatialID, 'color_rgb_str', feature.properties.color_rgb_str);
         // Update information for DATASTORE object
+        feature.properties.canvas_object_id = canvasID;
         feature.properties.spatial_object_id = spatialID;
         feature.properties.road_lane_direction = Number(options.road_lane_direction);
         feature.properties.road_lane_num = Number(options.road_lane_num);
         feature.geometry.coordinates = options.coordinates;
         // $dataStorage.set(canvasID, feature);
-        dataStorage.update(c => {
-            const updatedHashmap = new Map(c)
-            updatedHashmap.set(canvasID, feature)
-            return updatedHashmap
-        })
+        updateDataStorage(canvasID, feature)
     }
 </script>
   
