@@ -7,7 +7,7 @@
     import Switchers from '../components/Switchers.svelte'
     import { States, state, mjpegReady, dataReady, apiUrlStore, changeAPI } from '../store/state.js'
     import MapboxDraw from "@mapbox/mapbox-gl-draw"
-    import { dataStorage, updateDataStorage, deleteFromDataStorage, clearDataStorage } from '../store/data_storage'
+    import { dataStorage, updateDataStorage, deleteFromDataStorage, clearDataStorage, deattachCanvasFromSpatial } from '../store/data_storage'
     import { map, draw } from '../store/map'
     import { CUSTOM_GL_DRAW_STYLES, EMPTY_POLYGON_RGB } from '../lib/gl_draw_styles.js'
     import { PolygonFourPointsOnly } from '../lib/custom_poly.js'
@@ -130,12 +130,11 @@
 
         // Override DeleteClickedZone click event
         DeleteClickedZone.onClick = (s: any, e: any) => {
-            if (e.featureTarget && $state !== States.Waiting) {
+            if (e.featureTarget && $state === States.DeletingZoneMap) {
                 const feature = e.featureTarget
-                const id = feature.properties.id
+                const zoneID = feature.properties.id
                 state.set(States.Waiting)
-                deleteZoneFromCanvas(fbCanvas, id)
-                $draw.changeMode("simple_select")
+                deleteZoneFromMap($dataStorage, $draw, zoneID)
             }
             return
         }
@@ -555,13 +554,15 @@
                 return
             }
         })
-        // $dataStorage.delete(polygonID)
+        deattachCanvasFromSpatial($dataStorage, $draw, polygonID)
         deleteFromDataStorage(polygonID)
-        $draw.getAll().features.forEach(element => {
-            if ((element?.properties?.canvas_object_id === polygonID || element?.properties?.spatial_object_id === polygonID) && element.id) {
-                $draw.delete(element.id as string)
-            }
-        })
+    }
+
+    const deleteZoneFromMap = (ds: Map<any, any>, mdraw: MapboxDraw, zoneID: string) => {
+        deattachCanvasFromSpatial(ds, mdraw, zoneID)
+        deleteFromDataStorage(zoneID)
+        mdraw.delete(zoneID)
+        mdraw.changeMode("simple_select")
     }
 
     const stateAddToCanvas = () => {
