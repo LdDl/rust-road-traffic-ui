@@ -6,7 +6,8 @@ export enum States {
     AddingZoneMap,
     Waiting,
     EditingZone,
-    DeletingZone,
+    DeletingZoneCanvas,
+    DeletingZoneMap,
     PickPolygon
 }
 

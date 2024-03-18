@@ -230,13 +230,13 @@
         fbCanvasParent = document.getElementsByClassName('custom-container-canvas')[0];
         fbCanvasParent.id = "fbcanvas";
         fbCanvas.on('selection:created', (options: any) => {
-            if ($state === States.DeletingZone) {
+            if ($state === States.DeletingZoneCanvas) {
                 deleteZoneFromCanvas(fbCanvas, options.selected[0].unid);
                 state.set(States.Waiting)
             }
         })
         fbCanvas.on('selection:updated', (options: any) => {
-            if ($state === States.DeletingZone) {
+            if ($state === States.DeletingZoneCanvas) {
                 deleteZoneFromCanvas(fbCanvas, options.selected[0].unid);
                 state.set(States.Waiting)
             }
@@ -585,16 +585,16 @@
     }
 
     const stateDelFromCanvas = () => {
-        if ($state !== States.DeletingZone) {
-            state.set(States.DeletingZone)
+        if ($state !== States.DeletingZoneCanvas) {
+            state.set(States.DeletingZoneCanvas)
         } else {
             state.set(States.Waiting)
         }
     }
 
     const stateDelFromMap = () => {
-        if ($state !== States.DeletingZone) {
-            state.set(States.DeletingZone)
+        if ($state !== States.DeletingZoneMap) {
+            state.set(States.DeletingZoneMap)
             $draw.changeMode('delete_zone');
         } else {
             state.set(States.Waiting)
