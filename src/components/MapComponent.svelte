@@ -14,6 +14,10 @@
     const { accepted_uri } = mapStyleStore;
     let initialStylesURI = $accepted_uri
 
+    const radioButton = (color: string): string => {
+        return `<svg xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" width="20" fill="${color}"><path d="M480.276-96Q401-96 331-126q-70-30-122.5-82.5T126-330.958q-30-69.959-30-149.5Q96-560 126-629.5t82.5-122Q261-804 330.958-834q69.959-30 149.5-30Q560-864 629.5-834t122 82.5Q804-699 834-629.276q30 69.725 30 149Q864-401 834-331q-30 70-82.5 122.5T629.276-126q-69.725 30-149 30ZM480-168q130 0 221-91t91-221q0-130-91-221t-221-91q-130 0-221 91t-91 221q0 130 91 221t221 91Zm0 0q-130 0-221-91t-91-221q0-130 91-221t221-91q130 0 221 91t91 221q0 130-91 221t-221 91Z"/></svg>`
+    }
+
     const unsubStylesChange = accepted_uri.subscribe(value => {
         if (initialStylesURI !== value) {
             $map.setStyle(value)
@@ -21,6 +25,10 @@
         }
     })
 
+    function svgToDataURL(svg: string): string {
+        return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+    }
+    
     onMount(() => {
         const initialState = { lng: 0, lat: 0, zoom: 5 };
         map.set(new MMap({
@@ -42,7 +50,12 @@
                 // mapFeature could be undefined if it's not found in the draw storage since some other process removed it
                 return
             }
-            const options = Array.from($dataStorage.values()).map((feature, idx) => { return `<option value="${feature.id}">${feature.id}</option>`});
+            const options = Array.from($dataStorage.values()).map((feature, idx) => {
+                const color = feature.properties.color_rgb_str as string
+                // https://github.com/Dogfalo/materialize/issues/4056
+                const elem = `<option value="${feature.id}" data-icon="${svgToDataURL(radioButton(color))}">${feature.id}</option>`
+                return elem
+            });
             const popupContent = `
                 <div id="custom-popup">
                     <div class="row">
