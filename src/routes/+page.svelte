@@ -541,21 +541,21 @@
         fbCanvas.requestRenderAll();
     }
 
-    const deleteZoneFromCanvas = (fbCanvas: any, polygonID: string) => {
+    const deleteZoneFromCanvas = (fbCanvas: any, zoneID: string) => {
         fbCanvas.getObjects().forEach( (contour: { unid: string; }) => {
-            if (contour.unid === polygonID) {
+            if (contour.unid === zoneID) {
                 fbCanvas.remove(contour)
                 return
             }
         })
         fbCanvas.getObjects().forEach( (textObject: { text_id: string; }) => {
-            if (textObject.text_id === polygonID) {
+            if (textObject.text_id === zoneID) {
                 fbCanvas.remove(textObject)
                 return
             }
         })
-        deattachCanvasFromSpatial($dataStorage, $draw, polygonID)
-        deleteFromDataStorage(polygonID)
+        deattachCanvasFromSpatial($dataStorage, $draw, zoneID)
+        deleteFromDataStorage(zoneID)
     }
 
     const deleteZoneFromMap = (ds: Map<any, any>, mdraw: MapboxDraw, zoneID: string) => {
