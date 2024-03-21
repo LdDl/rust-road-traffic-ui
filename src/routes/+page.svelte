@@ -43,6 +43,9 @@
     let unsubscribeGeoData: Unsubscriber
     $: canvasFocused = ($state === States.AddingZoneCanvas || $state === States.DeletingZoneCanvas)
     $: mapFocused = ($state === States.AddingZoneMap || $state === States.DeletingZoneMap)
+    $: dataStorageFiltered = [...$dataStorage].filter((element)=> {
+        return (element[1].properties.canvas_object_id && element[1].properties.spatial_object_id)
+    })
 
     const unsubApiChange = changeAPI.subscribe(value => {
         if (initialAPIURL !== value) {
@@ -628,10 +631,8 @@
     const saveTOML = () => {
         const sendData = {
             // Should send only zones with both canvas and spatial object IDs
-            data: Array.from($dataStorage.values()).filter((element)=> {
-                console.log(element, element.properties.canvas_object_id, element.properties.spatial_object_id)
-                return (element.properties.canvas_object_id && element.properties.spatial_object_id)
-            }).map(element => {
+            data: dataStorageFiltered.map(e => {
+                const element = e[1]
                 return {
                     lane_number: element.properties.road_lane_num,  
                     lane_direction: element.properties.road_lane_direction,
@@ -786,7 +787,7 @@
                 <div id="configuration-content">
                     <ul id="collapsible-data" class="collapsible">
                         {#if $dataReady === true}
-                            {#each [...$dataStorage] as [k, element]}
+                            {#each dataStorageFiltered as [k, element]}
                                 <li>
                                     <div class="collapsible-header">
                                         <i class="material-icons">place</i>Polygon identifier: {element.id}
