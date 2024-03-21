@@ -203,6 +203,14 @@
         unsubApiChange()
     });
 
+    function keyPress(e: KeyboardEvent) { 
+        if (e.key === "Escape") {
+            resetCurrentCanvasDrawing()
+            $draw.changeMode('simple_select')
+            state.set(States.Waiting)
+        }
+    }
+
     const initializeMaterialize = () => {
         const fixedButtons = document.querySelectorAll('.fixed-action-btn')
         // @ts-ignore
@@ -395,6 +403,18 @@
         })
     }
 
+    const resetCurrentCanvasDrawing = () => {
+        contourTemporary.forEach((value) => {
+                fbCanvas.remove(value)
+        })
+        contourNotationTemporary.forEach((value) => {
+            fbCanvas.remove(value)
+        })
+        contourTemporary = []
+        contourNotationTemporary = []
+        contourFinalized = []
+    }
+    
     const drawCanvasPolygons = () => {
         $dataStorage.forEach(feature => {
             const contourFinalized = feature.properties.coordinates.map((element: any) => {
@@ -727,6 +747,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js" on:load={initializeMaterialize}></script>
 	<title>{title}</title>
 </sveltekit:head>
+
+<svelte:window on:keydown={keyPress} />
 
 <div id="main-app">
     <div class="fixed-action-btn horizontal click-to-toggle spin-close">
