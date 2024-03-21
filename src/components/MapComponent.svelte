@@ -9,6 +9,8 @@
     import { dataStorage, updateDataStorage } from '../store/data_storage'
     import { EMPTY_POLYGON_RGB } from '../lib/gl_draw_styles.js'
     
+    export let klass: string = ''
+
     // let map: MMap;
     let mapContainer: HTMLElement;
     const { accepted_uri } = mapStyleStore;
@@ -207,7 +209,7 @@
     }
 </script>
   
-<div class="map-wrap">
+<div class={'map-wrap' + ' ' + klass}>
     <div class="map" id="map" bind:this={mapContainer}></div>
 </div>
 
@@ -218,7 +220,7 @@
         position: relative;
         width: 100%;
         height: 100vh;
-        background-color: red;
+        /* background-color: red; */
     }
     .map {
         position: absolute;

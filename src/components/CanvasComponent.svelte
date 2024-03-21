@@ -2,6 +2,8 @@
     import { onMount, onDestroy } from 'svelte'
     import { mjpegReady, apiUrlStore, changeAPI } from '../store/state.js'
 
+    export let klass: string = ''
+
     const { apiURL } = apiUrlStore
     let initialAPIURL = `${$apiURL}`
 
@@ -24,7 +26,7 @@
     });
 </script>
 
-<div id="mjpeg">
+<div id="mjpeg" class={"mjpeg-canvas" + ' ' + klass}>
     <!-- svelte-ignore a11y-missing-attribute -->
     <img id="fit_img" src="{initialAPIURL}/live_streaming" width="500" height="500" on:load={imageLoaded}>
     <!-- <img id="fit_img" src="https://pngimg.com/uploads/google/google_PNG19632.png" width="500" height="500" on:load={imageLoaded}> -->

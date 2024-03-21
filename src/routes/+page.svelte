@@ -41,6 +41,8 @@
     let mapComponent: any
     let unsubscribeMJPEG: Unsubscriber
     let unsubscribeGeoData: Unsubscriber
+    $: canvasFocused = ($state === States.AddingZoneCanvas || $state === States.DeletingZoneCanvas)
+    $: mapFocused = ($state === States.AddingZoneMap || $state === States.DeletingZoneMap)
 
     const unsubApiChange = changeAPI.subscribe(value => {
         if (initialAPIURL !== value) {
@@ -757,8 +759,8 @@
     </div>
     <div id="flex_component">
         <div id="grid_component">
-            <CanvasComponent />
-            <div id="configuration">
+            <CanvasComponent klass={!canvasFocused && mapFocused ? 'blurred' : ''}/>
+            <div id="configuration" class={canvasFocused || mapFocused ? 'blurred' : ''}>
                 <div id="configuration-content">
                     <ul id="collapsible-data" class="collapsible">
                         {#if $dataReady === true}
@@ -806,8 +808,8 @@
                 </div>
             </div>
         </div>
-        <MapComponent  bind:this={mapComponent}/>
-        <Switchers />
+        <MapComponent bind:this={mapComponent} klass={canvasFocused && !mapFocused ? 'blurred' : ''}/>
+        <Switchers klass={canvasFocused || mapFocused ? 'blurred' : ''}/>
     </div>
 </div>
 
@@ -937,4 +939,13 @@
         cursor: move;
     }
 
+    /* #main-app > #flex_component > *:not(.map-wrap) {
+        background: #ffd83c;
+        filter: blur(3px);
+    } */
+
+    .blurred{
+        /* background: #ffd83c; */
+        filter: blur(3px);
+    }
 </style>
