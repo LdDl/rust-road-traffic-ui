@@ -759,8 +759,8 @@
     </div>
     <div id="flex_component">
         <div id="grid_component">
-            <CanvasComponent klass={!canvasFocused && mapFocused ? 'blurred' : ''}/>
-            <div id="configuration" class={canvasFocused || mapFocused ? 'blurred' : ''}>
+            <CanvasComponent klass={!canvasFocused && mapFocused ? 'blurred noselect' : ''}/>
+            <div id="configuration" class={canvasFocused || mapFocused ? 'blurred noselect' : ''}>
                 <div id="configuration-content">
                     <ul id="collapsible-data" class="collapsible">
                         {#if $dataReady === true}
@@ -808,8 +808,8 @@
                 </div>
             </div>
         </div>
-        <MapComponent bind:this={mapComponent} klass={canvasFocused && !mapFocused ? 'blurred' : ''}/>
-        <Switchers klass={canvasFocused || mapFocused ? 'blurred' : ''}/>
+        <MapComponent bind:this={mapComponent} klass={canvasFocused && !mapFocused ? 'blurred noselect' : ''}/>
+        <Switchers klass={canvasFocused || mapFocused ? 'blurred noselect' : ''}/>
     </div>
 </div>
 
@@ -944,8 +944,20 @@
         filter: blur(3px);
     } */
 
-    .blurred{
+    .blurred {
         /* background: #ffd83c; */
         filter: blur(3px);
+        cursor: not-allowed !important;
+    }
+    .blurred div{
+        pointer-events: none;
+    }
+    .noselect {
+        -webkit-touch-callout: none; /* iOS Safari */
+        -webkit-user-select: none; /* Safari */
+        -khtml-user-select: none; /* Konqueror HTML */
+        -moz-user-select: none; /* Old versions of Firefox */
+        -ms-user-select: none; /* Internet Explorer/Edge */
+        user-select: none; /* Non-prefixed version, currently supported by Chrome, Edge, Opera and Firefox */
     }
 </style>
