@@ -7,7 +7,7 @@
     import Switchers from '../components/Switchers.svelte'
     import { States, state, mjpegReady, dataReady, apiUrlStore, changeAPI } from '../store/state.js'
     import MapboxDraw from "@mapbox/mapbox-gl-draw"
-    import { dataStorage, updateDataStorage, deleteFromDataStorage, clearDataStorage, deattachCanvasFromSpatial } from '../store/data_storage'
+    import { dataStorage, updateDataStorage, deleteFromDataStorage, clearDataStorage, deattachCanvasFromSpatial, type Zone } from '../store/data_storage'
     import { map, draw } from '../store/map'
     import { CUSTOM_GL_DRAW_STYLES, EMPTY_POLYGON_RGB } from '../lib/gl_draw_styles.js'
     import { PolygonFourPointsOnly } from '../lib/custom_poly.js'
@@ -57,7 +57,6 @@
             dataReady.set(false)
             unsubscribeMJPEG()
             unsubscribeGeoData()
-            // $dataStorage.clear()
             clearDataStorage()
             
             if (fbCanvas !== undefined && fbCanvas != null) {
@@ -96,11 +95,11 @@
                     return response.json()
                 })
                 .then((data) => {
-                    data.features.forEach((feature: { properties: { spatial_object_id: any; canvas_object_id: any; color_rgb_str: string; color_rgb: any[]; }; id: any; }) => {
+                    data.features.forEach((feature: Zone) => {
                         feature.properties.spatial_object_id = feature.id;
                         feature.properties.canvas_object_id = feature.id;
                         feature.properties.color_rgb_str = `rgb(${feature.properties.color_rgb[0]},${feature.properties.color_rgb[1]},${feature.properties.color_rgb[2]})`;
-                        // $dataStorage.set(feature.id, feature);
+                        feature.type = 'Feature'
                         updateDataStorage(feature.id, feature)
                     });
                     mapComponent.drawGeoPolygons($draw, $dataStorage);
@@ -180,11 +179,11 @@
                 return response.json()
             })
             .then((data) => {
-                data.features.forEach((feature: { properties: { spatial_object_id: any; canvas_object_id: any; color_rgb_str: string; color_rgb: any[]; }; id: any; }) => {
+                data.features.forEach((feature: Zone) => {
                     feature.properties.spatial_object_id = feature.id;
                     feature.properties.canvas_object_id = feature.id;
                     feature.properties.color_rgb_str = `rgb(${feature.properties.color_rgb[0]},${feature.properties.color_rgb[1]},${feature.properties.color_rgb[2]})`;
-                    // $dataStorage.set(feature.id, feature);
+                    feature.type = 'Feature'
                     updateDataStorage(feature.id, feature)
                 });
                 $map.on('load', () => {
@@ -313,6 +312,9 @@
                         $state = States.Waiting;
                         //@ts-ignore
                         let existingContour = $dataStorage.get(contour.unid);
+                        if (!existingContour) {
+                            return
+                        }
                         //@ts-ignore
                         existingContour.properties.coordinates = contour.inner.current_points.map((element: { x: number; y: number; }) => {
                             return [
@@ -320,7 +322,6 @@
                                 Math.floor(element.y/scaleHeight)
                             ]
                         })
-                        // $dataStorage.set(contour.unid, existingContour);
                         updateDataStorage(contour.unid, existingContour)
                     }
                     editContour(contour.inner, fbCanvas);
@@ -349,6 +350,9 @@
 
                 //@ts-ignore
                 let existingContour = $dataStorage.get(contour.unid);
+                if (!existingContour) {
+                    return
+                }
                 //@ts-ignore
                 existingContour.properties.coordinates = contour.inner.current_points.map((element: { x: number; y: number; }) => {
                     return [
@@ -356,7 +360,6 @@
                         Math.floor(element.y/scaleHeight)
                     ]
                 })
-                // $dataStorage.set(contour.unid, existingContour);
                 updateDataStorage(contour.unid, existingContour)
             })
             //@ts-ignore
@@ -367,7 +370,6 @@
                 //@ts-ignore
                 contour.notation[idx].text_id = contour.unid
             })
-            // $dataStorage.set(contour.unid, ........);
             updateDataStorage(contour.unid, {
                 type: 'Feature',
                 //@ts-ignore
@@ -390,7 +392,7 @@
                 },
                 geometry: {
                     type: 'Polygon',
-                    coordinates: [[[], [], [], [], []]]
+                    coordinates: [[[-1, -1], [-1, -1], [-1, -1], [-1, -1], [-1, -1]]]
                 }
             })
             fbCanvas.add(contour.inner)
@@ -438,6 +440,9 @@
                         state.set(States.Waiting);
                         //@ts-ignore
                         let existingContour = $dataStorage.get(contour.unid);
+                        if (!existingContour) {
+                            return
+                        }
                         //@ts-ignore
                         existingContour.properties.coordinates = contour.inner.current_points.map((element: any) => {
                             return [
@@ -445,7 +450,6 @@
                                 Math.floor(element.y/scaleHeight)
                             ]
                         })
-                        // $dataStorage.set(contour.unid, existingContour);
                         updateDataStorage(contour.unid, existingContour)
                     }
                     editContour(contour.inner, fbCanvas);
@@ -475,6 +479,9 @@
 
                 //@ts-ignore
                 let existingContour = $dataStorage.get(contour.unid);
+                if (!existingContour) {
+                    return
+                }
                 //@ts-ignore
                 existingContour.properties.coordinates = contour.inner.current_points.map((element: any) => {
                     return [
@@ -482,7 +489,6 @@
                         Math.floor(element.y/scaleHeight)
                     ]
                 })
-                // $dataStorage.set(contour.unid, existingContour);
                 updateDataStorage(contour.unid, existingContour)
             })
             //@ts-ignore

@@ -1,21 +1,43 @@
-import { writable } from 'svelte/store';
-import { fabric } from "fabric"
+import { writable, type Writable } from 'svelte/store';
 import type MapboxDraw from '@mapbox/mapbox-gl-draw';
 import { EMPTY_POLYGON_RGB } from '../lib/gl_draw_styles.js'
 
-export const dataStorage = writable(new Map())
+export interface Zone {
+  id: string,
+  type?: string,
+  properties: {
+    road_lane_direction: number,
+    road_lane_num: number,
+    coordinates: [[number, number], [number, number], [number, number], [number, number]],
+    color_rgb: [number, number, number],
+    virtual_line?: {
+      geometry: [[number, number], [number, number]],
+      color_rgb: [number, number, number],
+      direction: string
+    },
+    spatial_object_id?: string | null,
+    canvas_object_id?: string | null,
+    color_rgb_str?: string,
+  },
+  geometry: {
+    type: string,
+    coordinates: [[[number, number], [number, number], [number, number], [number, number], [number, number]]]
+  }
+}
 
-export function updateDataStorage(key: any, value: any) {
+export const dataStorage: Writable<Map<string, Zone>> = writable(new Map<string, Zone>())
+
+export function updateDataStorage(key: string, value: Zone) {
     dataStorage.update(currentHashmap => {
-      const updatedHashmap = new Map(currentHashmap);
+      const updatedHashmap = new Map<string, any>(currentHashmap);
       updatedHashmap.set(key, value);
       return updatedHashmap;
     });
 }
 
-export function deleteFromDataStorage(key: any) {
+export function deleteFromDataStorage(key: string) {
     dataStorage.update(currentHashmap => {
-      const updatedHashmap = new Map(currentHashmap);
+      const updatedHashmap = new Map<string, Zone>(currentHashmap);
       updatedHashmap.delete(key);
       return updatedHashmap;
     });
@@ -23,14 +45,14 @@ export function deleteFromDataStorage(key: any) {
 
 export function clearDataStorage() {
     dataStorage.update(currentHashmap => {
-      const updatedHashmap = new Map(currentHashmap);
+      const updatedHashmap = new Map<string, Zone>(currentHashmap);
       updatedHashmap.clear();
       return updatedHashmap;
     });
 }
 
 
-export const deattachCanvasFromSpatial = (storage: Map<any, any>, mdraw: MapboxDraw, zoneID: String): void => {
+export const deattachCanvasFromSpatial = (storage: Map<string, any>, mdraw: MapboxDraw, zoneID: string): void => {
   const zone = storage.get(zoneID)
   if (!zone) {
     return
