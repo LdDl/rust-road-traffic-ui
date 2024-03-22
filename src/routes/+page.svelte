@@ -58,7 +58,7 @@
             unsubscribeMJPEG()
             unsubscribeGeoData()
             clearDataStorage()
-            
+
             if (fbCanvas !== undefined && fbCanvas != null) {
                 //@ts-ignore
                 fbCanvas.getObjects().forEach( (contour: { unid: string; }) => {
@@ -310,7 +310,6 @@
                         $state = States.EditingZone;
                     } else {
                         $state = States.Waiting;
-                        //@ts-ignore
                         let existingContour = $dataStorage.get(contour.unid);
                         if (!existingContour) {
                             return
@@ -348,7 +347,6 @@
                     vertextNotation.set({ left: vertex.x, top: vertex.y });
                 })
 
-                //@ts-ignore
                 let existingContour = $dataStorage.get(contour.unid);
                 if (!existingContour) {
                     return
@@ -370,31 +368,30 @@
                 //@ts-ignore
                 contour.notation[idx].text_id = contour.unid
             })
-            updateDataStorage(contour.unid, {
+            const newContour = {
                 type: 'Feature',
-                //@ts-ignore
                 id: contour.unid,
                 properties: {
+                    color_rgb: rgba2array(contour.inner.stroke),
+                    color_rgb_str: contour.inner.stroke ? contour.inner.stroke : "rgb(0, 0, 0)",
                     //@ts-ignore
-                    'color_rgb': rgba2array(contour.inner.stroke),
-                    'color_rgb_str': contour.inner.stroke,
-                    //@ts-ignore
-                    'coordinates': contour.inner.current_points.map((element: { x: number; y: number; }) => {
+                    coordinates: contour.inner.current_points.map((element: { x: number; y: number; }) => {
                         return [
                             Math.floor(element.x/scaleWidth),
                             Math.floor(element.y/scaleHeight)
                         ]
                     }),
-                    'road_lane_direction': -1,
-                    'road_lane_num': -1,
-                    'spatial_object_id': null,
-                    'canvas_object_id': null,
+                    road_lane_direction: -1,
+                    road_lane_num: -1,
+                    spatial_object_id: null,
+                    canvas_object_id: null,
                 },
                 geometry: {
                     type: 'Polygon',
                     coordinates: [[[-1, -1], [-1, -1], [-1, -1], [-1, -1], [-1, -1]]]
                 }
-            })
+            }
+            updateDataStorage(contour.unid, newContour)
             fbCanvas.add(contour.inner)
             contour.notation.forEach((vertextNotation: fabric.Text) => {
                 fbCanvas.add(vertextNotation)
@@ -444,7 +441,7 @@
                             return
                         }
                         //@ts-ignore
-                        existingContour.properties.coordinates = contour.inner.current_points.map((element: any) => {
+                        existingContour.properties.coordinates = contour.inner.current_points.map((element: { x: number; y: number; }) => {
                             return [
                                 Math.floor(element.x/scaleWidth),
                                 Math.floor(element.y/scaleHeight)
@@ -483,7 +480,7 @@
                     return
                 }
                 //@ts-ignore
-                existingContour.properties.coordinates = contour.inner.current_points.map((element: any) => {
+                existingContour.properties.coordinates = contour.inner.current_points.map((element: { x: number; y: number; }) => {
                     return [
                         Math.floor(element.x/scaleWidth),
                         Math.floor(element.y/scaleHeight)
@@ -682,14 +679,16 @@
         return 'rgb(' + r + ', ' + g + ', ' + b + ')';
     }
 
-    const rgba2array = (rgbValue: string) => {
+    const rgba2array = (rgbValue?: string): [number, number, number] => {
+        if (!rgbValue) {
+            return [0, 0, 0];
+        }
         // https://stackoverflow.com/a/34980657/6026885
         const match = rgbValue.match(/rgba?\((\d{1,3}), ?(\d{1,3}), ?(\d{1,3})\)?(?:, ?(\d(?:\.\d?))\))?/);
-        return match ? [
-            match[1],
-            match[2],
-            match[3]
-        ].map(Number) : [];
+        if (!match) {
+            return [0, 0, 0];
+        }
+        return [parseInt(match[1]), parseInt(match[2]), parseInt(match[3])]
     }
 
     // define a function that can locate the controls.

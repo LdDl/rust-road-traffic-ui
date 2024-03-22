@@ -3,8 +3,8 @@ import type MapboxDraw from '@mapbox/mapbox-gl-draw';
 import { EMPTY_POLYGON_RGB } from '../lib/gl_draw_styles.js'
 
 export interface Zone {
-  id: string,
   type?: string,
+  id: string,
   properties: {
     road_lane_direction: number,
     road_lane_num: number,
@@ -21,7 +21,7 @@ export interface Zone {
   },
   geometry: {
     type: string,
-    coordinates: [[[number, number], [number, number], [number, number], [number, number], [number, number]]]
+    coordinates: number[][][]
   }
 }
 
@@ -29,7 +29,7 @@ export const dataStorage: Writable<Map<string, Zone>> = writable(new Map<string,
 
 export function updateDataStorage(key: string, value: Zone) {
     dataStorage.update(currentHashmap => {
-      const updatedHashmap = new Map<string, any>(currentHashmap);
+      const updatedHashmap = new Map<string, Zone>(currentHashmap);
       updatedHashmap.set(key, value);
       return updatedHashmap;
     });
