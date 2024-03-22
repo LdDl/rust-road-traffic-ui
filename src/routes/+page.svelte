@@ -7,7 +7,7 @@
     import Switchers from '../components/Switchers.svelte'
     import { States, state, mjpegReady, dataReady, apiUrlStore, changeAPI } from '../store/state.js'
     import MapboxDraw from "@mapbox/mapbox-gl-draw"
-    import { dataStorage, updateDataStorage, deleteFromDataStorage, clearDataStorage, deattachCanvasFromSpatial, type Zone } from '../store/data_storage'
+    import { dataStorage, addZoneFeature, updateDataStorage, deleteFromDataStorage, clearDataStorage, deattachCanvasFromSpatial, type Zone, type ZonesCollection } from '../store/data_storage'
     import { map, draw } from '../store/map'
     import { CUSTOM_GL_DRAW_STYLES, EMPTY_POLYGON_RGB } from '../lib/gl_draw_styles.js'
     import { PolygonFourPointsOnly } from '../lib/custom_poly.js'
@@ -44,7 +44,7 @@
     $: canvasFocused = ($state === States.AddingZoneCanvas || $state === States.DeletingZoneCanvas)
     $: mapFocused = ($state === States.AddingZoneMap || $state === States.DeletingZoneMap)
     $: dataStorageFiltered = [...$dataStorage].filter((element)=> {
-        return (element[1].properties.canvas_object_id && element[1].properties.spatial_object_id)
+        return (element[1].id && element[1].properties.spatial_object_id)
     })
 
     const unsubApiChange = changeAPI.subscribe(value => {
@@ -94,13 +94,9 @@
                 .then((response) => {
                     return response.json()
                 })
-                .then((data) => {
-                    data.features.forEach((feature: Zone) => {
-                        feature.properties.spatial_object_id = feature.id;
-                        feature.properties.canvas_object_id = feature.id;
-                        feature.properties.color_rgb_str = `rgb(${feature.properties.color_rgb[0]},${feature.properties.color_rgb[1]},${feature.properties.color_rgb[2]})`;
-                        feature.type = 'Feature'
-                        updateDataStorage(feature.id, feature)
+                .then((data: ZonesCollection) => {
+                    data.features.forEach((feature) => {
+                        addZoneFeature(feature)
                     });
                     mapComponent.drawGeoPolygons($draw, $dataStorage);
                     dataReady.set(true)
@@ -161,13 +157,7 @@
         mapComponent.attachDraw($draw)
         $map.on("draw.create", function(e) {
             e.features[0].properties = {
-                'color_rgb': [127, 127, 127],
-                'color_rgb_str': EMPTY_POLYGON_RGB,
-                'coordinates': e.features[0].geometry.coordinates,
-                'road_lane_direction': -1,
-                'road_lane_num': -1,
-                'spatial_object_id': e.features[0].id,
-                'canvas_object_id': null,
+                color_rgb_str: EMPTY_POLYGON_RGB,
             }
             $draw.add(e.features[0])
             state.set(States.Waiting);
@@ -178,13 +168,9 @@
             .then((response) => {
                 return response.json()
             })
-            .then((data) => {
-                data.features.forEach((feature: Zone) => {
-                    feature.properties.spatial_object_id = feature.id;
-                    feature.properties.canvas_object_id = feature.id;
-                    feature.properties.color_rgb_str = `rgb(${feature.properties.color_rgb[0]},${feature.properties.color_rgb[1]},${feature.properties.color_rgb[2]})`;
-                    feature.type = 'Feature'
-                    updateDataStorage(feature.id, feature)
+            .then((data: ZonesCollection) => {
+                data.features.forEach((feature) => {
+                    addZoneFeature(feature)
                 });
                 $map.on('load', () => {
                     mapComponent.drawGeoPolygons($draw, $dataStorage);
@@ -383,8 +369,7 @@
                     }),
                     road_lane_direction: -1,
                     road_lane_num: -1,
-                    spatial_object_id: null,
-                    canvas_object_id: null,
+                    spatial_object_id: undefined
                 },
                 geometry: {
                     type: 'Polygon',

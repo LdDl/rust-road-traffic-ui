@@ -15,17 +15,61 @@ export interface Zone {
       color_rgb: [number, number, number],
       direction: string
     },
-    spatial_object_id?: string | null,
-    canvas_object_id?: string | null,
+    ds_id?: string,
+    spatial_object_id?: string,
     color_rgb_str?: string,
   },
-  geometry: {
+  geometry: PolygonGeoJSON
+}
+
+interface PolygonGeoJSON {
     type: string,
     coordinates: number[][][]
-  }
+}
+
+interface ZoneFeature {
+  type: string,
+  id: string,
+  properties: {
+    road_lane_direction: number,
+    road_lane_num: number,
+    coordinates: [[number, number], [number, number], [number, number], [number, number]],
+    color_rgb: [number, number, number]
+  },
+  geometry: PolygonGeoJSON
+}
+
+export interface ZonesCollection {
+  type: string,
+  features: ZoneFeature[]
 }
 
 export const dataStorage: Writable<Map<string, Zone>> = writable(new Map<string, Zone>())
+
+export function addZoneFeature(value: ZoneFeature) {
+  dataStorage.update(currentHashmap => {
+    const updatedHashmap = new Map<string, Zone>(currentHashmap);
+    const newZone: Zone = {
+      type: value.type,
+      id: value.id,
+      properties: {
+        road_lane_direction: value.properties.road_lane_direction,
+        road_lane_num: value.properties.road_lane_num,
+        coordinates: value.properties.coordinates,
+        color_rgb: value.properties.color_rgb,
+        ds_id: value.id,
+        spatial_object_id: `spatial-${value.id}`,
+        color_rgb_str: `rgb(${value.properties.color_rgb[0]},${value.properties.color_rgb[1]},${value.properties.color_rgb[2]})`
+      },
+      geometry: {
+        type: value.geometry.type,
+        coordinates: value.geometry.coordinates
+      }
+    }
+    updatedHashmap.set(value.id, newZone);
+    return updatedHashmap;
+  });
+}
 
 export function updateDataStorage(key: string, value: Zone) {
     dataStorage.update(currentHashmap => {
@@ -51,35 +95,22 @@ export function clearDataStorage() {
     });
 }
 
-
-export const deattachCanvasFromSpatial = (storage: Map<string, any>, mdraw: MapboxDraw, zoneID: string): void => {
+export const deattachCanvasFromSpatial = (storage: Map<string, Zone>, mdraw: MapboxDraw, zoneID: string): void => {
   const zone = storage.get(zoneID)
   if (!zone) {
+    return
+  }
+  if (!zone.properties.spatial_object_id) {
+    console.error(`ID '${zone.id}' should have 'spatial_object_id' in prpetries, but it has not`)
     return
   }
   const drawFeature = mdraw.get(zone.properties.spatial_object_id);
   if (!drawFeature) {
     return
   }
-  // @ts-ignore
-  drawFeature.properties.canvas_object_id = null;
-  // @ts-ignore
-  drawFeature.properties.road_lane_direction = -1;
-  // @ts-ignore
-  drawFeature.properties.road_lane_num = -1;
-  // @ts-ignore
-  drawFeature.properties.coordinates = [[], [], [], [], []];
-  // @ts-ignore
-  drawFeature.properties.color_rgb = [127, 127, 127];
-  // @ts-ignore
-  drawFeature.properties.color_rgb_str = EMPTY_POLYGON_RGB;
-  // @ts-ignore
-  drawFeature.properties.virtual_line = null;
   mdraw.add(drawFeature);
-  // @ts-ignore
-  mdraw.setFeatureProperty(drawFeature.id, 'color_rgb_str', EMPTY_POLYGON_RGB);
-
-  zone.properties.spatial_object_id = null;
+  mdraw.setFeatureProperty(drawFeature.id as string, 'color_rgb_str', EMPTY_POLYGON_RGB);
+  zone.properties.spatial_object_id = undefined;
   zone.properties.road_lane_direction = -1;
   zone.properties.road_lane_num = -1;
   zone.geometry.coordinates = [[], [], [], [], []]
