@@ -6,13 +6,14 @@
     import CanvasComponent from '../components/CanvasComponent.svelte'
     import Switchers from '../components/Switchers.svelte'
     import { States, state, mjpegReady, dataReady, apiUrlStore, changeAPI } from '../store/state.js'
-    import MapboxDraw from "@mapbox/mapbox-gl-draw"
+    import MapboxDraw, { type DrawCreateEvent, type DrawUpdateEvent } from "@mapbox/mapbox-gl-draw"
     import { dataStorage, addZoneFeature, updateDataStorage, deleteFromDataStorage, clearDataStorage, deattachCanvasFromSpatial, type Zone, type ZonesCollection } from '../store/data_storage'
     import { map, draw } from '../store/map'
     import { CUSTOM_GL_DRAW_STYLES, EMPTY_POLYGON_RGB } from '../lib/gl_draw_styles.js'
     import { PolygonFourPointsOnly } from '../lib/custom_poly.js'
     import { DeleteClickedZone } from '../lib/custom_delete.js'
     import { getClickPoint, findLeftTopY, findLefTopX, getObjectSizeWithStroke, UUIDv4 } from '../lib/utils'
+	import type { Polygon } from 'geojson';
 
     const { apiURL } = apiUrlStore
     let initialAPIURL = $apiURL
@@ -155,12 +156,25 @@
         }))
         
         mapComponent.attachDraw($draw)
-        $map.on("draw.create", function(e) {
+        $map.on("draw.create", function(e: DrawCreateEvent) {
             e.features[0].properties = {
                 color_rgb_str: EMPTY_POLYGON_RGB,
             }
             $draw.add(e.features[0])
             state.set(States.Waiting);
+        })
+
+        $map.on("draw.update", function(e: DrawUpdateEvent) {
+            const mapTargetFeature = e.features[0]
+            const spatialID = mapTargetFeature.id as string
+            let mustUpdateSpatial = [...$dataStorage].find((f) => f[1].properties.spatial_object_id === spatialID)?.[1]
+            if (!mustUpdateSpatial) {
+                console.warn(`Spatial ID '${spatialID}' not found in datastorage. Ignoring...`)
+                return
+            }
+            const spatialPolygon = mapTargetFeature.geometry as Polygon // @todo: Do we need type check?
+            mustUpdateSpatial.geometry.coordinates = spatialPolygon.coordinates
+            updateDataStorage(mustUpdateSpatial.id, mustUpdateSpatial)
         })
 
         const endpoint = `${initialAPIURL}/api/polygons/geojson`
