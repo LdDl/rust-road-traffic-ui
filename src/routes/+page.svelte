@@ -6,13 +6,14 @@
     import CanvasComponent from '../components/CanvasComponent.svelte'
     import Switchers from '../components/Switchers.svelte'
     import { States, state, mjpegReady, dataReady, apiUrlStore, changeAPI } from '../store/state.js'
-    import MapboxDraw from "@mapbox/mapbox-gl-draw"
-    import { dataStorage } from '../store/data_storage'
+    import MapboxDraw, { type DrawCreateEvent, type DrawUpdateEvent } from "@mapbox/mapbox-gl-draw"
+    import { dataStorage, addZoneFeature, updateDataStorage, deleteFromDataStorage, clearDataStorage, deattachCanvasFromSpatial, type Zone, type ZonesCollection } from '../store/data_storage'
     import { map, draw } from '../store/map'
     import { CUSTOM_GL_DRAW_STYLES, EMPTY_POLYGON_RGB } from '../lib/gl_draw_styles.js'
     import { PolygonFourPointsOnly } from '../lib/custom_poly.js'
     import { DeleteClickedZone } from '../lib/custom_delete.js'
     import { getClickPoint, findLeftTopY, findLefTopX, getObjectSizeWithStroke, UUIDv4 } from '../lib/utils'
+	import type { Polygon } from 'geojson';
 
     const { apiURL } = apiUrlStore
     let initialAPIURL = $apiURL
@@ -41,6 +42,11 @@
     let mapComponent: any
     let unsubscribeMJPEG: Unsubscriber
     let unsubscribeGeoData: Unsubscriber
+    $: canvasFocused = ($state === States.AddingZoneCanvas || $state === States.DeletingZoneCanvas)
+    $: mapFocused = ($state === States.AddingZoneMap || $state === States.DeletingZoneMap)
+    $: dataStorageFiltered = [...$dataStorage].filter((element)=> {
+        return (element[1].id && element[1].properties.spatial_object_id)
+    })
 
     const unsubApiChange = changeAPI.subscribe(value => {
         if (initialAPIURL !== value) {
@@ -52,8 +58,8 @@
             dataReady.set(false)
             unsubscribeMJPEG()
             unsubscribeGeoData()
-            $dataStorage.clear()
-            
+            clearDataStorage()
+
             if (fbCanvas !== undefined && fbCanvas != null) {
                 //@ts-ignore
                 fbCanvas.getObjects().forEach( (contour: { unid: string; }) => {
@@ -89,12 +95,9 @@
                 .then((response) => {
                     return response.json()
                 })
-                .then((data) => {
-                    data.features.forEach((feature: { properties: { spatial_object_id: any; canvas_object_id: any; color_rgb_str: string; color_rgb: any[]; }; id: any; }) => {
-                        feature.properties.spatial_object_id = feature.id;
-                        feature.properties.canvas_object_id = feature.id;
-                        feature.properties.color_rgb_str = `rgb(${feature.properties.color_rgb[0]},${feature.properties.color_rgb[1]},${feature.properties.color_rgb[2]})`;
-                        $dataStorage.set(feature.id, feature);
+                .then((data: ZonesCollection) => {
+                    data.features.forEach((feature) => {
+                        addZoneFeature(feature)
                     });
                     mapComponent.drawGeoPolygons($draw, $dataStorage);
                     dataReady.set(true)
@@ -128,12 +131,11 @@
 
         // Override DeleteClickedZone click event
         DeleteClickedZone.onClick = (s: any, e: any) => {
-            if (e.featureTarget && $state !== States.Waiting) {
+            if (e.featureTarget && $state === States.DeletingZoneMap) {
                 const feature = e.featureTarget
-                const id = feature.properties.id
+                const zoneID = feature.properties.id
                 state.set(States.Waiting)
-                deleteZoneFromCanvas(fbCanvas, id)
-                $draw.changeMode("simple_select")
+                deleteZoneFromMap($dataStorage, $draw, zoneID)
             }
             return
         }
@@ -154,18 +156,25 @@
         }))
         
         mapComponent.attachDraw($draw)
-        $map.on("draw.create", function(e) {
+        $map.on("draw.create", function(e: DrawCreateEvent) {
             e.features[0].properties = {
-                'color_rgb': [127, 127, 127],
-                'color_rgb_str': EMPTY_POLYGON_RGB,
-                'coordinates': e.features[0].geometry.coordinates,
-                'road_lane_direction': -1,
-                'road_lane_num': -1,
-                'spatial_object_id': e.features[0].id,
-                'canvas_object_id': null,
+                color_rgb_str: EMPTY_POLYGON_RGB,
             }
             $draw.add(e.features[0])
             state.set(States.Waiting);
+        })
+
+        $map.on("draw.update", function(e: DrawUpdateEvent) {
+            const mapTargetFeature = e.features[0]
+            const spatialID = mapTargetFeature.id as string
+            let mustUpdateSpatial = [...$dataStorage].find((f) => f[1].properties.spatial_object_id === spatialID)?.[1]
+            if (!mustUpdateSpatial) {
+                console.warn(`Spatial ID '${spatialID}' not found in datastorage. Ignoring...`)
+                return
+            }
+            const spatialPolygon = mapTargetFeature.geometry as Polygon // @todo: Do we need type check?
+            mustUpdateSpatial.geometry.coordinates = spatialPolygon.coordinates
+            updateDataStorage(mustUpdateSpatial.id, mustUpdateSpatial)
         })
 
         const endpoint = `${initialAPIURL}/api/polygons/geojson`
@@ -173,12 +182,9 @@
             .then((response) => {
                 return response.json()
             })
-            .then((data) => {
-                data.features.forEach((feature: { properties: { spatial_object_id: any; canvas_object_id: any; color_rgb_str: string; color_rgb: any[]; }; id: any; }) => {
-                    feature.properties.spatial_object_id = feature.id;
-                    feature.properties.canvas_object_id = feature.id;
-                    feature.properties.color_rgb_str = `rgb(${feature.properties.color_rgb[0]},${feature.properties.color_rgb[1]},${feature.properties.color_rgb[2]})`;
-                    $dataStorage.set(feature.id, feature);
+            .then((data: ZonesCollection) => {
+                data.features.forEach((feature) => {
+                    addZoneFeature(feature)
                 });
                 $map.on('load', () => {
                     mapComponent.drawGeoPolygons($draw, $dataStorage);
@@ -198,6 +204,14 @@
         unsubscribeGeoData()
         unsubApiChange()
     });
+
+    function keyPress(e: KeyboardEvent) { 
+        if (e.key === "Escape") {
+            resetCurrentCanvasDrawing()
+            $draw.changeMode('simple_select')
+            state.set(States.Waiting)
+        }
+    }
 
     const initializeMaterialize = () => {
         const fixedButtons = document.querySelectorAll('.fixed-action-btn')
@@ -227,13 +241,13 @@
         fbCanvasParent = document.getElementsByClassName('custom-container-canvas')[0];
         fbCanvasParent.id = "fbcanvas";
         fbCanvas.on('selection:created', (options: any) => {
-            if ($state === States.DeletingZone) {
+            if ($state === States.DeletingZoneCanvas) {
                 deleteZoneFromCanvas(fbCanvas, options.selected[0].unid);
                 state.set(States.Waiting)
             }
         })
         fbCanvas.on('selection:updated', (options: any) => {
-            if ($state === States.DeletingZone) {
+            if ($state === States.DeletingZoneCanvas) {
                 deleteZoneFromCanvas(fbCanvas, options.selected[0].unid);
                 state.set(States.Waiting)
             }
@@ -296,8 +310,10 @@
                         $state = States.EditingZone;
                     } else {
                         $state = States.Waiting;
-                        //@ts-ignore
                         let existingContour = $dataStorage.get(contour.unid);
+                        if (!existingContour) {
+                            return
+                        }
                         //@ts-ignore
                         existingContour.properties.coordinates = contour.inner.current_points.map((element: { x: number; y: number; }) => {
                             return [
@@ -305,8 +321,7 @@
                                 Math.floor(element.y/scaleHeight)
                             ]
                         })
-                        //@ts-ignore
-                        $dataStorage.set(contour.unid, existingContour);
+                        updateDataStorage(contour.unid, existingContour)
                     }
                     editContour(contour.inner, fbCanvas);
                 }
@@ -332,8 +347,10 @@
                     vertextNotation.set({ left: vertex.x, top: vertex.y });
                 })
 
-                //@ts-ignore
                 let existingContour = $dataStorage.get(contour.unid);
+                if (!existingContour) {
+                    return
+                }
                 //@ts-ignore
                 existingContour.properties.coordinates = contour.inner.current_points.map((element: { x: number; y: number; }) => {
                     return [
@@ -341,8 +358,7 @@
                         Math.floor(element.y/scaleHeight)
                     ]
                 })
-                //@ts-ignore
-                $dataStorage.set(contour.unid, existingContour);
+                updateDataStorage(contour.unid, existingContour)
             })
             //@ts-ignore
             contour.unid = new UUIDv4().generate()
@@ -352,32 +368,29 @@
                 //@ts-ignore
                 contour.notation[idx].text_id = contour.unid
             })
-            //@ts-ignore
-            $dataStorage.set(contour.unid, {
+            const newContour = {
                 type: 'Feature',
-                //@ts-ignore
                 id: contour.unid,
                 properties: {
+                    color_rgb: rgba2array(contour.inner.stroke),
+                    color_rgb_str: contour.inner.stroke ? contour.inner.stroke : "rgb(0, 0, 0)",
                     //@ts-ignore
-                    'color_rgb': rgba2array(contour.inner.stroke),
-                    'color_rgb_str': contour.inner.stroke,
-                    //@ts-ignore
-                    'coordinates': contour.inner.current_points.map((element: { x: number; y: number; }) => {
+                    coordinates: contour.inner.current_points.map((element: { x: number; y: number; }) => {
                         return [
                             Math.floor(element.x/scaleWidth),
                             Math.floor(element.y/scaleHeight)
                         ]
                     }),
-                    'road_lane_direction': -1,
-                    'road_lane_num': -1,
-                    'spatial_object_id': null,
-                    'canvas_object_id': null,
+                    road_lane_direction: -1,
+                    road_lane_num: -1,
+                    spatial_object_id: undefined
                 },
                 geometry: {
                     type: 'Polygon',
-                    coordinates: [[[], [], [], [], []]]
+                    coordinates: [[[-1, -1], [-1, -1], [-1, -1], [-1, -1], [-1, -1]]]
                 }
-            })
+            }
+            updateDataStorage(contour.unid, newContour)
             fbCanvas.add(contour.inner)
             contour.notation.forEach((vertextNotation: fabric.Text) => {
                 fbCanvas.add(vertextNotation)
@@ -391,6 +404,18 @@
         })
     }
 
+    const resetCurrentCanvasDrawing = () => {
+        contourTemporary.forEach((value) => {
+                fbCanvas.remove(value)
+        })
+        contourNotationTemporary.forEach((value) => {
+            fbCanvas.remove(value)
+        })
+        contourTemporary = []
+        contourNotationTemporary = []
+        contourFinalized = []
+    }
+    
     const drawCanvasPolygons = () => {
         $dataStorage.forEach(feature => {
             const contourFinalized = feature.properties.coordinates.map((element: any) => {
@@ -411,15 +436,17 @@
                         state.set(States.Waiting);
                         //@ts-ignore
                         let existingContour = $dataStorage.get(contour.unid);
+                        if (!existingContour) {
+                            return
+                        }
                         //@ts-ignore
-                        existingContour.properties.coordinates = contour.inner.current_points.map((element: any) => {
+                        existingContour.properties.coordinates = contour.inner.current_points.map((element: { x: number; y: number; }) => {
                             return [
                                 Math.floor(element.x/scaleWidth),
                                 Math.floor(element.y/scaleHeight)
                             ]
                         })
-                        //@ts-ignore
-                        $dataStorage.set(contour.unid, existingContour);
+                        updateDataStorage(contour.unid, existingContour)
                     }
                     editContour(contour.inner, fbCanvas);
                 }
@@ -448,15 +475,17 @@
 
                 //@ts-ignore
                 let existingContour = $dataStorage.get(contour.unid);
+                if (!existingContour) {
+                    return
+                }
                 //@ts-ignore
-                existingContour.properties.coordinates = contour.inner.current_points.map((element: any) => {
+                existingContour.properties.coordinates = contour.inner.current_points.map((element: { x: number; y: number; }) => {
                     return [
                         Math.floor(element.x/scaleWidth),
                         Math.floor(element.y/scaleHeight)
                     ]
                 })
-                //@ts-ignore
-                $dataStorage.set(contour.unid, existingContour)
+                updateDataStorage(contour.unid, existingContour)
             })
             //@ts-ignore
             contour.unid = feature.id
@@ -539,25 +568,28 @@
         fbCanvas.requestRenderAll();
     }
 
-    const deleteZoneFromCanvas = (fbCanvas: any, polygonID: string) => {
+    const deleteZoneFromCanvas = (fbCanvas: any, zoneID: string) => {
         fbCanvas.getObjects().forEach( (contour: { unid: string; }) => {
-            if (contour.unid === polygonID) {
+            if (contour.unid === zoneID) {
                 fbCanvas.remove(contour)
                 return
             }
         })
         fbCanvas.getObjects().forEach( (textObject: { text_id: string; }) => {
-            if (textObject.text_id === polygonID) {
+            if (textObject.text_id === zoneID) {
                 fbCanvas.remove(textObject)
                 return
             }
         })
-        $dataStorage.delete(polygonID)
-        $draw.getAll().features.forEach(element => {
-            if ((element?.properties?.canvas_object_id === polygonID || element?.properties?.spatial_object_id === polygonID) && element.id) {
-                $draw.delete(element.id as string)
-            }
-        })
+        deattachCanvasFromSpatial($dataStorage, $draw, zoneID)
+        deleteFromDataStorage(zoneID)
+    }
+
+    const deleteZoneFromMap = (ds: Map<any, any>, mdraw: MapboxDraw, zoneID: string) => {
+        deattachCanvasFromSpatial(ds, mdraw, zoneID)
+        deleteFromDataStorage(zoneID)
+        mdraw.delete(zoneID)
+        mdraw.changeMode("simple_select")
     }
 
     const stateAddToCanvas = () => {
@@ -581,16 +613,16 @@
     }
 
     const stateDelFromCanvas = () => {
-        if ($state !== States.DeletingZone) {
-            state.set(States.DeletingZone)
+        if ($state !== States.DeletingZoneCanvas) {
+            state.set(States.DeletingZoneCanvas)
         } else {
             state.set(States.Waiting)
         }
     }
 
     const stateDelFromMap = () => {
-        if ($state !== States.DeletingZone) {
-            state.set(States.DeletingZone)
+        if ($state !== States.DeletingZoneMap) {
+            state.set(States.DeletingZoneMap)
             $draw.changeMode('delete_zone');
         } else {
             state.set(States.Waiting)
@@ -601,7 +633,8 @@
     const saveTOML = () => {
         const sendData = {
             // Should send only zones with both canvas and spatial object IDs
-            data: Array.from($dataStorage.values()).filter((element)=> {return (element.properties.canvas_object_id && element.properties.spatial_object_id)}).map(element => {
+            data: dataStorageFiltered.map(e => {
+                const element = e[1]
                 return {
                     lane_number: element.properties.road_lane_num,  
                     lane_direction: element.properties.road_lane_direction,
@@ -645,14 +678,16 @@
         return 'rgb(' + r + ', ' + g + ', ' + b + ')';
     }
 
-    const rgba2array = (rgbValue: string) => {
+    const rgba2array = (rgbValue?: string): [number, number, number] => {
+        if (!rgbValue) {
+            return [0, 0, 0];
+        }
         // https://stackoverflow.com/a/34980657/6026885
         const match = rgbValue.match(/rgba?\((\d{1,3}), ?(\d{1,3}), ?(\d{1,3})\)?(?:, ?(\d(?:\.\d?))\))?/);
-        return match ? [
-            match[1],
-            match[2],
-            match[3]
-        ].map(Number) : [];
+        if (!match) {
+            return [0, 0, 0];
+        }
+        return [parseInt(match[1]), parseInt(match[2]), parseInt(match[3])]
     }
 
     // define a function that can locate the controls.
@@ -718,6 +753,8 @@
 	<title>{title}</title>
 </sveltekit:head>
 
+<svelte:window on:keydown={keyPress} />
+
 <div id="main-app">
     <div class="fixed-action-btn horizontal click-to-toggle spin-close">
         <!-- svelte-ignore a11y-missing-attribute -->
@@ -749,12 +786,12 @@
     </div>
     <div id="flex_component">
         <div id="grid_component">
-            <CanvasComponent />
-            <div id="configuration">
+            <CanvasComponent klass={!canvasFocused && mapFocused ? 'blurred noselect' : ''}/>
+            <div id="configuration" class={canvasFocused || mapFocused ? 'blurred noselect' : ''}>
                 <div id="configuration-content">
                     <ul id="collapsible-data" class="collapsible">
                         {#if $dataReady === true}
-                            {#each [...$dataStorage] as [k, element]}
+                            {#each dataStorageFiltered as [k, element]}
                                 <li>
                                     <div class="collapsible-header">
                                         <i class="material-icons">place</i>Polygon identifier: {element.id}
@@ -798,8 +835,8 @@
                 </div>
             </div>
         </div>
-        <MapComponent  bind:this={mapComponent}/>
-        <Switchers />
+        <MapComponent bind:this={mapComponent} klass={canvasFocused && !mapFocused ? 'blurred noselect' : ''}/>
+        <Switchers klass={canvasFocused || mapFocused ? 'blurred noselect' : ''}/>
     </div>
 </div>
 
@@ -929,4 +966,25 @@
         cursor: move;
     }
 
+    /* #main-app > #flex_component > *:not(.map-wrap) {
+        background: #ffd83c;
+        filter: blur(3px);
+    } */
+
+    .blurred {
+        /* background: #ffd83c; */
+        filter: blur(3px);
+        cursor: not-allowed !important;
+    }
+    .blurred div{
+        pointer-events: none;
+    }
+    .noselect {
+        -webkit-touch-callout: none; /* iOS Safari */
+        -webkit-user-select: none; /* Safari */
+        -khtml-user-select: none; /* Konqueror HTML */
+        -moz-user-select: none; /* Old versions of Firefox */
+        -ms-user-select: none; /* Internet Explorer/Edge */
+        user-select: none; /* Non-prefixed version, currently supported by Chrome, Edge, Opera and Firefox */
+    }
 </style>
