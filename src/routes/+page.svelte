@@ -6,11 +6,10 @@
     import CanvasComponent from '../components/CanvasComponent.svelte'
     import Switchers from '../components/Switchers.svelte'
     import { States, state, mjpegReady, dataReady, apiUrlStore, changeAPI } from '../store/state.js'
-    import MapboxDraw, { type DrawCreateEvent, type DrawUpdateEvent } from "@mapbox/mapbox-gl-draw"
+    import { type DrawCreateEvent, type DrawUpdateEvent } from "@mapbox/mapbox-gl-draw"
     import { dataStorage, addZoneFeature, updateDataStorage, deleteFromDataStorage, clearDataStorage, resetZoneSpatialInfo, deattachCanvasFromSpatial, type Zone, type ZonesCollection } from '../store/data_storage'
     import { map, draw } from '../store/map'
-    import { CUSTOM_GL_DRAW_STYLES, EMPTY_POLYGON_RGB } from '../lib/gl_draw_styles.js'
-    import { PolygonFourPointsOnly } from '../lib/custom_poly.js'
+    import { EMPTY_POLYGON_RGB } from '../lib/gl_draw_styles.js'
     import { DeleteClickedZone } from '../lib/custom_delete.js'
     import { getClickPoint, findLeftTopY, findLefTopX, getObjectSizeWithStroke, UUIDv4 } from '../lib/utils'
 	import type { Polygon } from 'geojson';
@@ -148,21 +147,6 @@
             }
             return
         }
-        draw.set(new MapboxDraw({
-            userProperties: true,
-            displayControlsDefault: false,
-            controls: {
-                polygon: false,
-                trash: false
-            },
-            // @ts-ignore
-            modes: Object.assign({
-                // draw_delete_zone: DeleteZoneOnClick,
-                draw_restricted_polygon: PolygonFourPointsOnly,
-                delete_zone: DeleteClickedZone
-            }, MapboxDraw.modes),
-            styles: CUSTOM_GL_DRAW_STYLES
-        }))
         
         mapComponent.attachDraw($draw)
         $map.on("draw.create", function(e: DrawCreateEvent) {
