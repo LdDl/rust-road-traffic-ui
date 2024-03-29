@@ -132,10 +132,23 @@
         // Override DeleteClickedZone click event
         DeleteClickedZone.onClick = (s: any, e: any) => {
             if (e.featureTarget && $state === States.DeletingZoneMap) {
-                const feature = e.featureTarget
-                const zoneID = feature.properties.id
+                const mapTargetFeature = e.featureTarget
+                const spatialID = mapTargetFeature.properties.id
                 state.set(States.Waiting)
-                deleteZoneFromMap($dataStorage, $draw, zoneID)
+                let mustUpdateSpatial = [...$dataStorage].find((f) => f[1].properties.spatial_object_id === spatialID)?.[1]
+                if (!mustUpdateSpatial) {
+                    console.warn(`Spatial ID '${spatialID}' not found in datastorage. Just removing from the spatial map...`)
+                    $draw.delete(spatialID)
+                    $draw.changeMode("simple_select")
+                    return
+                }
+                mustUpdateSpatial.properties.spatial_object_id = undefined;
+                mustUpdateSpatial.properties.road_lane_direction = -1;
+                mustUpdateSpatial.properties.road_lane_num = -1;
+                mustUpdateSpatial.geometry.coordinates = [[], [], [], [], []]
+                updateDataStorage(mustUpdateSpatial.id, mustUpdateSpatial)
+                $draw.delete(spatialID)
+                $draw.changeMode("simple_select")
             }
             return
         }
@@ -569,6 +582,7 @@
     }
 
     const deleteZoneFromCanvas = (fbCanvas: any, zoneID: string) => {
+        // Пересмотреть поведение
         fbCanvas.getObjects().forEach( (contour: { unid: string; }) => {
             if (contour.unid === zoneID) {
                 fbCanvas.remove(contour)
@@ -583,13 +597,6 @@
         })
         deattachCanvasFromSpatial($dataStorage, $draw, zoneID)
         deleteFromDataStorage(zoneID)
-    }
-
-    const deleteZoneFromMap = (ds: Map<any, any>, mdraw: MapboxDraw, zoneID: string) => {
-        deattachCanvasFromSpatial(ds, mdraw, zoneID)
-        deleteFromDataStorage(zoneID)
-        mdraw.delete(zoneID)
-        mdraw.changeMode("simple_select")
     }
 
     const stateAddToCanvas = () => {
