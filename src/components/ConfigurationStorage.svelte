@@ -14,7 +14,7 @@
                 {#each data as [k, element]}
                     <li>
                         <div class="collapsible-header">
-                            <i class="material-icons">place</i>Polygon identifier: {element.id}
+                            <i class="material-icons" style="color: {element.properties.color_rgb_str};">place</i>Polygon identifier: {element.id}
                         </div>
                         <div class="collapsible-body">
                             <table class="collapsible-table">
