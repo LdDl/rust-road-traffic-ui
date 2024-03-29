@@ -7,7 +7,7 @@
     import Switchers from '../components/Switchers.svelte'
     import { States, state, mjpegReady, dataReady, apiUrlStore, changeAPI } from '../store/state.js'
     import MapboxDraw, { type DrawCreateEvent, type DrawUpdateEvent } from "@mapbox/mapbox-gl-draw"
-    import { dataStorage, addZoneFeature, updateDataStorage, deleteFromDataStorage, clearDataStorage, deattachCanvasFromSpatial, type Zone, type ZonesCollection } from '../store/data_storage'
+    import { dataStorage, addZoneFeature, updateDataStorage, deleteFromDataStorage, clearDataStorage, resetZoneSpatialInfo, deattachCanvasFromSpatial, type Zone, type ZonesCollection } from '../store/data_storage'
     import { map, draw } from '../store/map'
     import { CUSTOM_GL_DRAW_STYLES, EMPTY_POLYGON_RGB } from '../lib/gl_draw_styles.js'
     import { PolygonFourPointsOnly } from '../lib/custom_poly.js'
@@ -142,11 +142,7 @@
                     $draw.changeMode("simple_select")
                     return
                 }
-                mustUpdateSpatial.properties.spatial_object_id = undefined;
-                mustUpdateSpatial.properties.road_lane_direction = -1;
-                mustUpdateSpatial.properties.road_lane_num = -1;
-                mustUpdateSpatial.geometry.coordinates = [[], [], [], [], []]
-                updateDataStorage(mustUpdateSpatial.id, mustUpdateSpatial)
+                resetZoneSpatialInfo($dataStorage, mustUpdateSpatial.id)
                 $draw.delete(spatialID)
                 $draw.changeMode("simple_select")
             }

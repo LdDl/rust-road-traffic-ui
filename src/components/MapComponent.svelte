@@ -161,7 +161,6 @@
     };
 
     const attachSpatialToDataStorage = (mapTargetFeature: Feature, targetFeatureID: string, options = {road_lane_direction: -1, road_lane_num: -1}) => {
-        console.log(mapTargetFeature, targetFeatureID)
         if (targetFeatureID === '' || targetFeatureID === null || targetFeatureID === undefined) {
             return
         }
@@ -170,7 +169,15 @@
         }
         const spatialID = mapTargetFeature.id as string
 
-        let mustUpdateSpatial = [...$dataStorage].find((f) => f[1].id === targetFeatureID && f[1].properties.spatial_object_id !== spatialID)?.[1]
+        const sameObject = [...$dataStorage].find((f) => f[1].id === targetFeatureID && f[1].properties.spatial_object_id === spatialID)?.[1]
+        if (sameObject) {
+            sameObject.properties.road_lane_direction = options.road_lane_direction
+            sameObject.properties.road_lane_num = options.road_lane_num
+            updateDataStorage(targetFeatureID, sameObject)
+            return
+        }
+
+        const mustUpdateSpatial = [...$dataStorage].find((f) => f[1].id === targetFeatureID && f[1].properties.spatial_object_id !== spatialID)?.[1]
         if (!mustUpdateSpatial) {
             console.error(`ID '${targetFeatureID}' not found in datastorage`)
             return

@@ -110,6 +110,14 @@ export const deattachCanvasFromSpatial = (storage: Map<string, Zone>, mdraw: Map
   }
   mdraw.add(drawFeature);
   mdraw.setFeatureProperty(drawFeature.id as string, 'color_rgb_str', EMPTY_POLYGON_RGB);
+}
+
+
+export const resetZoneSpatialInfo = (storage: Map<string, Zone>, zoneID: string): void => {
+  const zone = storage.get(zoneID)
+  if (!zone) {
+    return
+  }
   zone.properties.spatial_object_id = undefined;
   zone.properties.road_lane_direction = -1;
   zone.properties.road_lane_num = -1;
