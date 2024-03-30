@@ -14,5 +14,6 @@
   .switcher-container {
     position: fixed;
     right: 0;
+    z-index: 997;
   }
 </style>

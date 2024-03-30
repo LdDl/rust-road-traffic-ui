@@ -772,13 +772,15 @@
             </li>
         </ul>
     </div>
-    <div id="flex_component">
-        <div id="grid_component">
+    <Switchers klass={canvasFocused || mapFocused ? 'blurred noselect' : ''}/>
+    <div id="main_workspace">
+        <div id="left_workspace">
             <CanvasComponent klass={!canvasFocused && mapFocused ? 'blurred noselect' : ''}/>
             <ConfigurationStorage dataReady={dataReady} data={dataStorageFiltered} klass={canvasFocused || mapFocused ? 'blurred noselect' : ''}/>
         </div>
-        <MapComponent bind:this={mapComponent} klass={canvasFocused && !mapFocused ? 'blurred noselect' : ''}/>
-        <Switchers klass={canvasFocused || mapFocused ? 'blurred noselect' : ''}/>
+        <div id="right_workspace">
+            <MapComponent bind:this={mapComponent} klass={canvasFocused && !mapFocused ? 'blurred noselect' : ''}/>
+        </div>
     </div>
 </div>
 
@@ -789,7 +791,6 @@
         padding: 0;
         font-family: 'Roboto', sans-serif;
 	}
-    
     .fixed-action-btn.spin-close .btn-large {
         position: relative;
     }
@@ -837,13 +838,14 @@
         transform: rotate(405deg);
     }
 
-    #flex_component {
-        display: flex;
+    #main_workspace {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
         /* font-family: arial, sans-serif; */
         height: 100%
     }
 
-    #grid_component {
+    #left_workspace {
         width: 100%;
         /* color: #ff00ff; */
         background: #eeeeee;
@@ -869,7 +871,7 @@
         cursor: move;
     }
 
-    /* #main-app > #flex_component > *:not(.map-wrap) {
+    /* #main-app > #main_workspace > *:not(.map-wrap) {
         background: #ffd83c;
         filter: blur(3px);
     } */
