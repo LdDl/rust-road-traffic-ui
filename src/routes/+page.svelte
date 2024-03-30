@@ -48,6 +48,15 @@
         return (element[1].id && element[1].properties.spatial_object_id)
     })
 
+    const cancelActionTexts: Map<States, string> = new Map([
+        [States.AddingZoneCanvas, 'Adding zone to the canvas'],
+        [States.DeletingZoneCanvas, 'Deleting zone from the canvas'],
+        [States.AddingZoneMap, 'Adding zone to the map'],
+        [States.DeletingZoneMap, 'Deleting zone from the map'],
+    ])
+    const cancelActionUnexpected = 'Unexpected action'
+    $: cancelActionText = cancelActionTexts.get($state)
+
     const unsubApiChange = changeAPI.subscribe(value => {
         if (initialAPIURL !== value) {
             console.log(`Need to change API URL for Data: '${$apiURL}'`)
@@ -777,9 +786,15 @@
         <div id="left_workspace">
             <CanvasComponent klass={!canvasFocused && mapFocused ? 'blurred noselect' : ''}/>
             <ConfigurationStorage dataReady={dataReady} data={dataStorageFiltered} klass={canvasFocused || mapFocused ? 'blurred noselect' : ''}/>
+            <div class="overlay" style="{!canvasFocused && mapFocused ? 'display: block;' : 'display: none;'}">
+                Press ESC to cancel '{cancelActionText !== undefined? cancelActionText : cancelActionUnexpected}' mode
+            </div>
         </div>
         <div id="right_workspace">
             <MapComponent bind:this={mapComponent} klass={canvasFocused && !mapFocused ? 'blurred noselect' : ''}/>
+            <div class="overlay" style="{canvasFocused && !mapFocused ? 'display: block;' : 'display: none;'}">
+                Press ESC to cancel '{cancelActionText !== undefined? cancelActionText : cancelActionUnexpected}' mode
+            </div>
         </div>
     </div>
 </div>
@@ -791,6 +806,24 @@
         padding: 0;
         font-family: 'Roboto', sans-serif;
 	}
+
+    #right_workspace, #left_workspace {
+        position: relative;
+    }
+    
+    .overlay {
+        justify-content: center;
+        align-items: center;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background-color: rgba(128, 128, 128, 0.8);
+        padding: 0.66665rem;
+        border-radius: 5px;
+        pointer-events: none;
+    }
+
     .fixed-action-btn.spin-close .btn-large {
         position: relative;
     }
