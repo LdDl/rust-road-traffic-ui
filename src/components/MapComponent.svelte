@@ -6,7 +6,7 @@
     import 'maplibre-gl/dist/maplibre-gl.css'
     import { map, draw } from '../store/map'
     import { mapStyleStore, changeStyle } from '../store/state'
-    import { dataStorage, updateDataStorage } from '../store/data_storage'
+    import { dataStorage, updateDataStorage, resetZoneSpatialInfo } from '../store/data_storage'
     import { EMPTY_POLYGON_RGB } from '../lib/gl_draw_styles.js'
 	import type { Feature, GeoJsonObject, Polygon } from 'geojson';
     
@@ -167,43 +167,36 @@
         if (!mapTargetFeature.properties || !mapTargetFeature.id) {
             return
         }
-        const spatialID = mapTargetFeature.id as string
-
-        const sameObject = [...$dataStorage].find((f) => f[1].id === targetFeatureID && f[1].properties.spatial_object_id === spatialID)?.[1]
-        if (sameObject) {
-            sameObject.properties.road_lane_direction = options.road_lane_direction
-            sameObject.properties.road_lane_num = options.road_lane_num
-            updateDataStorage(targetFeatureID, sameObject)
-            return
-        }
-
-        const mustUpdateSpatial = [...$dataStorage].find((f) => f[1].id === targetFeatureID && f[1].properties.spatial_object_id !== spatialID)?.[1]
-        if (!mustUpdateSpatial) {
+        const targetFeature = $dataStorage.get(targetFeatureID)
+        if (!targetFeature) {
             console.error(`ID '${targetFeatureID}' not found in datastorage`)
             return
         }
-        const prevSpatialID = mustUpdateSpatial.properties.spatial_object_id
+        const spatialID = mapTargetFeature.id as string
+        // Reset style for previously attached spatial object if possible
+        const prevSpatialID = targetFeature.properties.spatial_object_id
         if (prevSpatialID) {
-            // Reset info fo MAP object if it was attached to the same data storage object
-            const mapPrevFeature = $draw.get(prevSpatialID)
-            if (mapPrevFeature) {
-                $draw.add(mapPrevFeature) // Just to trigger re-draw
-                $draw.setFeatureProperty(prevSpatialID, 'color_rgb_str', EMPTY_POLYGON_RGB);
-            } else {
-                console.error(`ID '${prevSpatialID}' not found on the map, but data storage has it attached to ID '${mustUpdateSpatial.id}'`)
+            const prevMapFeature = $draw.get(prevSpatialID)
+            if (prevMapFeature) {
+                $draw.add(prevMapFeature) // Just to trigger re-draw
+                $draw.setFeatureProperty(prevSpatialID, 'color_rgb_str', EMPTY_POLYGON_RGB);                    
             }
         }
-        // Update datastorage (actual attachment)
-        mustUpdateSpatial.properties.spatial_object_id = spatialID
-        mustUpdateSpatial.properties.road_lane_direction = options.road_lane_direction
-        mustUpdateSpatial.properties.road_lane_num = options.road_lane_num
-        const spatialPolygon = mapTargetFeature.geometry as Polygon // @todo: Do we need type check?
-        mustUpdateSpatial.geometry.coordinates = spatialPolygon.coordinates
-        updateDataStorage(targetFeatureID, mustUpdateSpatial)
+        // Reset datastore object if current spatial object has been attached to the one
+        const prevFeature = [...$dataStorage].find((f) => f[1].id !== targetFeatureID && f[1].properties.spatial_object_id === spatialID)?.[1]
+        if (prevFeature) {
+            resetZoneSpatialInfo($dataStorage, prevFeature.id)
+        }
 
-        // Update information for MAP object
+        // Update datastorage (actual attachment)
+        targetFeature.properties.spatial_object_id = spatialID
+        targetFeature.properties.road_lane_direction = options.road_lane_direction
+        targetFeature.properties.road_lane_num = options.road_lane_num
+        const spatialPolygon = mapTargetFeature.geometry as Polygon // @todo: Do we need type check?
+        targetFeature.geometry.coordinates = spatialPolygon.coordinates
+        updateDataStorage(targetFeatureID, targetFeature)
         $draw.add(mapTargetFeature) // Just to trigger re-draw
-        $draw.setFeatureProperty(spatialID, 'color_rgb_str', mustUpdateSpatial.properties.color_rgb_str);
+        $draw.setFeatureProperty(spatialID, 'color_rgb_str', targetFeature.properties.color_rgb_str);
     }
 </script>
   
