@@ -45,6 +45,54 @@
     const cancelActionUnexpected = 'Unexpected action'
     $: cancelActionText = cancelActionTexts.get($state)
 
+    enum SubscriberState {
+        Init = 'init',
+        ReInit = 're-init'
+    }
+
+    const initSubscribers = (subType: SubscriberState) => {
+        unsubscribeMJPEG = mjpegReady.subscribe(value => {
+            if (value === true) {
+                // Initialize canvas if it's empty (due the MJPEG error)
+                if (fbCanvas === undefined || fbCanvas == null) {
+                    initializeCanvas()
+                }
+            }
+            if (value === true && $dataReady == true) {
+                console.log(`MJPEG is loaded after geo data: ${subType}`)
+                drawCanvasPolygons(fbCanvas, state, $dataStorage, updateDataStorage)
+            }
+        })
+        unsubscribeGeoData = dataReady.subscribe(value => {
+            if (value === true && $mjpegReady == true) {
+                console.log(`MJPEG is loaded before geo data: '${subType}'`)
+                drawCanvasPolygons(fbCanvas, state, $dataStorage, updateDataStorage)
+            }
+        })
+        const endpoint = `${initialAPIURL}/api/polygons/geojson`
+        fetch(`${endpoint}`)
+            .then((response) => {
+                return response.json()
+            })
+            .then((data: ZonesCollection) => {
+                data.features.forEach((feature: ZoneFeature) => {
+                    addZoneFeature(feature)
+                });
+                if (subType === SubscriberState.ReInit) {
+                    console.log('loaded')
+                    mapComponent.drawGeoPolygons($draw, $dataStorage);
+                } else {
+                    $map.on('load', () => {
+                        mapComponent.drawGeoPolygons($draw, $dataStorage);
+                    });
+                }
+                dataReady.set(true)
+            })
+            .catch((error) => {
+                console.log(`Error on loading polygons ['${subType}']`, error)
+            })
+    }
+
     const unsubApiChange = changeAPI.subscribe(value => {
         if (initialAPIURL !== value) {
             console.log(`Need to change API URL for Data: '${$apiURL}'`)
@@ -56,75 +104,21 @@
             unsubscribeMJPEG()
             unsubscribeGeoData()
             clearDataStorage()
-
             if (fbCanvas !== undefined && fbCanvas != null) {
                 //@ts-ignore
                 fbCanvas.getObjects().forEach( (contour: { unid: string; }) => {
                     //@ts-ignore
                     fbCanvas.remove(contour);
-                    if ($draw !== null) {
-                        $draw.delete(contour.unid)
-                    }
                 })
             }
-
-            /* Re-init */
-            unsubscribeMJPEG = mjpegReady.subscribe(value => {
-            if (value === true) {
-                    // Initialize canvas if it's empty (due the MJPEG error)
-                    if (fbCanvas === undefined || fbCanvas == null) {
-                        initializeCanvas()
-                    }
-                }
-                if (value === true && $dataReady == true) {
-                    // console.log(`MJPEG is loaded before geo data`)
-                    drawCanvasPolygons(fbCanvas, state, $dataStorage, updateDataStorage)
-                }
-            })
-            unsubscribeGeoData = dataReady.subscribe(value => {
-                if (value === true && $mjpegReady == true) {
-                    // console.log(`Geo data is loaded before MJPEG`)
-                    drawCanvasPolygons(fbCanvas, state, $dataStorage, updateDataStorage)
-                }
-            })
-            const endpoint = `${initialAPIURL}/api/polygons/geojson`
-            fetch(`${endpoint}`)
-                .then((response) => {
-                    return response.json()
-                })
-                .then((data: ZonesCollection) => {
-                    data.features.forEach((feature) => {
-                        addZoneFeature(feature)
-                    });
-                    mapComponent.drawGeoPolygons($draw, $dataStorage);
-                    dataReady.set(true)
-                })
-                .catch((error) => {
-                    console.log('Error on loading polygons', error)
-                })
+            $draw.deleteAll()
+            initSubscribers(SubscriberState.ReInit)
         }
     })
 
     onMount(() => {
         console.log('Mounted')
-
-        // Initialize subscribers
-        unsubscribeMJPEG = mjpegReady.subscribe(value => {
-        if (value === true) {
-                initializeCanvas()
-            }
-            if (value === true && $dataReady == true) {
-                console.log(`MJPEG is loaded before geo data`)
-                drawCanvasPolygons(fbCanvas, state, $dataStorage, updateDataStorage)
-            }
-        })
-
-        unsubscribeGeoData = dataReady.subscribe(value => {
-            if (value === true && $mjpegReady == true) {
-                console.log(`Geo data is loaded before MJPEG`)
-                drawCanvasPolygons(fbCanvas, state, $dataStorage, updateDataStorage)
-            }
-        })
+        initSubscribers(SubscriberState.Init)
 
         // Override DeleteClickedZone click event
         DeleteClickedZone.onClick = (s: any, e: any) => {
@@ -167,24 +161,6 @@
             mustUpdateSpatial.geometry.coordinates = spatialPolygon.coordinates
             updateDataStorage(mustUpdateSpatial.id, mustUpdateSpatial)
         })
-
-        const endpoint = `${initialAPIURL}/api/polygons/geojson`
-        fetch(`${endpoint}`)
-            .then((response) => {
-                return response.json()
-            })
-            .then((data: ZonesCollection) => {
-                data.features.forEach((feature: ZoneFeature) => {
-                    addZoneFeature(feature)
-                });
-                $map.on('load', () => {
-                    mapComponent.drawGeoPolygons($draw, $dataStorage);
-                });
-                dataReady.set(true)
-            })
-            .catch((error) => {
-                console.log('Error on loading polygons [initial]', error)
-            })
     });
 
     onDestroy(() => {
