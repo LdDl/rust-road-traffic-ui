@@ -10,21 +10,29 @@ export interface FabricCanvasWrap extends fabric.Canvas {
     editContour (contour: fabric.Polygon): void;
     scaleWidth: number;
     scaleHeight: number;
+    contourTemporary: Array<fabric.Line>;
+    contourNotationTemporary: Array<fabric.Text>;
+    contourFinalized: Array<ContourPoint>;
 }
 
 export class ExtendedCanvas extends fabric.Canvas implements FabricCanvasWrap {
     scaleWidth: number;
     scaleHeight: number;
+    contourTemporary: Array<fabric.Line>;
+    contourNotationTemporary: Array<fabric.Text>;
+    contourFinalized: Array<ContourPoint>;
     constructor(element: string | HTMLCanvasElement, options?: fabric.ICanvasOptions) {
         super(element, options);
         this.scaleWidth = 1;
         this.scaleHeight = 1;
+        this.contourTemporary = new Array<fabric.Line>()
+        this.contourNotationTemporary = new Array<fabric.Text>()
+        this.contourFinalized = new Array<ContourPoint>()
     }
     editContour(contour: fabric.Polygon): void {
         this.setActiveObject(contour);
         //@ts-ignore
         contour.edit = !contour.edit;
-        console.log("hi")
         //@ts-ignore
         if (contour.edit) {
             let lastControl = (contour?.points?.length as number) - 1;

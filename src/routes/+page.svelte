@@ -15,7 +15,7 @@
     import { getClickPoint, UUIDv4, rgba2array } from '../lib/utils'
 	import type { Polygon } from 'geojson';
 	import { ExtendedCanvas, makeContour, type FabricCanvasWrap, verticesChars, drawCanvasPolygons, type ContourPoint } from '$lib/custom_canvas';
-	import type { Zone, ZoneFeature, ZonesCollection } from '$lib/zones';
+	import type { ZoneFeature, ZonesCollection } from '$lib/zones';
 	import { saveTOML } from '$lib/rest_api_mutations';
 
     const { apiURL } = apiUrlStore
@@ -27,9 +27,6 @@
     let image: HTMLImageElement
     let fbCanvas: FabricCanvasWrap
     let fbCanvasParent: Element
-    let contourTemporary = new Array<fabric.Line>()
-    let contourNotationTemporary = new Array<fabric.Text>()
-    let contourFinalized = new Array<ContourPoint>()
     let mapComponent: any
     let unsubscribeMJPEG: Unsubscriber
     let unsubscribeGeoData: Unsubscriber
@@ -48,6 +45,54 @@
     const cancelActionUnexpected = 'Unexpected action'
     $: cancelActionText = cancelActionTexts.get($state)
 
+    enum SubscriberState {
+        Init = 'init',
+        ReInit = 're-init'
+    }
+
+    const initSubscribers = (subType: SubscriberState) => {
+        unsubscribeMJPEG = mjpegReady.subscribe(value => {
+            if (value === true) {
+                // Initialize canvas if it's empty (due the MJPEG error)
+                if (fbCanvas === undefined || fbCanvas == null) {
+                    initializeCanvas()
+                }
+            }
+            if (value === true && $dataReady == true) {
+                console.log(`MJPEG is loaded after geo data: ${subType}`)
+                drawCanvasPolygons(fbCanvas, state, $dataStorage, updateDataStorage)
+            }
+        })
+        unsubscribeGeoData = dataReady.subscribe(value => {
+            if (value === true && $mjpegReady == true) {
+                console.log(`MJPEG is loaded before geo data: '${subType}'`)
+                drawCanvasPolygons(fbCanvas, state, $dataStorage, updateDataStorage)
+            }
+        })
+        const endpoint = `${initialAPIURL}/api/polygons/geojson`
+        fetch(`${endpoint}`)
+            .then((response) => {
+                return response.json()
+            })
+            .then((data: ZonesCollection) => {
+                data.features.forEach((feature: ZoneFeature) => {
+                    addZoneFeature(feature)
+                });
+                if (subType === SubscriberState.ReInit) {
+                    console.log('loaded')
+                    mapComponent.drawGeoPolygons($draw, $dataStorage);
+                } else {
+                    $map.on('load', () => {
+                        mapComponent.drawGeoPolygons($draw, $dataStorage);
+                    });
+                }
+                dataReady.set(true)
+            })
+            .catch((error) => {
+                console.log(`Error on loading polygons ['${subType}']`, error)
+            })
+    }
+
     const unsubApiChange = changeAPI.subscribe(value => {
         if (initialAPIURL !== value) {
             console.log(`Need to change API URL for Data: '${$apiURL}'`)
@@ -59,75 +104,21 @@
             unsubscribeMJPEG()
             unsubscribeGeoData()
             clearDataStorage()
-
             if (fbCanvas !== undefined && fbCanvas != null) {
                 //@ts-ignore
                 fbCanvas.getObjects().forEach( (contour: { unid: string; }) => {
                     //@ts-ignore
                     fbCanvas.remove(contour);
-                    if ($draw !== null) {
-                        $draw.delete(contour.unid)
-                    }
                 })
             }
-
-            /* Re-init */
-            unsubscribeMJPEG = mjpegReady.subscribe(value => {
-            if (value === true) {
-                    // Initialize canvas if it's empty (due the MJPEG error)
-                    if (fbCanvas === undefined || fbCanvas == null) {
-                        initializeCanvas()
-                    }
-                }
-                if (value === true && $dataReady == true) {
-                    // console.log(`MJPEG is loaded before geo data`)
-                    drawCanvasPolygons(fbCanvas, state, $dataStorage, updateDataStorage)
-                }
-            })
-            unsubscribeGeoData = dataReady.subscribe(value => {
-                if (value === true && $mjpegReady == true) {
-                    // console.log(`Geo data is loaded before MJPEG`)
-                    drawCanvasPolygons(fbCanvas, state, $dataStorage, updateDataStorage)
-                }
-            })
-            const endpoint = `${initialAPIURL}/api/polygons/geojson`
-            fetch(`${endpoint}`)
-                .then((response) => {
-                    return response.json()
-                })
-                .then((data: ZonesCollection) => {
-                    data.features.forEach((feature) => {
-                        addZoneFeature(feature)
-                    });
-                    mapComponent.drawGeoPolygons($draw, $dataStorage);
-                    dataReady.set(true)
-                })
-                .catch((error) => {
-                    console.log('Error on loading polygons', error)
-                })
+            $draw.deleteAll()
+            initSubscribers(SubscriberState.ReInit)
         }
     })
 
     onMount(() => {
         console.log('Mounted')
-
-        // Initialize subscribers
-        unsubscribeMJPEG = mjpegReady.subscribe(value => {
-        if (value === true) {
-                initializeCanvas()
-            }
-            if (value === true && $dataReady == true) {
-                console.log(`MJPEG is loaded before geo data`)
-                drawCanvasPolygons(fbCanvas, state, $dataStorage, updateDataStorage)
-            }
-        })
-
-        unsubscribeGeoData = dataReady.subscribe(value => {
-            if (value === true && $mjpegReady == true) {
-                console.log(`Geo data is loaded before MJPEG`)
-                drawCanvasPolygons(fbCanvas, state, $dataStorage, updateDataStorage)
-            }
-        })
+        initSubscribers(SubscriberState.Init)
 
         // Override DeleteClickedZone click event
         DeleteClickedZone.onClick = (s: any, e: any) => {
@@ -170,24 +161,6 @@
             mustUpdateSpatial.geometry.coordinates = spatialPolygon.coordinates
             updateDataStorage(mustUpdateSpatial.id, mustUpdateSpatial)
         })
-
-        const endpoint = `${initialAPIURL}/api/polygons/geojson`
-        fetch(`${endpoint}`)
-            .then((response) => {
-                return response.json()
-            })
-            .then((data: ZonesCollection) => {
-                data.features.forEach((feature: ZoneFeature) => {
-                    addZoneFeature(feature)
-                });
-                $map.on('load', () => {
-                    mapComponent.drawGeoPolygons($draw, $dataStorage);
-                });
-                dataReady.set(true)
-            })
-            .catch((error) => {
-                console.log('Error on loading polygons [initial]', error)
-            })
     });
 
     onDestroy(() => {
@@ -201,7 +174,7 @@
 
     function keyPress(e: KeyboardEvent) { 
         if (e.key === "Escape") {
-            resetCurrentCanvasDrawing()
+            resetCurrentCanvasDrawing(fbCanvas)
             $draw.changeMode('simple_select')
             state.set(States.Waiting)
         }
@@ -247,26 +220,26 @@
             }
         })
         fbCanvas.on('mouse:move', (options: any) => {
-            if (contourTemporary[0] !== null && contourTemporary[0] !== undefined && $state === States.AddingZoneCanvas) {
+            if (fbCanvas.contourTemporary[0] !== null && fbCanvas.contourTemporary[0] !== undefined && $state === States.AddingZoneCanvas) {
                 const clicked = getClickPoint(fbCanvas, options)
-                contourTemporary[contourTemporary.length - 1].set({ x2: clicked.x, y2: clicked.y })
+                fbCanvas.contourTemporary[fbCanvas.contourTemporary.length - 1].set({ x2: clicked.x, y2: clicked.y })
                 fbCanvas.renderAll()
             }
-        })
+        });
         fbCanvas.on('mouse:down', (options: any) => {
             if ($state !== States.AddingZoneCanvas) {
                 return
             }
             fbCanvas.selection = false
             const clicked = getClickPoint(fbCanvas, options)
-            contourFinalized.push({ x: clicked.x, y: clicked.y })
+            fbCanvas.contourFinalized.push({ x: clicked.x, y: clicked.y })
             const points = [clicked.x, clicked.y, clicked.x, clicked.y]
             const newLine = new fabric.Line(points, {
                 strokeWidth: 3,
                 selectable: false,
                 stroke: 'purple',
             })
-            const newVertexNotation = new fabric.Text(verticesChars[contourFinalized.length-1], {
+            const newVertexNotation = new fabric.Text(verticesChars[fbCanvas.contourFinalized.length-1], {
                 left: clicked.x,
                 top: clicked.y,
                 fontSize: 24,
@@ -276,24 +249,24 @@
                 stroke: 'rgb(0, 0, 0)',
                 strokeWidth: 0.9,
             })
-            contourNotationTemporary.push(newVertexNotation)
-            contourTemporary.push(newLine)
+            fbCanvas.contourNotationTemporary.push(newVertexNotation)
+            fbCanvas.contourTemporary.push(newLine)
             fbCanvas.add(newLine)
             fbCanvas.add(newVertexNotation)
             fbCanvas.on('mouse:up', function (options: any) {
                 fbCanvas.selection = true;
             })
-            if (contourFinalized.length <= 3) {
+            if (fbCanvas.contourFinalized.length <= 3) {
                 // Return till there are four points in contour atleast
                 return
             }
-            contourTemporary.forEach((value) => {
+            fbCanvas.contourTemporary.forEach((value) => {
                 fbCanvas.remove(value)
             })
-            contourNotationTemporary.forEach((value) => {
+            fbCanvas.contourNotationTemporary.forEach((value) => {
                 fbCanvas.remove(value)
             })
-            const contour = makeContour(contourFinalized)
+            const contour = makeContour(fbCanvas.contourFinalized)
             contour.inner.on('mousedown', (options: any) => {
                 options.e.preventDefault();
                 options.e.stopPropagation();
@@ -390,37 +363,37 @@
                 fbCanvas.add(vertextNotation)
             })
             fbCanvas.renderAll()
-            contourTemporary = []
-            contourNotationTemporary = []
-            contourFinalized = []
+            fbCanvas.contourTemporary = []
+            fbCanvas.contourNotationTemporary = []
+            fbCanvas.contourFinalized = []
             state.set(States.Waiting)
             $draw.changeMode('simple_select')
         })
     }
 
-    const resetCurrentCanvasDrawing = () => {
-        contourTemporary.forEach((value) => {
-                fbCanvas.remove(value)
+    const resetCurrentCanvasDrawing = (extendedCanvas: FabricCanvasWrap) => {
+        extendedCanvas.contourTemporary.forEach((value) => {
+            extendedCanvas.remove(value)
         })
-        contourNotationTemporary.forEach((value) => {
-            fbCanvas.remove(value)
+        extendedCanvas.contourNotationTemporary.forEach((value) => {
+            extendedCanvas.remove(value)
         })
-        contourTemporary = []
-        contourNotationTemporary = []
-        contourFinalized = []
+        extendedCanvas.contourTemporary = []
+        extendedCanvas.contourNotationTemporary = []
+        extendedCanvas.contourFinalized = []
     }
     
-    const deleteZoneFromCanvas = (fbCanvas: any, zoneID: string) => {
+    const deleteZoneFromCanvas = (extendedCanvas: any, zoneID: string) => {
         // Пересмотреть поведение
-        fbCanvas.getObjects().forEach( (contour: { unid: string; }) => {
+        extendedCanvas.getObjects().forEach( (contour: { unid: string; }) => {
             if (contour.unid === zoneID) {
-                fbCanvas.remove(contour)
+                extendedCanvas.remove(contour)
                 return
             }
         })
-        fbCanvas.getObjects().forEach( (textObject: { text_id: string; }) => {
+        extendedCanvas.getObjects().forEach( (textObject: { text_id: string; }) => {
             if (textObject.text_id === zoneID) {
-                fbCanvas.remove(textObject)
+                extendedCanvas.remove(textObject)
                 return
             }
         })
