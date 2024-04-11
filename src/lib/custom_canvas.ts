@@ -151,3 +151,88 @@ export const makeContour = (coordinates: any, color = getRandomRGB()): ContourWr
     contour.current_points = contour.points;
     return { inner: contour , unid: '00000000-0000-0000-0000-000000000000', notation: denotedVertices};
 }
+
+export const drawCanvasPolygons = (extendedCanvas: FabricCanvasWrap, state: Writable<States>, storage: Map<string, Zone>, updateDataStorageFn: (key: string, value: Zone) => void) => {
+    storage.forEach(feature => {
+        const contourFinalized = feature.properties.coordinates.map((element: any) => {
+            return {
+                x: element[0]*extendedCanvas.scaleWidth,
+                y: element[1]*extendedCanvas.scaleHeight
+            }
+        });
+        let contour = makeContour(contourFinalized, `rgb(${feature.properties.color_rgb[0]},${feature.properties.color_rgb[1]},${feature.properties.color_rgb[2]})`);
+        contour.inner.on('mousedown', (options: any) => {
+            options.e.preventDefault();
+            options.e.stopPropagation();
+            // state = States.PickPolygon;
+            if (options.button === 3) {
+                const stateVal = get(state)
+                if (stateVal != States.EditingZone) {
+                    state.set(States.EditingZone);
+                } else {
+                    state.set(States.Waiting);
+                    let existingContour = storage.get(contour.unid);
+                    if (!existingContour) {
+                        return
+                    }
+                    //@ts-ignore
+                    existingContour.properties.coordinates = contour.inner.current_points.map((element: { x: number; y: number; }) => {
+                        return [
+                            Math.floor(element.x/extendedCanvas.scaleWidth),
+                            Math.floor(element.y/extendedCanvas.scaleHeight)
+                        ]
+                    })
+                    updateDataStorageFn(contour.unid, existingContour)
+                }
+                extendedCanvas.editContour(contour.inner);
+            }
+        });
+        contour.inner.on('modified', (options: any) => {
+            // Recalculate points
+            const matrix = contour.inner.calcTransformMatrix();
+            //@ts-ignore
+            const transformedPoints = contour.inner.points.map(function (p) {
+                return new fabric.Point(
+                    p.x - contour.inner.pathOffset.x,
+                    p.y - contour.inner.pathOffset.y
+                );
+            }).map(function (p) {
+                return fabric.util.transformPoint(p, matrix);
+            });
+            //@ts-ignore
+            contour.inner.current_points = transformedPoints;
+
+            // Update notation
+            contour.notation.forEach((vertextNotation: fabric.Text, idx: number) => {
+                //@ts-ignore
+                const vertex = contour.inner.current_points[idx]
+                vertextNotation.set({ left: vertex.x, top: vertex.y })
+            })
+            let existingContour = storage.get(contour.unid);
+            if (!existingContour) {
+                return
+            }
+            //@ts-ignore
+            existingContour.properties.coordinates = contour.inner.current_points.map((element: { x: number; y: number; }) => {
+                return [
+                    Math.floor(element.x/extendedCanvas.scaleWidth),
+                    Math.floor(element.y/extendedCanvas.scaleHeight)
+                ]
+            })
+            updateDataStorageFn(contour.unid, existingContour)
+        })
+        //@ts-ignore
+        contour.unid = feature.id
+        //@ts-ignore
+        contour.inner.unid = feature.id
+        contour.notation.forEach((_, idx) => {
+            //@ts-ignore
+            contour.notation[idx].text_id = feature.id
+        })
+        extendedCanvas.add(contour.inner);
+        contour.notation.forEach((vertextNotation: fabric.Text) => {
+            extendedCanvas.add(vertextNotation)
+        })
+        extendedCanvas.renderAll()
+    })
+}

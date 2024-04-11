@@ -14,22 +14,11 @@
     import { DeleteClickedZone } from '../lib/custom_delete.js'
     import { getClickPoint, UUIDv4, rgba2array } from '../lib/utils'
 	import type { Polygon } from 'geojson';
-	import { ExtendedCanvas, makeContour, type FabricCanvasWrap, verticesChars } from '$lib/custom_canvas';
+	import { ExtendedCanvas, makeContour, type FabricCanvasWrap, verticesChars, drawCanvasPolygons, type ContourPoint } from '$lib/custom_canvas';
 	import type { ZoneFeature, ZonesCollection } from '$lib/zones';
 
     const { apiURL } = apiUrlStore
     let initialAPIURL = $apiURL
-
-    interface ContourPoint {
-        x: number,
-        y: number
-    }
-
-    interface ContourWrap {
-        inner: fabric.Polygon,
-        unid: string,
-        notation: fabric.Text[]
-    }
 
 	const title = 'Rust Road Traffic UI'
     // let scaleWidth: number, scaleHeight: number
@@ -91,13 +80,13 @@
                 }
                 if (value === true && $dataReady == true) {
                     // console.log(`MJPEG is loaded before geo data`)
-                    drawCanvasPolygons()
+                    drawCanvasPolygons(fbCanvas, state, $dataStorage, updateDataStorage)
                 }
             })
             unsubscribeGeoData = dataReady.subscribe(value => {
                 if (value === true && $mjpegReady == true) {
                     // console.log(`Geo data is loaded before MJPEG`)
-                    drawCanvasPolygons()
+                    drawCanvasPolygons(fbCanvas, state, $dataStorage, updateDataStorage)
                 }
             })
             const endpoint = `${initialAPIURL}/api/polygons/geojson`
@@ -128,14 +117,14 @@
             }
             if (value === true && $dataReady == true) {
                 console.log(`MJPEG is loaded before geo data`)
-                drawCanvasPolygons()
+                drawCanvasPolygons(fbCanvas, state, $dataStorage, updateDataStorage)
             }
         })
 
         unsubscribeGeoData = dataReady.subscribe(value => {
             if (value === true && $mjpegReady == true) {
                 console.log(`Geo data is loaded before MJPEG`)
-                drawCanvasPolygons()
+                drawCanvasPolygons(fbCanvas, state, $dataStorage, updateDataStorage)
             }
         })
 
@@ -420,93 +409,6 @@
         contourFinalized = []
     }
     
-    const drawCanvasPolygons = () => {
-        $dataStorage.forEach(feature => {
-            const contourFinalized = feature.properties.coordinates.map((element: any) => {
-                return {
-                    x: element[0]*fbCanvas.scaleWidth,
-                    y: element[1]*fbCanvas.scaleHeight
-                }
-            });
-            let contour = makeContour(contourFinalized, `rgb(${feature.properties.color_rgb[0]},${feature.properties.color_rgb[1]},${feature.properties.color_rgb[2]})`);
-            contour.inner.on('mousedown', (options: any) => {
-                options.e.preventDefault();
-                options.e.stopPropagation();
-                // state = States.PickPolygon;
-                if (options.button === 3) {
-                    if ($state != States.EditingZone) {
-                        state.set(States.EditingZone);
-                    } else {
-                        state.set(States.Waiting);
-                        //@ts-ignore
-                        let existingContour = $dataStorage.get(contour.unid);
-                        if (!existingContour) {
-                            return
-                        }
-                        //@ts-ignore
-                        existingContour.properties.coordinates = contour.inner.current_points.map((element: { x: number; y: number; }) => {
-                            return [
-                                Math.floor(element.x/fbCanvas.scaleWidth),
-                                Math.floor(element.y/fbCanvas.scaleHeight)
-                            ]
-                        })
-                        updateDataStorage(contour.unid, existingContour)
-                    }
-                    fbCanvas.editContour(contour.inner);
-                }
-            });
-            contour.inner.on('modified', (options: any) => {
-                // Recalculate points
-                const matrix = contour.inner.calcTransformMatrix();
-                //@ts-ignore
-                const transformedPoints = contour.inner.points.map(function (p) {
-                    return new fabric.Point(
-                        p.x - contour.inner.pathOffset.x,
-                        p.y - contour.inner.pathOffset.y
-                    );
-                }).map(function (p) {
-                    return fabric.util.transformPoint(p, matrix);
-                });
-                //@ts-ignore
-                contour.inner.current_points = transformedPoints;
-
-                // Update notation
-                contour.notation.forEach((vertextNotation: fabric.Text, idx: number) => {
-                    //@ts-ignore
-                    const vertex = contour.inner.current_points[idx]
-                    vertextNotation.set({ left: vertex.x, top: vertex.y })
-                })
-
-                //@ts-ignore
-                let existingContour = $dataStorage.get(contour.unid);
-                if (!existingContour) {
-                    return
-                }
-                //@ts-ignore
-                existingContour.properties.coordinates = contour.inner.current_points.map((element: { x: number; y: number; }) => {
-                    return [
-                        Math.floor(element.x/fbCanvas.scaleWidth),
-                        Math.floor(element.y/fbCanvas.scaleHeight)
-                    ]
-                })
-                updateDataStorage(contour.unid, existingContour)
-            })
-            //@ts-ignore
-            contour.unid = feature.id
-            //@ts-ignore
-            contour.inner.unid = feature.id
-            contour.notation.forEach((_, idx) => {
-                //@ts-ignore
-                contour.notation[idx].text_id = feature.id
-            })
-            fbCanvas.add(contour.inner);
-            contour.notation.forEach((vertextNotation: fabric.Text) => {
-                fbCanvas.add(vertextNotation)
-            })
-            fbCanvas.renderAll()
-        })
-    }
-
     const deleteZoneFromCanvas = (fbCanvas: any, zoneID: string) => {
         // Пересмотреть поведение
         fbCanvas.getObjects().forEach( (contour: { unid: string; }) => {
