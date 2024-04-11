@@ -8,12 +8,14 @@
     import ConfigurationStorage from '../components/ConfigurationStorage.svelte';
     import { States, state, mjpegReady, dataReady, apiUrlStore, changeAPI } from '../store/state.js'
     import { type DrawCreateEvent, type DrawUpdateEvent } from "@mapbox/mapbox-gl-draw"
-    import { dataStorage, addZoneFeature, updateDataStorage, deleteFromDataStorage, clearDataStorage, resetZoneSpatialInfo, deattachCanvasFromSpatial, type ZonesCollection } from '../store/data_storage'
+    import { dataStorage, addZoneFeature, updateDataStorage, deleteFromDataStorage, clearDataStorage, resetZoneSpatialInfo, deattachCanvasFromSpatial } from '../store/data_storage'
     import { map, draw } from '../store/map'
     import { EMPTY_POLYGON_RGB } from '../lib/gl_draw_styles.js'
     import { DeleteClickedZone } from '../lib/custom_delete.js'
-    import { getClickPoint, findLeftTopY, findLefTopX, getObjectSizeWithStroke, UUIDv4 } from '../lib/utils'
+    import { getClickPoint, UUIDv4, rgba2array } from '../lib/utils'
 	import type { Polygon } from 'geojson';
+	import { ExtendedCanvas, makeContour, type FabricCanvasWrap, verticesChars } from '$lib/custom_canvas';
+	import type { ZoneFeature, ZonesCollection } from '$lib/zones';
 
     const { apiURL } = apiUrlStore
     let initialAPIURL = $apiURL
@@ -30,15 +32,14 @@
     }
 
 	const title = 'Rust Road Traffic UI'
-    let scaleWidth: number, scaleHeight: number
+    // let scaleWidth: number, scaleHeight: number
     let canvas: HTMLCanvasElement
     let image: HTMLImageElement
-    let fbCanvas: fabric.Canvas
+    let fbCanvas: FabricCanvasWrap
     let fbCanvasParent: Element
     let contourTemporary = new Array<fabric.Line>()
     let contourNotationTemporary = new Array<fabric.Text>()
     let contourFinalized = new Array<ContourPoint>()
-    const verticesChars = ['A', 'B', 'C', 'D']
     let mapComponent: any
     let unsubscribeMJPEG: Unsubscriber
     let unsubscribeGeoData: Unsubscriber
@@ -186,7 +187,7 @@
                 return response.json()
             })
             .then((data: ZonesCollection) => {
-                data.features.forEach((feature) => {
+                data.features.forEach((feature: ZoneFeature) => {
                     addZoneFeature(feature)
                 });
                 $map.on('load', () => {
@@ -233,14 +234,14 @@
         image = document.getElementById('fit_img') as HTMLImageElement
         canvas.width = image.clientWidth
         canvas.height = image.clientHeight
-        scaleWidth = image.clientWidth/image.naturalWidth
-        scaleHeight = image.clientHeight/image.naturalHeight
-        fbCanvas = new fabric.Canvas('fit_canvas', {
+        fbCanvas = new ExtendedCanvas('fit_canvas', {
             containerClass: 'custom-container-canvas',
             fireRightClick: true,  
             fireMiddleClick: true, 
             stopContextMenu: true
         })
+        fbCanvas.scaleWidth = image.clientWidth/image.naturalWidth
+        fbCanvas.scaleHeight = image.clientHeight/image.naturalHeight
         fbCanvasParent = document.getElementsByClassName('custom-container-canvas')[0];
         fbCanvasParent.id = "fbcanvas";
         fbCanvas.on('selection:created', (options: any) => {
@@ -320,13 +321,13 @@
                         //@ts-ignore
                         existingContour.properties.coordinates = contour.inner.current_points.map((element: { x: number; y: number; }) => {
                             return [
-                                Math.floor(element.x/scaleWidth),
-                                Math.floor(element.y/scaleHeight)
+                                Math.floor(element.x/fbCanvas.scaleWidth),
+                                Math.floor(element.y/fbCanvas.scaleHeight)
                             ]
                         })
                         updateDataStorage(contour.unid, existingContour)
                     }
-                    editContour(contour.inner, fbCanvas);
+                    fbCanvas.editContour(contour.inner);
                 }
             });
             contour.inner.on('modified', (options: any) => {
@@ -357,8 +358,8 @@
                 //@ts-ignore
                 existingContour.properties.coordinates = contour.inner.current_points.map((element: { x: number; y: number; }) => {
                     return [
-                        Math.floor(element.x/scaleWidth),
-                        Math.floor(element.y/scaleHeight)
+                        Math.floor(element.x/fbCanvas.scaleWidth),
+                        Math.floor(element.y/fbCanvas.scaleHeight)
                     ]
                 })
                 updateDataStorage(contour.unid, existingContour)
@@ -380,8 +381,8 @@
                     //@ts-ignore
                     coordinates: contour.inner.current_points.map((element: { x: number; y: number; }) => {
                         return [
-                            Math.floor(element.x/scaleWidth),
-                            Math.floor(element.y/scaleHeight)
+                            Math.floor(element.x/fbCanvas.scaleWidth),
+                            Math.floor(element.y/fbCanvas.scaleHeight)
                         ]
                     }),
                     road_lane_direction: -1,
@@ -423,8 +424,8 @@
         $dataStorage.forEach(feature => {
             const contourFinalized = feature.properties.coordinates.map((element: any) => {
                 return {
-                    x: element[0]*scaleWidth,
-                    y: element[1]*scaleHeight
+                    x: element[0]*fbCanvas.scaleWidth,
+                    y: element[1]*fbCanvas.scaleHeight
                 }
             });
             let contour = makeContour(contourFinalized, `rgb(${feature.properties.color_rgb[0]},${feature.properties.color_rgb[1]},${feature.properties.color_rgb[2]})`);
@@ -445,13 +446,13 @@
                         //@ts-ignore
                         existingContour.properties.coordinates = contour.inner.current_points.map((element: { x: number; y: number; }) => {
                             return [
-                                Math.floor(element.x/scaleWidth),
-                                Math.floor(element.y/scaleHeight)
+                                Math.floor(element.x/fbCanvas.scaleWidth),
+                                Math.floor(element.y/fbCanvas.scaleHeight)
                             ]
                         })
                         updateDataStorage(contour.unid, existingContour)
                     }
-                    editContour(contour.inner, fbCanvas);
+                    fbCanvas.editContour(contour.inner);
                 }
             });
             contour.inner.on('modified', (options: any) => {
@@ -484,8 +485,8 @@
                 //@ts-ignore
                 existingContour.properties.coordinates = contour.inner.current_points.map((element: { x: number; y: number; }) => {
                     return [
-                        Math.floor(element.x/scaleWidth),
-                        Math.floor(element.y/scaleHeight)
+                        Math.floor(element.x/fbCanvas.scaleWidth),
+                        Math.floor(element.y/fbCanvas.scaleHeight)
                     ]
                 })
                 updateDataStorage(contour.unid, existingContour)
@@ -504,71 +505,6 @@
             })
             fbCanvas.renderAll()
         })
-    }
-
-    const makeContour = (coordinates: any, color = getRandomRGB()): ContourWrap => {
-        let left = findLefTopX(coordinates)
-        let top = findLeftTopY(coordinates)
-        let contour = new fabric.Polygon(coordinates, {
-            fill: 'rgba(0,0,0,0)',
-            stroke: color,
-            strokeWidth: 3,
-            objectCaching: false
-        })
-        contour.set({
-            left: left,
-            top: top,
-        })
-
-        const denotedVertices = new Array<fabric.Text>()
-        coordinates.forEach((point: ContourPoint, idx: number) => {
-            const vertexTextObject = new fabric.Text(verticesChars[idx], {
-                left: point.x,
-                top: point.y,
-                fontSize: 24,
-                fontFamily: 'Roboto',
-                fill: color,
-                shadow: '0 0 10px rgba(255, 255, 255, 0.7)',
-                stroke: 'rgb(0, 0, 0)',
-                strokeWidth: 0.9,
-            });
-            denotedVertices.push(vertexTextObject)
-        })
-
-        // Before `current_points` is undefined
-        //@ts-ignore
-        contour.current_points = contour.points;
-        return { inner: contour , unid: '00000000-0000-0000-0000-000000000000', notation: denotedVertices};
-    }
-
-    function editContour(contour: fabric.Polygon, fbCanvas: fabric.Canvas) {
-        fbCanvas.setActiveObject(contour);
-        //@ts-ignore
-        contour.edit = !contour.edit;
-        //@ts-ignore
-        if (contour.edit) {
-            let lastControl = (contour?.points?.length as number) - 1;
-            contour.cornerStyle = 'circle';
-            contour.cornerSize = 15;
-            contour.cornerColor = 'rgba(0, 0, 255, 1.0)';
-            contour.controls = contour?.points?.reduce(function(acc: any, point: any, index: any) {
-                acc['p' + index] = new fabric.Control({
-                    positionHandler: polygonPositionHandler,
-                    actionHandler: anchorWrapper(index > 0 ? index - 1 : lastControl, actionHandler),
-                    actionName: 'modifyPolygon',
-                    //@ts-ignore
-                    pointIndex: index
-                });
-                return acc;
-            }, { });
-        } else {
-            contour.cornerColor = 'rgb(178, 204, 255)';
-            contour.cornerStyle = 'rect';
-            contour.controls = fabric.Object.prototype.controls;
-        }
-        //@ts-ignore
-        contour.hasBorders = !contour.edit;
-        fbCanvas.requestRenderAll();
     }
 
     const deleteZoneFromCanvas = (fbCanvas: any, zoneID: string) => {
@@ -665,81 +601,6 @@
                 console.log('Error on replacing data', error)
             })
     }
-
-    function getRandomRGB() {
-        // https://stackoverflow.com/a/23095731/6026885
-        const num = Math.round(0xffffff * Math.random());
-        const r = num >> 16;
-        const g = num >> 8 & 255;
-        const b = num & 255;
-        return 'rgb(' + r + ', ' + g + ', ' + b + ')';
-    }
-
-    const rgba2array = (rgbValue?: string): [number, number, number] => {
-        if (!rgbValue) {
-            return [0, 0, 0];
-        }
-        // https://stackoverflow.com/a/34980657/6026885
-        const match = rgbValue.match(/rgba?\((\d{1,3}), ?(\d{1,3}), ?(\d{1,3})\)?(?:, ?(\d(?:\.\d?))\))?/);
-        if (!match) {
-            return [0, 0, 0];
-        }
-        return [parseInt(match[1]), parseInt(match[2]), parseInt(match[3])]
-    }
-
-    // define a function that can locate the controls.
-    // this function will be used both for drawing and for interaction.
-    // this is not an anonymus function since we need parent scope (`this`)
-    const polygonPositionHandler = function (this: { positionHandler: (dim: any, finalMatrix: any, fabricObject: any) => fabric.Point; actionHandler: (eventData: any, transform: any, x: any, y: any) => any; actionName: string; pointIndex: number; }, dim: any, finalMatrix: any, fabricObject: any) {
-        let x = (fabricObject.points[this.pointIndex].x - fabricObject.pathOffset.x)
-        let y = (fabricObject.points[this.pointIndex].y - fabricObject.pathOffset.y)
-        const pt = new fabric.Point(x, y)
-        return fabric.util.transformPoint(
-            pt,
-            fabric.util.multiplyTransformMatrices(
-                fabricObject.canvas.viewportTransform,
-                fabricObject.calcTransformMatrix()
-            )
-        )
-    }
-
-    // define a function that can keep the polygon in the same position when we change its
-    // width/height/top/left.
-    const anchorWrapper = function (anchorIndex: any, fn: any) {
-        return function(eventData: any, transform: any, x: any, y: any) {
-            let fabricObject = transform.target;
-            const pt = new fabric.Point((fabricObject.points[anchorIndex].x - fabricObject.pathOffset.x), (fabricObject.points[anchorIndex].y - fabricObject.pathOffset.y))
-            let absolutePoint = fabric.util.transformPoint(pt, fabricObject.calcTransformMatrix());
-            let actionPerformed = fn(eventData, transform, x, y);
-            let newDim = fabricObject._setPositionDimensions({});
-            let polygonBaseSize = getObjectSizeWithStroke(fabricObject);
-            let newX = (fabricObject.points[anchorIndex].x - fabricObject.pathOffset.x) / polygonBaseSize.x;
-            let newY = (fabricObject.points[anchorIndex].y - fabricObject.pathOffset.y) / polygonBaseSize.y;
-            fabricObject.setPositionByOrigin(absolutePoint, newX + 0.5, newY + 0.5);
-            return actionPerformed;
-        }
-    }
-
-    // define a function that will define what the control does
-    // this function will be called on every mouse move after a control has been
-    // clicked and is being dragged.
-    // The function receive as argument the mouse event, the current trasnform object
-    // and the current position in canvas coordinate
-    // transform.target is a reference to the current object being transformed,
-    const actionHandler = function (eventData: any, transform: any, x: any, y: any) {
-        let polygon = transform.target;
-        let currentControl = polygon.controls[polygon.__corner];
-        let mouseLocalPosition = polygon.toLocalPoint(new fabric.Point(x, y), 'center', 'center')
-        let polygonBaseSize = getObjectSizeWithStroke(polygon);
-        let size = polygon._getTransformedDimensions(0, 0);
-        let finalPointPosition = {
-            x: mouseLocalPosition.x * polygonBaseSize.x / size.x + polygon.pathOffset.x,
-            y: mouseLocalPosition.y * polygonBaseSize.y / size.y + polygon.pathOffset.y
-        };
-        polygon.points[currentControl.pointIndex] = finalPointPosition;
-        return true;
-    }
-
 </script>
 
 <sveltekit:head>

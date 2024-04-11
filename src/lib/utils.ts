@@ -1,6 +1,27 @@
 //@ts-nocheck
 import type { fabric } from 'fabric'
 
+export function getRandomRGB() {
+    // https://stackoverflow.com/a/23095731/6026885
+    const num = Math.round(0xffffff * Math.random());
+    const r = num >> 16;
+    const g = num >> 8 & 255;
+    const b = num & 255;
+    return 'rgb(' + r + ', ' + g + ', ' + b + ')';
+}
+
+export const rgba2array = (rgbValue?: string): [number, number, number] => {
+    if (!rgbValue) {
+        return [0, 0, 0];
+    }
+    // https://stackoverflow.com/a/34980657/6026885
+    const match = rgbValue.match(/rgba?\((\d{1,3}), ?(\d{1,3}), ?(\d{1,3})\)?(?:, ?(\d(?:\.\d?))\))?/);
+    if (!match) {
+        return [0, 0, 0];
+    }
+    return [parseInt(match[1]), parseInt(match[2]), parseInt(match[3])]
+}
+
 export const getClickPoint = (fbCanvas: fabric.Canvas, options: any) => {
     // const left = fbCanvas.getElement().offsetLeft;
     // const top = fbCanvas.getElement().offsetTop;
