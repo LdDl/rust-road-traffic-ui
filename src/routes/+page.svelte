@@ -15,7 +15,7 @@
     import { getClickPoint, UUIDv4, rgba2array } from '../lib/utils'
 	import type { Polygon } from 'geojson';
 	import { ExtendedCanvas, makeContour, type FabricCanvasWrap, verticesChars, drawCanvasPolygons, type ContourPoint } from '$lib/custom_canvas';
-	import type { Zone, ZoneFeature, ZonesCollection } from '$lib/zones';
+	import type { ZoneFeature, ZonesCollection } from '$lib/zones';
 	import { saveTOML } from '$lib/rest_api_mutations';
 
     const { apiURL } = apiUrlStore
@@ -198,7 +198,7 @@
 
     function keyPress(e: KeyboardEvent) { 
         if (e.key === "Escape") {
-            resetCurrentCanvasDrawing()
+            resetCurrentCanvasDrawing(fbCanvas)
             $draw.changeMode('simple_select')
             state.set(States.Waiting)
         }
@@ -395,16 +395,16 @@
         })
     }
 
-    const resetCurrentCanvasDrawing = () => {
-        fbCanvas.contourTemporary.forEach((value) => {
-            fbCanvas.remove(value)
+    const resetCurrentCanvasDrawing = (extendedCanvas: FabricCanvasWrap) => {
+        extendedCanvas.contourTemporary.forEach((value) => {
+            extendedCanvas.remove(value)
         })
-        fbCanvas.contourNotationTemporary.forEach((value) => {
-            fbCanvas.remove(value)
+        extendedCanvas.contourNotationTemporary.forEach((value) => {
+            extendedCanvas.remove(value)
         })
-        fbCanvas.contourTemporary = []
-        fbCanvas.contourNotationTemporary = []
-        fbCanvas.contourFinalized = []
+        extendedCanvas.contourTemporary = []
+        extendedCanvas.contourNotationTemporary = []
+        extendedCanvas.contourFinalized = []
     }
     
     const deleteZoneFromCanvas = (extendedCanvas: any, zoneID: string) => {
