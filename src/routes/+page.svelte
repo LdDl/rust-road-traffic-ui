@@ -14,22 +14,12 @@
     import { DeleteClickedZone } from '../lib/custom_delete.js'
     import { getClickPoint, UUIDv4, rgba2array } from '../lib/utils'
 	import type { Polygon } from 'geojson';
-	import { ExtendedCanvas, makeContour, type FabricCanvasWrap, verticesChars } from '$lib/custom_canvas';
-	import type { ZoneFeature, ZonesCollection } from '$lib/zones';
+	import { ExtendedCanvas, makeContour, type FabricCanvasWrap, verticesChars, drawCanvasPolygons, type ContourPoint } from '$lib/custom_canvas';
+	import type { Zone, ZoneFeature, ZonesCollection } from '$lib/zones';
+	import { saveTOML } from '$lib/rest_api_mutations';
 
     const { apiURL } = apiUrlStore
     let initialAPIURL = $apiURL
-
-    interface ContourPoint {
-        x: number,
-        y: number
-    }
-
-    interface ContourWrap {
-        inner: fabric.Polygon,
-        unid: string,
-        notation: fabric.Text[]
-    }
 
 	const title = 'Rust Road Traffic UI'
     // let scaleWidth: number, scaleHeight: number
@@ -91,13 +81,13 @@
                 }
                 if (value === true && $dataReady == true) {
                     // console.log(`MJPEG is loaded before geo data`)
-                    drawCanvasPolygons()
+                    drawCanvasPolygons(fbCanvas, state, $dataStorage, updateDataStorage)
                 }
             })
             unsubscribeGeoData = dataReady.subscribe(value => {
                 if (value === true && $mjpegReady == true) {
                     // console.log(`Geo data is loaded before MJPEG`)
-                    drawCanvasPolygons()
+                    drawCanvasPolygons(fbCanvas, state, $dataStorage, updateDataStorage)
                 }
             })
             const endpoint = `${initialAPIURL}/api/polygons/geojson`
@@ -128,14 +118,14 @@
             }
             if (value === true && $dataReady == true) {
                 console.log(`MJPEG is loaded before geo data`)
-                drawCanvasPolygons()
+                drawCanvasPolygons(fbCanvas, state, $dataStorage, updateDataStorage)
             }
         })
 
         unsubscribeGeoData = dataReady.subscribe(value => {
             if (value === true && $mjpegReady == true) {
                 console.log(`Geo data is loaded before MJPEG`)
-                drawCanvasPolygons()
+                drawCanvasPolygons(fbCanvas, state, $dataStorage, updateDataStorage)
             }
         })
 
@@ -420,93 +410,6 @@
         contourFinalized = []
     }
     
-    const drawCanvasPolygons = () => {
-        $dataStorage.forEach(feature => {
-            const contourFinalized = feature.properties.coordinates.map((element: any) => {
-                return {
-                    x: element[0]*fbCanvas.scaleWidth,
-                    y: element[1]*fbCanvas.scaleHeight
-                }
-            });
-            let contour = makeContour(contourFinalized, `rgb(${feature.properties.color_rgb[0]},${feature.properties.color_rgb[1]},${feature.properties.color_rgb[2]})`);
-            contour.inner.on('mousedown', (options: any) => {
-                options.e.preventDefault();
-                options.e.stopPropagation();
-                // state = States.PickPolygon;
-                if (options.button === 3) {
-                    if ($state != States.EditingZone) {
-                        state.set(States.EditingZone);
-                    } else {
-                        state.set(States.Waiting);
-                        //@ts-ignore
-                        let existingContour = $dataStorage.get(contour.unid);
-                        if (!existingContour) {
-                            return
-                        }
-                        //@ts-ignore
-                        existingContour.properties.coordinates = contour.inner.current_points.map((element: { x: number; y: number; }) => {
-                            return [
-                                Math.floor(element.x/fbCanvas.scaleWidth),
-                                Math.floor(element.y/fbCanvas.scaleHeight)
-                            ]
-                        })
-                        updateDataStorage(contour.unid, existingContour)
-                    }
-                    fbCanvas.editContour(contour.inner);
-                }
-            });
-            contour.inner.on('modified', (options: any) => {
-                // Recalculate points
-                const matrix = contour.inner.calcTransformMatrix();
-                //@ts-ignore
-                const transformedPoints = contour.inner.points.map(function (p) {
-                    return new fabric.Point(
-                        p.x - contour.inner.pathOffset.x,
-                        p.y - contour.inner.pathOffset.y
-                    );
-                }).map(function (p) {
-                    return fabric.util.transformPoint(p, matrix);
-                });
-                //@ts-ignore
-                contour.inner.current_points = transformedPoints;
-
-                // Update notation
-                contour.notation.forEach((vertextNotation: fabric.Text, idx: number) => {
-                    //@ts-ignore
-                    const vertex = contour.inner.current_points[idx]
-                    vertextNotation.set({ left: vertex.x, top: vertex.y })
-                })
-
-                //@ts-ignore
-                let existingContour = $dataStorage.get(contour.unid);
-                if (!existingContour) {
-                    return
-                }
-                //@ts-ignore
-                existingContour.properties.coordinates = contour.inner.current_points.map((element: { x: number; y: number; }) => {
-                    return [
-                        Math.floor(element.x/fbCanvas.scaleWidth),
-                        Math.floor(element.y/fbCanvas.scaleHeight)
-                    ]
-                })
-                updateDataStorage(contour.unid, existingContour)
-            })
-            //@ts-ignore
-            contour.unid = feature.id
-            //@ts-ignore
-            contour.inner.unid = feature.id
-            contour.notation.forEach((_, idx) => {
-                //@ts-ignore
-                contour.notation[idx].text_id = feature.id
-            })
-            fbCanvas.add(contour.inner);
-            contour.notation.forEach((vertextNotation: fabric.Text) => {
-                fbCanvas.add(vertextNotation)
-            })
-            fbCanvas.renderAll()
-        })
-    }
-
     const deleteZoneFromCanvas = (fbCanvas: any, zoneID: string) => {
         // Пересмотреть поведение
         fbCanvas.getObjects().forEach( (contour: { unid: string; }) => {
@@ -562,45 +465,6 @@
             $draw.changeMode('simple_select');
         }
     }
-
-    const saveTOML = () => {
-        const sendData = {
-            // Should send only zones with both canvas and spatial object IDs
-            data: dataStorageFiltered.map(e => {
-                const element = e[1]
-                return {
-                    lane_number: element.properties.road_lane_num,  
-                    lane_direction: element.properties.road_lane_direction,
-                    color_rgb: element.properties.color_rgb,
-                    pixel_points: element.properties.coordinates,
-                    spatial_points: [...element.geometry.coordinates[0].slice(0, -1)]
-                };
-            })
-        };
-        console.log('Replacing data')
-        const endpointReplace = `${initialAPIURL}/api/mutations/replace_all`
-        fetch(`${endpointReplace}`, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(sendData)})
-            .then((response) => {
-                return response.json()
-            })
-            .then((data) => {
-                const endpointSave = `${initialAPIURL}/api/mutations/save_toml`
-                console.log('Replacing configuration with polygons:', data)
-                fetch(`${endpointSave}`, {method: 'GET'})
-                    .then((response) => {
-                        return response.json()
-                    })
-                    .then((data) => {
-                        console.log("Configuration has been updated. Reply from server:", data)
-                    })
-                    .catch((error) => {
-                        console.log('Error on updating configuration:', error)
-                    })
-            })
-            .catch((error) => {
-                console.log('Error on replacing data', error)
-            })
-    }
 </script>
 
 <sveltekit:head>
@@ -638,7 +502,7 @@
             </li>
             <li>
                 <!-- svelte-ignore a11y-click-events-have-key-events -->
-                <a id="save-btn" class="btn-floating grey" on:click={saveTOML} title="Apply and save changes" aria-label="Apply and save changes" role="button" tabindex="0"><i class="material-icons">save</i></a>
+                <a id="save-btn" class="btn-floating grey" on:click={() => saveTOML(initialAPIURL, dataStorageFiltered)} title="Apply and save changes" aria-label="Apply and save changes" role="button" tabindex="0"><i class="material-icons">save</i></a>
             </li>
         </ul>
     </div>
