@@ -27,9 +27,6 @@
     let image: HTMLImageElement
     let fbCanvas: FabricCanvasWrap
     let fbCanvasParent: Element
-    let contourTemporary = new Array<fabric.Line>()
-    let contourNotationTemporary = new Array<fabric.Text>()
-    let contourFinalized = new Array<ContourPoint>()
     let mapComponent: any
     let unsubscribeMJPEG: Unsubscriber
     let unsubscribeGeoData: Unsubscriber
@@ -247,26 +244,26 @@
             }
         })
         fbCanvas.on('mouse:move', (options: any) => {
-            if (contourTemporary[0] !== null && contourTemporary[0] !== undefined && $state === States.AddingZoneCanvas) {
+            if (fbCanvas.contourTemporary[0] !== null && fbCanvas.contourTemporary[0] !== undefined && $state === States.AddingZoneCanvas) {
                 const clicked = getClickPoint(fbCanvas, options)
-                contourTemporary[contourTemporary.length - 1].set({ x2: clicked.x, y2: clicked.y })
+                fbCanvas.contourTemporary[fbCanvas.contourTemporary.length - 1].set({ x2: clicked.x, y2: clicked.y })
                 fbCanvas.renderAll()
             }
-        })
+        });
         fbCanvas.on('mouse:down', (options: any) => {
             if ($state !== States.AddingZoneCanvas) {
                 return
             }
             fbCanvas.selection = false
             const clicked = getClickPoint(fbCanvas, options)
-            contourFinalized.push({ x: clicked.x, y: clicked.y })
+            fbCanvas.contourFinalized.push({ x: clicked.x, y: clicked.y })
             const points = [clicked.x, clicked.y, clicked.x, clicked.y]
             const newLine = new fabric.Line(points, {
                 strokeWidth: 3,
                 selectable: false,
                 stroke: 'purple',
             })
-            const newVertexNotation = new fabric.Text(verticesChars[contourFinalized.length-1], {
+            const newVertexNotation = new fabric.Text(verticesChars[fbCanvas.contourFinalized.length-1], {
                 left: clicked.x,
                 top: clicked.y,
                 fontSize: 24,
@@ -276,24 +273,24 @@
                 stroke: 'rgb(0, 0, 0)',
                 strokeWidth: 0.9,
             })
-            contourNotationTemporary.push(newVertexNotation)
-            contourTemporary.push(newLine)
+            fbCanvas.contourNotationTemporary.push(newVertexNotation)
+            fbCanvas.contourTemporary.push(newLine)
             fbCanvas.add(newLine)
             fbCanvas.add(newVertexNotation)
             fbCanvas.on('mouse:up', function (options: any) {
                 fbCanvas.selection = true;
             })
-            if (contourFinalized.length <= 3) {
+            if (fbCanvas.contourFinalized.length <= 3) {
                 // Return till there are four points in contour atleast
                 return
             }
-            contourTemporary.forEach((value) => {
+            fbCanvas.contourTemporary.forEach((value) => {
                 fbCanvas.remove(value)
             })
-            contourNotationTemporary.forEach((value) => {
+            fbCanvas.contourNotationTemporary.forEach((value) => {
                 fbCanvas.remove(value)
             })
-            const contour = makeContour(contourFinalized)
+            const contour = makeContour(fbCanvas.contourFinalized)
             contour.inner.on('mousedown', (options: any) => {
                 options.e.preventDefault();
                 options.e.stopPropagation();
@@ -390,37 +387,37 @@
                 fbCanvas.add(vertextNotation)
             })
             fbCanvas.renderAll()
-            contourTemporary = []
-            contourNotationTemporary = []
-            contourFinalized = []
+            fbCanvas.contourTemporary = []
+            fbCanvas.contourNotationTemporary = []
+            fbCanvas.contourFinalized = []
             state.set(States.Waiting)
             $draw.changeMode('simple_select')
         })
     }
 
     const resetCurrentCanvasDrawing = () => {
-        contourTemporary.forEach((value) => {
-                fbCanvas.remove(value)
-        })
-        contourNotationTemporary.forEach((value) => {
+        fbCanvas.contourTemporary.forEach((value) => {
             fbCanvas.remove(value)
         })
-        contourTemporary = []
-        contourNotationTemporary = []
-        contourFinalized = []
+        fbCanvas.contourNotationTemporary.forEach((value) => {
+            fbCanvas.remove(value)
+        })
+        fbCanvas.contourTemporary = []
+        fbCanvas.contourNotationTemporary = []
+        fbCanvas.contourFinalized = []
     }
     
-    const deleteZoneFromCanvas = (fbCanvas: any, zoneID: string) => {
+    const deleteZoneFromCanvas = (extendedCanvas: any, zoneID: string) => {
         // Пересмотреть поведение
-        fbCanvas.getObjects().forEach( (contour: { unid: string; }) => {
+        extendedCanvas.getObjects().forEach( (contour: { unid: string; }) => {
             if (contour.unid === zoneID) {
-                fbCanvas.remove(contour)
+                extendedCanvas.remove(contour)
                 return
             }
         })
-        fbCanvas.getObjects().forEach( (textObject: { text_id: string; }) => {
+        extendedCanvas.getObjects().forEach( (textObject: { text_id: string; }) => {
             if (textObject.text_id === zoneID) {
-                fbCanvas.remove(textObject)
+                extendedCanvas.remove(textObject)
                 return
             }
         })
