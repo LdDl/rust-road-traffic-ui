@@ -16,6 +16,7 @@
 	import type { Polygon } from 'geojson';
 	import { ExtendedCanvas, makeContour, type FabricCanvasWrap, verticesChars, drawCanvasPolygons, type ContourPoint } from '$lib/custom_canvas';
 	import type { Zone, ZoneFeature, ZonesCollection } from '$lib/zones';
+	import { saveTOML } from '$lib/rest_api_mutations';
 
     const { apiURL } = apiUrlStore
     let initialAPIURL = $apiURL
@@ -463,45 +464,6 @@
             state.set(States.Waiting)
             $draw.changeMode('simple_select');
         }
-    }
-
-    const saveTOML = (baseURL: string, dataToSave: [string, Zone][]) => {
-        const sendData = {
-            // Should send only zones with both canvas and spatial object IDs
-            data: dataToSave.map(e => {
-                const element = e[1]
-                return {
-                    lane_number: element.properties.road_lane_num,  
-                    lane_direction: element.properties.road_lane_direction,
-                    color_rgb: element.properties.color_rgb,
-                    pixel_points: element.properties.coordinates,
-                    spatial_points: [...element.geometry.coordinates[0].slice(0, -1)]
-                };
-            })
-        };
-        console.log('Replacing data')
-        const endpointReplace = `${baseURL}/api/mutations/replace_all`
-        fetch(`${endpointReplace}`, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(sendData)})
-            .then((response) => {
-                return response.json()
-            })
-            .then((data) => {
-                const endpointSave = `${baseURL}/api/mutations/save_toml`
-                console.log('Replacing configuration with polygons:', data)
-                fetch(`${endpointSave}`, {method: 'GET'})
-                    .then((response) => {
-                        return response.json()
-                    })
-                    .then((data) => {
-                        console.log("Configuration has been updated. Reply from server:", data)
-                    })
-                    .catch((error) => {
-                        console.log('Error on updating configuration:', error)
-                    })
-            })
-            .catch((error) => {
-                console.log('Error on replacing data', error)
-            })
     }
 </script>
 
