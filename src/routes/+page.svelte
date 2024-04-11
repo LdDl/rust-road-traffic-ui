@@ -15,7 +15,7 @@
     import { getClickPoint, UUIDv4, rgba2array } from '../lib/utils'
 	import type { Polygon } from 'geojson';
 	import { ExtendedCanvas, makeContour, type FabricCanvasWrap, verticesChars, drawCanvasPolygons, type ContourPoint } from '$lib/custom_canvas';
-	import type { ZoneFeature, ZonesCollection } from '$lib/zones';
+	import type { Zone, ZoneFeature, ZonesCollection } from '$lib/zones';
 
     const { apiURL } = apiUrlStore
     let initialAPIURL = $apiURL
@@ -465,10 +465,10 @@
         }
     }
 
-    const saveTOML = () => {
+    const saveTOML = (baseURL: string, dataToSave: [string, Zone][]) => {
         const sendData = {
             // Should send only zones with both canvas and spatial object IDs
-            data: dataStorageFiltered.map(e => {
+            data: dataToSave.map(e => {
                 const element = e[1]
                 return {
                     lane_number: element.properties.road_lane_num,  
@@ -480,13 +480,13 @@
             })
         };
         console.log('Replacing data')
-        const endpointReplace = `${initialAPIURL}/api/mutations/replace_all`
+        const endpointReplace = `${baseURL}/api/mutations/replace_all`
         fetch(`${endpointReplace}`, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(sendData)})
             .then((response) => {
                 return response.json()
             })
             .then((data) => {
-                const endpointSave = `${initialAPIURL}/api/mutations/save_toml`
+                const endpointSave = `${baseURL}/api/mutations/save_toml`
                 console.log('Replacing configuration with polygons:', data)
                 fetch(`${endpointSave}`, {method: 'GET'})
                     .then((response) => {
@@ -540,7 +540,7 @@
             </li>
             <li>
                 <!-- svelte-ignore a11y-click-events-have-key-events -->
-                <a id="save-btn" class="btn-floating grey" on:click={saveTOML} title="Apply and save changes" aria-label="Apply and save changes" role="button" tabindex="0"><i class="material-icons">save</i></a>
+                <a id="save-btn" class="btn-floating grey" on:click={() => saveTOML(initialAPIURL, dataStorageFiltered)} title="Apply and save changes" aria-label="Apply and save changes" role="button" tabindex="0"><i class="material-icons">save</i></a>
             </li>
         </ul>
     </div>
