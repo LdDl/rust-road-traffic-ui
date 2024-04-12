@@ -178,6 +178,53 @@ export const makeContour = (coordinates: any, color = getRandomRGB()): ContourWr
     return contour
 }
 
+export function contourMouseDownEventWrapper(state: Writable<States>, storage: Map<string, Zone>, updateDataStorageFn: (key: string, value: Zone) => void) {
+    return function(options: IEvent<MouseEvent>) {
+        const targetContour = options.target
+        if (!targetContour) {
+            console.error('Empty target contour. Options:', options)
+            return
+        }
+        if (!(targetContour instanceof CustomPolygon)) {
+            console.error('Unhandled type. Only CustomPolygon on top of fabric.Object has been implemented. Options:', options)
+        }
+        const targetPolygon = targetContour as CustomPolygon
+        const targetExtendedCanvas: FabricCanvasWrap | undefined = targetContour.canvas as FabricCanvasWrap | undefined
+        if (!targetExtendedCanvas) {
+            console.error('Empty target canvas. Options:', options)
+            return
+        }
+        options.e.preventDefault();
+        options.e.stopPropagation();
+        // Handle right-click
+        // Turn on "Edit" mode
+        if (options.button === 3) {
+            const stateVal = get(state) // Bad practice, since it subscriber with instant unsubscribe
+            if (stateVal != States.EditingZone) {
+                state.set(States.EditingZone);
+            } else {
+                state.set(States.Waiting);
+                let existingContour = storage.get(targetPolygon.unid);
+                if (!existingContour) {
+                    return
+                }
+                if (!targetPolygon.current_points) {
+                    console.error('No current points in target polygon. Options:', options)
+                    return
+                }
+                existingContour.properties.coordinates = targetPolygon.current_points.map((element: { x: number; y: number; }) => {
+                    return [
+                        Math.floor(element.x/targetExtendedCanvas.scaleWidth),
+                        Math.floor(element.y/targetExtendedCanvas.scaleHeight)
+                    ]
+                }) as [[number, number], [number, number], [number, number], [number, number]]
+                updateDataStorageFn(targetPolygon.unid, existingContour)
+            }
+            targetExtendedCanvas.editContour(targetPolygon);
+        }                
+    }
+}
+
 export const drawCanvasPolygons = (extendedCanvas: FabricCanvasWrap, state: Writable<States>, storage: Map<string, Zone>, updateDataStorageFn: (key: string, value: Zone) => void) => {
     storage.forEach(feature => {
         const contourFinalized = feature.properties.coordinates.map((element: any) => {
@@ -187,50 +234,7 @@ export const drawCanvasPolygons = (extendedCanvas: FabricCanvasWrap, state: Writ
             }
         });
         let contour = makeContour(contourFinalized, `rgb(${feature.properties.color_rgb[0]},${feature.properties.color_rgb[1]},${feature.properties.color_rgb[2]})`);
-        contour.inner.on('mousedown', (options: IEvent<MouseEvent>) => {
-            const targetContour = options.target
-            if (!targetContour) {
-                console.error('Empty target contour. Options:', options)
-                return
-            }
-            if (!(targetContour instanceof CustomPolygon)) {
-                console.error('Unhandled type. Only CustomPolygon on top of fabric.Object has been implemented. Options:', options)
-            }
-            const targetPolygon = targetContour as CustomPolygon
-            const targetExtendedCanvas: FabricCanvasWrap | undefined = targetContour.canvas as FabricCanvasWrap | undefined
-            if (!targetExtendedCanvas) {
-                console.error('Empty target canvas. Options:', options)
-                return
-            }
-            options.e.preventDefault();
-            options.e.stopPropagation();
-            // Handle right-click
-            // Turn on "Edit" mode
-            if (options.button === 3) {
-                const stateVal = get(state) // Bad practice, since it subscriber with instant unsubscribe
-                if (stateVal != States.EditingZone) {
-                    state.set(States.EditingZone);
-                } else {
-                    state.set(States.Waiting);
-                    let existingContour = storage.get(targetPolygon.unid);
-                    if (!existingContour) {
-                        return
-                    }
-                    if (!targetPolygon.current_points) {
-                        console.error('No current points in target polygon. Options:', options)
-                        return
-                    }
-                    existingContour.properties.coordinates = targetPolygon.current_points.map((element: { x: number; y: number; }) => {
-                        return [
-                            Math.floor(element.x/targetExtendedCanvas.scaleWidth),
-                            Math.floor(element.y/targetExtendedCanvas.scaleHeight)
-                        ]
-                    }) as [[number, number], [number, number], [number, number], [number, number]]
-                    updateDataStorageFn(targetPolygon.unid, existingContour)
-                }
-                targetExtendedCanvas.editContour(targetPolygon);
-            }
-        });
+        contour.inner.on('mousedown', contourMouseDownEventWrapper(state, storage, updateDataStorageFn))
         contour.inner.on('modified', (options: fabric.IEvent<Event>) => {
             const targetContour = options.target
             if (!targetContour) {
