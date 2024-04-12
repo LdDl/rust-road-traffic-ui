@@ -1,10 +1,12 @@
 import { States } from '$lib/states';
 import { derived, writable, type Writable } from 'svelte/store'
+import type { FabricCanvasWrap } from '$lib/custom_canvas';
 // import { apiURL } from '../store/polygons'
 
+export const canvasState: Writable<FabricCanvasWrap> = writable()
 export const state = writable(States.Waiting);
 
-export const mjpegReady = writable(false)
+export const canvasReady = writable(false)
 export const dataReady = writable(false)
 
 const defaultSchema = 'http'
