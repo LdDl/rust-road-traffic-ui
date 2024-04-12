@@ -182,16 +182,19 @@ export function contourMouseDownEventWrapper(state: Writable<States>, storage: M
     return function(options: IEvent<MouseEvent>) {
         const targetContour = options.target
         if (!targetContour) {
-            console.error('Empty target contour. Options:', options)
+            console.error('Empty target contour on mouse:down. Options:', options)
             return
         }
         if (!(targetContour instanceof CustomPolygon)) {
-            console.error('Unhandled type. Only CustomPolygon on top of fabric.Object has been implemented. Options:', options)
+            console.error('Unhandled type. Only CustomPolygon on top of fabric.Object has been implemented. Event: mouse:down. Options:', options)
+            return
         }
         const targetPolygon = targetContour as CustomPolygon
         const targetExtendedCanvas: FabricCanvasWrap | undefined = targetContour.canvas as FabricCanvasWrap | undefined
         if (!targetExtendedCanvas) {
-            console.error('Empty target canvas. Options:', options)
+            // Could be triggered when object is deleted via click.
+            // @todo: consider to re-impelement
+            console.error('Empty target canvas on mouse:down. Options:', options)
             return
         }
         options.e.preventDefault();
@@ -209,7 +212,7 @@ export function contourMouseDownEventWrapper(state: Writable<States>, storage: M
                     return
                 }
                 if (!targetPolygon.current_points) {
-                    console.error('No current points in target polygon. Options:', options)
+                    console.error('No current points in target polygon. Event: mouse:down. Options:', options)
                     return
                 }
                 existingContour.properties.coordinates = targetPolygon.current_points.map((element: { x: number; y: number; }) => {
@@ -229,22 +232,23 @@ export function contourModifiedEventWrapper(storage: Map<string, Zone>, updateDa
     return function(options: fabric.IEvent<Event>) {
         const targetContour = options.target
         if (!targetContour) {
-            console.error('Empty target contour. Options:', options)
+            console.error('Empty target contour on modified. Options:', options)
             return
         }
         if (!(targetContour instanceof CustomPolygon)) {
-            console.error('Unhandled type. Only CustomPolygon on top of fabric.Object has been implemented. Options:', options)
+            console.error('Unhandled type. Only CustomPolygon on top of fabric.Object has been implemented. Event: modified. Options:', options)
+            return
         }
         const targetPolygon = targetContour as CustomPolygon
         const targetExtendedCanvas: FabricCanvasWrap | undefined = targetContour.canvas as FabricCanvasWrap | undefined
         if (!targetExtendedCanvas) {
-            console.error('Empty target canvas. Options:', options)
+            console.error('Empty target canvas on modified. Options:', options)
             return
         }
         // Recalculate points
         const matrix = targetPolygon.inner.calcTransformMatrix();
         if (!targetPolygon.inner.points) {
-            console.error('No points in fabric.Polygon. Options:', options)
+            console.error('No points in fabric.Polygon. Event: modified. Options:', options)
             return
         }
         const transformedPoints = targetPolygon.inner.points.map(function (p) {
