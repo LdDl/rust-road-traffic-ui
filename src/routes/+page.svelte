@@ -329,8 +329,6 @@
             })
             //@ts-ignore
             contour.unid = new UUIDv4().generate()
-            //@ts-ignore
-            contour.inner.unid = contour.unid
             contour.notation.forEach((_, idx) => {
                 //@ts-ignore
                 contour.notation[idx].text_id = contour.unid

@@ -3,6 +3,7 @@ import { findLefTopX, findLeftTopY, getObjectSizeWithStroke, getRandomRGB} from 
 import type { Zone } from "./zones";
 import { get, type Writable } from "svelte/store";
 import { States } from "./states";
+import type { IEvent } from "fabric/fabric-impl";
 
 
 // Extend fabric.Canvas with custom properties
@@ -121,6 +122,23 @@ export interface ContourWrap {
     inner: fabric.Polygon,
     unid: string,
     notation: fabric.Text[]
+    current_points?: fabric.Point[] | undefined
+}
+
+class CustomPolygon extends fabric.Polygon implements ContourWrap {
+    inner: fabric.Polygon
+    unid: string;
+    notation: fabric.Text[];
+    current_points?: fabric.Point[] | undefined
+
+    constructor(points: fabric.Point[], options?: fabric.IPolylineOptions) {
+        super(points, options);
+        // Initialize additional properties
+        this.unid = '';
+        this.notation = [];
+        this.inner = this
+        this.current_points = []
+    }
 }
 
 export const verticesChars = ['A', 'B', 'C', 'D']
@@ -128,7 +146,7 @@ export const verticesChars = ['A', 'B', 'C', 'D']
 export const makeContour = (coordinates: any, color = getRandomRGB()): ContourWrap => {
     let left = findLefTopX(coordinates)
     let top = findLeftTopY(coordinates)
-    let contour = new fabric.Polygon(coordinates, {
+    let contour = new CustomPolygon(coordinates, {
         fill: 'rgba(0,0,0,0)',
         stroke: color,
         strokeWidth: 3,
@@ -154,10 +172,10 @@ export const makeContour = (coordinates: any, color = getRandomRGB()): ContourWr
         denotedVertices.push(vertexTextObject)
     })
 
-    // Before `current_points` is undefined
-    //@ts-ignore
     contour.current_points = contour.points;
-    return { inner: contour , unid: '00000000-0000-0000-0000-000000000000', notation: denotedVertices};
+    contour.unid = '00000000-0000-0000-0000-000000000000'
+    contour.notation = denotedVertices
+    return contour
 }
 
 export const drawCanvasPolygons = (extendedCanvas: FabricCanvasWrap, state: Writable<States>, storage: Map<string, Zone>, updateDataStorageFn: (key: string, value: Zone) => void) => {
@@ -169,72 +187,100 @@ export const drawCanvasPolygons = (extendedCanvas: FabricCanvasWrap, state: Writ
             }
         });
         let contour = makeContour(contourFinalized, `rgb(${feature.properties.color_rgb[0]},${feature.properties.color_rgb[1]},${feature.properties.color_rgb[2]})`);
-        contour.inner.on('mousedown', (options: any) => {
+        contour.inner.on('mousedown', (options: IEvent<MouseEvent>) => {
+            const targetContour = options.target
+            if (!targetContour) {
+                console.error('Empty target contour. Options:', options)
+                return
+            }
+            if (!(targetContour instanceof CustomPolygon)) {
+                console.error('Unhandled type. Only CustomPolygon on top of fabric.Object has been implemented. Options:', options)
+            }
+            const targetPolygon = targetContour as CustomPolygon
+            const targetExtendedCanvas: FabricCanvasWrap | undefined = targetContour.canvas as FabricCanvasWrap | undefined
+            if (!targetExtendedCanvas) {
+                console.error('Empty target canvas. Options:', options)
+                return
+            }
             options.e.preventDefault();
             options.e.stopPropagation();
-            // state = States.PickPolygon;
+            // Handle right-click
+            // Turn on "Edit" mode
             if (options.button === 3) {
-                const stateVal = get(state)
+                const stateVal = get(state) // Bad practice, since it subscriber with instant unsubscribe
                 if (stateVal != States.EditingZone) {
                     state.set(States.EditingZone);
                 } else {
                     state.set(States.Waiting);
-                    let existingContour = storage.get(contour.unid);
+                    let existingContour = storage.get(targetPolygon.unid);
                     if (!existingContour) {
                         return
                     }
-                    //@ts-ignore
-                    existingContour.properties.coordinates = contour.inner.current_points.map((element: { x: number; y: number; }) => {
+                    if (!targetPolygon.current_points) {
+                        console.error('No current points in target polygon. Options:', options)
+                        return
+                    }
+                    existingContour.properties.coordinates = targetPolygon.current_points.map((element: { x: number; y: number; }) => {
                         return [
-                            Math.floor(element.x/extendedCanvas.scaleWidth),
-                            Math.floor(element.y/extendedCanvas.scaleHeight)
+                            Math.floor(element.x/targetExtendedCanvas.scaleWidth),
+                            Math.floor(element.y/targetExtendedCanvas.scaleHeight)
                         ]
-                    })
-                    updateDataStorageFn(contour.unid, existingContour)
+                    }) as [[number, number], [number, number], [number, number], [number, number]]
+                    updateDataStorageFn(targetPolygon.unid, existingContour)
                 }
-                extendedCanvas.editContour(contour.inner);
+                targetExtendedCanvas.editContour(targetPolygon);
             }
         });
-        contour.inner.on('modified', (options: any) => {
+        contour.inner.on('modified', (options: fabric.IEvent<Event>) => {
+            const targetContour = options.target
+            if (!targetContour) {
+                console.error('Empty target contour. Options:', options)
+                return
+            }
+            if (!(targetContour instanceof CustomPolygon)) {
+                console.error('Unhandled type. Only CustomPolygon on top of fabric.Object has been implemented. Options:', options)
+            }
+            const targetPolygon = targetContour as CustomPolygon
             // Recalculate points
-            const matrix = contour.inner.calcTransformMatrix();
-            //@ts-ignore
-            const transformedPoints = contour.inner.points.map(function (p) {
+            const matrix = targetPolygon.inner.calcTransformMatrix();
+            if (!targetPolygon.inner.points) {
+                console.error('No points in fabric.Polygon. Options:', options)
+                return
+            }
+            const transformedPoints = targetPolygon.inner.points.map(function (p) {
                 return new fabric.Point(
-                    p.x - contour.inner.pathOffset.x,
-                    p.y - contour.inner.pathOffset.y
+                    p.x - targetPolygon.inner.pathOffset.x,
+                    p.y - targetPolygon.inner.pathOffset.y
                 );
             }).map(function (p) {
                 return fabric.util.transformPoint(p, matrix);
             });
-            //@ts-ignore
-            contour.inner.current_points = transformedPoints;
+            targetPolygon.current_points = transformedPoints;
 
             // Update notation
-            contour.notation.forEach((vertextNotation: fabric.Text, idx: number) => {
-                //@ts-ignore
-                const vertex = contour.inner.current_points[idx]
+            targetPolygon.notation.forEach((vertextNotation: fabric.Text, idx: number) => {
+                const vertex = targetPolygon.current_points?.[idx]
+                if (!vertex) {
+                    console.error(`No vertex at pos #${idx} in target polygon`, 'Options:', options)
+                    return
+                }
                 vertextNotation.set({ left: vertex.x, top: vertex.y })
             })
             let existingContour = storage.get(contour.unid);
             if (!existingContour) {
                 return
             }
-            //@ts-ignore
-            existingContour.properties.coordinates = contour.inner.current_points.map((element: { x: number; y: number; }) => {
+            existingContour.properties.coordinates = targetPolygon.current_points.map((element: { x: number; y: number; }) => {
                 return [
                     Math.floor(element.x/extendedCanvas.scaleWidth),
                     Math.floor(element.y/extendedCanvas.scaleHeight)
                 ]
-            })
+            })  as [[number, number], [number, number], [number, number], [number, number]]
             updateDataStorageFn(contour.unid, existingContour)
         })
-        //@ts-ignore
         contour.unid = feature.id
-        //@ts-ignore
-        contour.inner.unid = feature.id
         contour.notation.forEach((_, idx) => {
-            //@ts-ignore
+            // @ts-ignore
             contour.notation[idx].text_id = feature.id
         })
         extendedCanvas.add(contour.inner);
