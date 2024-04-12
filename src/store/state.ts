@@ -1,15 +1,6 @@
+import { States } from '$lib/states';
 import { derived, writable, type Writable } from 'svelte/store'
 // import { apiURL } from '../store/polygons'
-
-export enum States {
-    AddingZoneCanvas = 1,
-    AddingZoneMap,
-    Waiting,
-    EditingZone,
-    DeletingZoneCanvas,
-    DeletingZoneMap,
-    PickPolygon
-}
 
 export const state = writable(States.Waiting);
 

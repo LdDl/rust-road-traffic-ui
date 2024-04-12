@@ -6,7 +6,7 @@
     import CanvasComponent from '../components/CanvasComponent.svelte'
     import Switchers from '../components/Switchers.svelte'
     import ConfigurationStorage from '../components/ConfigurationStorage.svelte';
-    import { States, state, mjpegReady, dataReady, apiUrlStore, changeAPI } from '../store/state.js'
+    import { state, mjpegReady, dataReady, apiUrlStore, changeAPI } from '../store/state.js'
     import { type DrawCreateEvent, type DrawUpdateEvent } from "@mapbox/mapbox-gl-draw"
     import { dataStorage, addZoneFeature, updateDataStorage, deleteFromDataStorage, clearDataStorage, resetZoneSpatialInfo, deattachCanvasFromSpatial } from '../store/data_storage'
     import { map, draw } from '../store/map'
@@ -17,6 +17,7 @@
 	import { ExtendedCanvas, makeContour, type FabricCanvasWrap, verticesChars, drawCanvasPolygons, type ContourPoint } from '$lib/custom_canvas';
 	import type { ZoneFeature, ZonesCollection } from '$lib/zones';
 	import { saveTOML } from '$lib/rest_api_mutations';
+	import { States } from '$lib/states';
 
     const { apiURL } = apiUrlStore
     let initialAPIURL = $apiURL
