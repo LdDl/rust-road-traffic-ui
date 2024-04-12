@@ -12,9 +12,9 @@
     import { map, draw } from '../store/map'
     import { EMPTY_POLYGON_RGB } from '../lib/gl_draw_styles.js'
     import { DeleteClickedZone } from '../lib/custom_delete.js'
-    import { getClickPoint, UUIDv4, rgba2array } from '../lib/utils'
+    import { getClickPoint, rgba2array } from '../lib/utils'
 	import type { Polygon } from 'geojson';
-	import { ExtendedCanvas, makeContour, type FabricCanvasWrap, verticesChars, drawCanvasPolygons, contourMouseDownEventWrapper, contourModifiedEventWrapper } from '$lib/custom_canvas';
+	import { ExtendedCanvas, type FabricCanvasWrap, verticesChars, drawCanvasPolygons, prepareContour } from '$lib/custom_canvas';
 	import type { ZoneFeature, ZonesCollection } from '$lib/zones';
 	import { saveTOML } from '$lib/rest_api_mutations';
 	import { States, SubscriberState } from '$lib/states';
@@ -266,15 +266,8 @@
             fbCanvas.contourNotationTemporary.forEach((value) => {
                 fbCanvas.remove(value)
             })
-            const contour = makeContour(fbCanvas.contourFinalized)
-            contour.inner.on('mousedown', contourMouseDownEventWrapper(state, $dataStorage, updateDataStorage))
-            contour.inner.on('modified', contourModifiedEventWrapper($dataStorage, updateDataStorage))
-            
-            contour.unid = new UUIDv4().generate()
-            contour.notation.forEach((_, idx) => {
-                //@ts-ignore
-                contour.notation[idx].text_id = contour.unid
-            })
+
+            const contour = prepareContour(fbCanvas.contourFinalized, state, $dataStorage, updateDataStorage)
 
             const newContour = {
                 type: 'Feature',
