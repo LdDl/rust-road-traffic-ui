@@ -179,7 +179,7 @@ export const makeContour = (coordinates: any, color = getRandomRGB()): ContourWr
 }
 
 export function prepareContour(contourFinalized: any, state: Writable<States>, storage: Map<string, Zone>, updateDataStorageFn: (key: string, value: Zone) => void, featureID: string = '', color = getRandomRGB()) {
-    const contour = makeContour(contourFinalized)
+    const contour = makeContour(contourFinalized, color)
     contour.inner.on('mousedown', contourMouseDownEventWrapper(state, storage, updateDataStorageFn))
     contour.inner.on('modified', contourModifiedEventWrapper(storage, updateDataStorageFn))
     if (featureID !== '') {
