@@ -361,14 +361,13 @@
                 }) as [[number, number], [number, number], [number, number], [number, number]]
                 updateDataStorage(targetPolygon.unid, existingContour)
             })
-
-
-            //@ts-ignore
+            
             contour.unid = new UUIDv4().generate()
             contour.notation.forEach((_, idx) => {
                 //@ts-ignore
                 contour.notation[idx].text_id = contour.unid
             })
+            
             const newContour = {
                 type: 'Feature',
                 id: contour.unid,

@@ -279,7 +279,6 @@ export const drawCanvasPolygons = (extendedCanvas: FabricCanvasWrap, state: Writ
             updateDataStorageFn(targetPolygon.unid, existingContour)
         })
 
-
         contour.unid = feature.id
         contour.notation.forEach((_, idx) => {
             // @ts-ignore
