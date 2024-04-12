@@ -1,8 +1,9 @@
 import { fabric } from "fabric"
-import { findLefTopX, findLeftTopY, getObjectSizeWithStroke, getRandomRGB} from './utils'
+import { UUIDv4, findLefTopX, findLeftTopY, getObjectSizeWithStroke, getRandomRGB} from './utils'
 import type { Zone } from "./zones";
 import { get, type Writable } from "svelte/store";
 import { States } from "./states";
+import { updateDataStorage } from "../store/data_storage";
 
 
 // Extend fabric.Canvas with custom properties
@@ -177,7 +178,24 @@ export const makeContour = (coordinates: any, color = getRandomRGB()): ContourWr
     return contour
 }
 
-export function contourMouseDownEventWrapper(state: Writable<States>, storage: Map<string, Zone>, updateDataStorageFn: (key: string, value: Zone) => void) {
+export function prepareContour(contourFinalized: any, state: Writable<States>, storage: Map<string, Zone>, updateDataStorageFn: (key: string, value: Zone) => void, featureID: string = '', color = getRandomRGB()) {
+    const contour = makeContour(contourFinalized)
+    contour.inner.on('mousedown', contourMouseDownEventWrapper(state, storage, updateDataStorageFn))
+    contour.inner.on('modified', contourModifiedEventWrapper(storage, updateDataStorageFn))
+    if (featureID !== '') {
+        contour.unid = featureID
+    } else {
+        contour.unid = new UUIDv4().generate()
+    }
+    contour.notation.forEach((_, idx) => {
+        //@ts-ignore
+        contour.notation[idx].text_id = contour.unid
+    })
+    return contour
+}
+
+
+function contourMouseDownEventWrapper(state: Writable<States>, storage: Map<string, Zone>, updateDataStorageFn: (key: string, value: Zone) => void) {
     return function(options: fabric.IEvent<MouseEvent>) {
         const targetContour = options.target
         if (!targetContour) {
@@ -227,7 +245,7 @@ export function contourMouseDownEventWrapper(state: Writable<States>, storage: M
     }
 }
 
-export function contourModifiedEventWrapper(storage: Map<string, Zone>, updateDataStorageFn: (key: string, value: Zone) => void) {
+function contourModifiedEventWrapper(storage: Map<string, Zone>, updateDataStorageFn: (key: string, value: Zone) => void) {
     return function(options: fabric.IEvent<Event>) {
         const targetContour = options.target
         if (!targetContour) {
@@ -291,14 +309,8 @@ export const drawCanvasPolygons = (extendedCanvas: FabricCanvasWrap, state: Writ
                 y: element[1]*extendedCanvas.scaleHeight
             }
         });
-        let contour = makeContour(contourFinalized, `rgb(${feature.properties.color_rgb[0]},${feature.properties.color_rgb[1]},${feature.properties.color_rgb[2]})`);
-        contour.inner.on('mousedown', contourMouseDownEventWrapper(state, storage, updateDataStorageFn))
-        contour.inner.on('modified', contourModifiedEventWrapper(storage, updateDataStorageFn))
-        contour.unid = feature.id
-        contour.notation.forEach((_, idx) => {
-            // @ts-ignore
-            contour.notation[idx].text_id = feature.id
-        })
+        const contour = prepareContour(contourFinalized, state, storage, updateDataStorageFn, feature.id, `rgb(${feature.properties.color_rgb[0]},${feature.properties.color_rgb[1]},${feature.properties.color_rgb[2]})`)
+
         extendedCanvas.add(contour.inner);
         contour.notation.forEach((vertextNotation: fabric.Text) => {
             extendedCanvas.add(vertextNotation)
