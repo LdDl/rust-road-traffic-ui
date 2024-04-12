@@ -6,7 +6,7 @@
     import CanvasComponent from '../components/CanvasComponent.svelte'
     import Switchers from '../components/Switchers.svelte'
     import ConfigurationStorage from '../components/ConfigurationStorage.svelte';
-    import { States, state, mjpegReady, dataReady, apiUrlStore, changeAPI } from '../store/state.js'
+    import { state, mjpegReady, dataReady, apiUrlStore, changeAPI } from '../store/state.js'
     import { type DrawCreateEvent, type DrawUpdateEvent } from "@mapbox/mapbox-gl-draw"
     import { dataStorage, addZoneFeature, updateDataStorage, deleteFromDataStorage, clearDataStorage, resetZoneSpatialInfo, deattachCanvasFromSpatial } from '../store/data_storage'
     import { map, draw } from '../store/map'
@@ -14,12 +14,16 @@
     import { DeleteClickedZone } from '../lib/custom_delete.js'
     import { getClickPoint, UUIDv4, rgba2array } from '../lib/utils'
 	import type { Polygon } from 'geojson';
-	import { ExtendedCanvas, makeContour, type FabricCanvasWrap, verticesChars, drawCanvasPolygons, type ContourPoint } from '$lib/custom_canvas';
+	import { ExtendedCanvas, makeContour, type FabricCanvasWrap, verticesChars, drawCanvasPolygons, contourMouseDownEventWrapper, contourModifiedEventWrapper } from '$lib/custom_canvas';
 	import type { ZoneFeature, ZonesCollection } from '$lib/zones';
 	import { saveTOML } from '$lib/rest_api_mutations';
+	import { States, SubscriberState } from '$lib/states';
 
     const { apiURL } = apiUrlStore
     let initialAPIURL = $apiURL
+
+    let stateVariable: States;
+    state.subscribe((value) => stateVariable = value)
 
 	const title = 'Rust Road Traffic UI'
     // let scaleWidth: number, scaleHeight: number
@@ -45,16 +49,12 @@
     const cancelActionUnexpected = 'Unexpected action'
     $: cancelActionText = cancelActionTexts.get($state)
 
-    enum SubscriberState {
-        Init = 'init',
-        ReInit = 're-init'
-    }
-
     const initSubscribers = (subType: SubscriberState) => {
         unsubscribeMJPEG = mjpegReady.subscribe(value => {
             if (value === true) {
                 // Initialize canvas if it's empty (due the MJPEG error)
                 if (fbCanvas === undefined || fbCanvas == null) {
+                    console.log(`Prepare canvas: ${subType}`)
                     initializeCanvas()
                 }
             }
@@ -122,7 +122,7 @@
 
         // Override DeleteClickedZone click event
         DeleteClickedZone.onClick = (s: any, e: any) => {
-            if (e.featureTarget && $state === States.DeletingZoneMap) {
+            if (e.featureTarget && stateVariable === States.DeletingZoneMap) {
                 const mapTargetFeature = e.featureTarget
                 const spatialID = mapTargetFeature.properties.id
                 state.set(States.Waiting)
@@ -208,26 +208,26 @@
         fbCanvasParent = document.getElementsByClassName('custom-container-canvas')[0];
         fbCanvasParent.id = "fbcanvas";
         fbCanvas.on('selection:created', (options: any) => {
-            if ($state === States.DeletingZoneCanvas) {
+            if (stateVariable === States.DeletingZoneCanvas) {
                 deleteZoneFromCanvas(fbCanvas, options.selected[0].unid);
                 state.set(States.Waiting)
             }
         })
         fbCanvas.on('selection:updated', (options: any) => {
-            if ($state === States.DeletingZoneCanvas) {
+            if (stateVariable === States.DeletingZoneCanvas) {
                 deleteZoneFromCanvas(fbCanvas, options.selected[0].unid);
                 state.set(States.Waiting)
             }
         })
         fbCanvas.on('mouse:move', (options: any) => {
-            if (fbCanvas.contourTemporary[0] !== null && fbCanvas.contourTemporary[0] !== undefined && $state === States.AddingZoneCanvas) {
+            if (fbCanvas.contourTemporary[0] !== null && fbCanvas.contourTemporary[0] !== undefined && stateVariable === States.AddingZoneCanvas) {
                 const clicked = getClickPoint(fbCanvas, options)
                 fbCanvas.contourTemporary[fbCanvas.contourTemporary.length - 1].set({ x2: clicked.x, y2: clicked.y })
                 fbCanvas.renderAll()
             }
         });
         fbCanvas.on('mouse:down', (options: any) => {
-            if ($state !== States.AddingZoneCanvas) {
+            if (stateVariable !== States.AddingZoneCanvas) {
                 return
             }
             fbCanvas.selection = false
@@ -267,74 +267,15 @@
                 fbCanvas.remove(value)
             })
             const contour = makeContour(fbCanvas.contourFinalized)
-            contour.inner.on('mousedown', (options: any) => {
-                options.e.preventDefault();
-                options.e.stopPropagation();
-                // Handle right-click
-                // Turn on "Edit" mode
-                if (options.button === 3) {
-                    if ($state !== States.EditingZone) {
-                        $state = States.EditingZone;
-                    } else {
-                        $state = States.Waiting;
-                        let existingContour = $dataStorage.get(contour.unid);
-                        if (!existingContour) {
-                            return
-                        }
-                        //@ts-ignore
-                        existingContour.properties.coordinates = contour.inner.current_points.map((element: { x: number; y: number; }) => {
-                            return [
-                                Math.floor(element.x/fbCanvas.scaleWidth),
-                                Math.floor(element.y/fbCanvas.scaleHeight)
-                            ]
-                        })
-                        updateDataStorage(contour.unid, existingContour)
-                    }
-                    fbCanvas.editContour(contour.inner);
-                }
-            });
-            contour.inner.on('modified', (options: any) => {
-                // Recalculate points
-                const matrix = contour.inner.calcTransformMatrix();
-                const transformedPoints = contour.inner.points?.map(function (p) {
-                        return new fabric.Point(
-                            p.x - contour.inner.pathOffset.x,
-                            p.y - contour.inner.pathOffset.y
-                        );
-                    }).map(function (p: any) {
-                        return fabric.util.transformPoint(p, matrix);
-                    });
-                //@ts-ignore
-                contour.inner.current_points = transformedPoints;
-
-                // Update notation
-                contour.notation.forEach((vertextNotation: fabric.Text, idx: number) => {
-                    //@ts-ignore
-                    const vertex = contour.inner.current_points[idx];
-                    vertextNotation.set({ left: vertex.x, top: vertex.y });
-                })
-
-                let existingContour = $dataStorage.get(contour.unid);
-                if (!existingContour) {
-                    return
-                }
-                //@ts-ignore
-                existingContour.properties.coordinates = contour.inner.current_points.map((element: { x: number; y: number; }) => {
-                    return [
-                        Math.floor(element.x/fbCanvas.scaleWidth),
-                        Math.floor(element.y/fbCanvas.scaleHeight)
-                    ]
-                })
-                updateDataStorage(contour.unid, existingContour)
-            })
-            //@ts-ignore
+            contour.inner.on('mousedown', contourMouseDownEventWrapper(state, $dataStorage, updateDataStorage))
+            contour.inner.on('modified', contourModifiedEventWrapper($dataStorage, updateDataStorage))
+            
             contour.unid = new UUIDv4().generate()
-            //@ts-ignore
-            contour.inner.unid = contour.unid
             contour.notation.forEach((_, idx) => {
                 //@ts-ignore
                 contour.notation[idx].text_id = contour.unid
             })
+
             const newContour = {
                 type: 'Feature',
                 id: contour.unid,
@@ -402,7 +343,7 @@
     }
 
     const stateAddToCanvas = () => {
-        if ($state !== States.AddingZoneCanvas) {
+        if (stateVariable !== States.AddingZoneCanvas) {
             state.set(States.AddingZoneCanvas)
             $draw.changeMode('draw_restricted_polygon');
         } else {
@@ -412,7 +353,7 @@
     }
 
     const stateAddToMap = () => {
-        if ($state !== States.AddingZoneMap) {
+        if (stateVariable !== States.AddingZoneMap) {
             state.set(States.AddingZoneMap)
             $draw.changeMode('draw_restricted_polygon');
         } else {
@@ -422,7 +363,7 @@
     }
 
     const stateDelFromCanvas = () => {
-        if ($state !== States.DeletingZoneCanvas) {
+        if (stateVariable !== States.DeletingZoneCanvas) {
             state.set(States.DeletingZoneCanvas)
         } else {
             state.set(States.Waiting)
@@ -430,7 +371,7 @@
     }
 
     const stateDelFromMap = () => {
-        if ($state !== States.DeletingZoneMap) {
+        if (stateVariable !== States.DeletingZoneMap) {
             state.set(States.DeletingZoneMap)
             $draw.changeMode('delete_zone');
         } else {

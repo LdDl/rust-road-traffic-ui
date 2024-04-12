@@ -60,7 +60,7 @@ export const deattachCanvasFromSpatial = (storage: Map<string, Zone>, mdraw: Map
     return
   }
   if (!zone.properties.spatial_object_id) {
-    console.error(`ID '${zone.id}' should have 'spatial_object_id' in prpetries, but it has not`)
+    console.error(`ID '${zone.id}' should have 'spatial_object_id' in properties, but it has not`)
     return
   }
   const drawFeature = mdraw.get(zone.properties.spatial_object_id);
