@@ -3,7 +3,6 @@ import { findLefTopX, findLeftTopY, getObjectSizeWithStroke, getRandomRGB} from 
 import type { Zone } from "./zones";
 import { get, type Writable } from "svelte/store";
 import { States } from "./states";
-import type { IEvent } from "fabric/fabric-impl";
 
 
 // Extend fabric.Canvas with custom properties
@@ -179,7 +178,7 @@ export const makeContour = (coordinates: any, color = getRandomRGB()): ContourWr
 }
 
 export function contourMouseDownEventWrapper(state: Writable<States>, storage: Map<string, Zone>, updateDataStorageFn: (key: string, value: Zone) => void) {
-    return function(options: IEvent<MouseEvent>) {
+    return function(options: fabric.IEvent<MouseEvent>) {
         const targetContour = options.target
         if (!targetContour) {
             console.error('Empty target contour on mouse:down. Options:', options)
