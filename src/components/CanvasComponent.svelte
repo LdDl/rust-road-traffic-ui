@@ -181,13 +181,15 @@
 </script>
 
 <div id="mjpeg" class={"mjpeg-canvas" + ' ' + klass}>
-    <div id="loading-message" class={$imgSrcLoaded? 'd-none' : 'loading d-block'}>
-        Please wait until image is loaded
-    </div>
     <!-- svelte-ignore a11y-missing-attribute -->
-    <img id="fit_img" src="{initialAPIURL}/live_streaming" width="500" height="500" class={$imgSrcLoaded? 'd-block' : 'd-none'} on:load={imageLoaded}>
+    <img id="fit_img" src="{initialAPIURL}/live_streaming" width="500" height="500" on:load={imageLoaded}>
     <!-- <img id="fit_img" src="https://pngimg.com/uploads/google/google_PNG19632.png" width="500" height="500" on:load={imageLoaded}> -->
-    <canvas id="fit_canvas" class={$imgSrcLoaded? 'd-block' : 'd-none'}></canvas>
+    <canvas id="fit_canvas" ></canvas>
+    <div id="loading-message" class={$imgSrcLoaded? 'd-none' : 'd-block'}>
+        <div class={$imgSrcLoaded? 'd-none' : 'loading d-block'}>
+            Please wait until image is loaded
+        </div>
+    </div>
 </div>
 
 
@@ -199,6 +201,7 @@
         display: none;
     }
     #mjpeg {
+        position: relative;
         grid-area: A;
         background-color: rgba(128, 128, 128, 0.8);
     }
@@ -218,16 +221,21 @@
         justify-content: center;
         align-items: center;
         position: absolute;
-        top: 40%;
+        top: 0;
+        height: 100%;
+        width: 100%;
+        background-color: rgba(128, 128, 128, 0.8);
+    }
+    .loading {
+        position: absolute;
+        top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
         background-color: rgba(128, 128, 128, 0.8);
         padding: 0.66665rem;
         border-radius: 5px;
         pointer-events: none;
-    }
-    .loading {
-       font-size: 2rem;
+        font-size: 2rem;
     }
     .loading:after {
         overflow: hidden;
