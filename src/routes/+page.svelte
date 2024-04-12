@@ -272,13 +272,13 @@
     <div id="main_workspace">
         <div id="left_workspace">
             <CanvasComponent klass={!canvasFocused && mapFocused ? 'blurred noselect' : ''}/>
-            <ConfigurationStorage dataReady={dataReady} data={dataStorageFiltered} klass={canvasFocused || mapFocused ? 'blurred noselect' : ''}/>
+            <ConfigurationStorage dataReady={dataReady} data={dataStorageFiltered} klass={!($canvasReady) || (canvasFocused || mapFocused) ? 'blurred noselect' : ''}/>
             <div class="overlay" style="{!canvasFocused && mapFocused ? 'display: block;' : 'display: none;'}">
                 Press ESC to cancel '{cancelActionText !== undefined? cancelActionText : cancelActionUnexpected}' mode
             </div>
         </div>
         <div id="right_workspace">
-            <MapComponent bind:this={mapComponent} klass={canvasFocused && !mapFocused ? 'blurred noselect' : ''}/>
+            <MapComponent bind:this={mapComponent} klass={!($canvasReady) || (canvasFocused && !mapFocused) ? 'blurred noselect' : ''}/>
             <div class="overlay" style="{canvasFocused && !mapFocused ? 'display: block;' : 'display: none;'}">
                 Press ESC to cancel '{cancelActionText !== undefined? cancelActionText : cancelActionUnexpected}' mode
             </div>
