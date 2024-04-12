@@ -1,8 +1,8 @@
 import { fabric } from "fabric"
 import { findLefTopX, findLeftTopY, getObjectSizeWithStroke, getRandomRGB} from './utils'
 import type { Zone } from "./zones";
-import { States } from "../store/state";
 import { get, type Writable } from "svelte/store";
+import { States } from "./states";
 
 
 // Extend fabric.Canvas with custom properties
