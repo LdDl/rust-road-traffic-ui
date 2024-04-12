@@ -7,3 +7,8 @@ export enum States {
     DeletingZoneMap,
     PickPolygon
 }
+
+export enum SubscriberState {
+    Init = 'init',
+    ReInit = 're-init'
+}

@@ -17,7 +17,7 @@
 	import { ExtendedCanvas, makeContour, type FabricCanvasWrap, verticesChars, drawCanvasPolygons, type ContourPoint } from '$lib/custom_canvas';
 	import type { ZoneFeature, ZonesCollection } from '$lib/zones';
 	import { saveTOML } from '$lib/rest_api_mutations';
-	import { States } from '$lib/states';
+	import { States, SubscriberState } from '$lib/states';
 
     const { apiURL } = apiUrlStore
     let initialAPIURL = $apiURL
@@ -48,11 +48,6 @@
     ])
     const cancelActionUnexpected = 'Unexpected action'
     $: cancelActionText = cancelActionTexts.get($state)
-
-    enum SubscriberState {
-        Init = 'init',
-        ReInit = 're-init'
-    }
 
     const initSubscribers = (subType: SubscriberState) => {
         unsubscribeMJPEG = mjpegReady.subscribe(value => {
