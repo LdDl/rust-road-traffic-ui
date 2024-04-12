@@ -125,7 +125,7 @@ export interface ContourWrap {
     current_points?: fabric.Point[] | undefined
 }
 
-class CustomPolygon extends fabric.Polygon implements ContourWrap {
+export class CustomPolygon extends fabric.Polygon implements ContourWrap {
     inner: fabric.Polygon
     unid: string;
     notation: fabric.Text[];
@@ -266,7 +266,7 @@ export const drawCanvasPolygons = (extendedCanvas: FabricCanvasWrap, state: Writ
                 }
                 vertextNotation.set({ left: vertex.x, top: vertex.y })
             })
-            let existingContour = storage.get(contour.unid);
+            let existingContour = storage.get(targetPolygon.unid);
             if (!existingContour) {
                 return
             }
@@ -275,9 +275,11 @@ export const drawCanvasPolygons = (extendedCanvas: FabricCanvasWrap, state: Writ
                     Math.floor(element.x/extendedCanvas.scaleWidth),
                     Math.floor(element.y/extendedCanvas.scaleHeight)
                 ]
-            })  as [[number, number], [number, number], [number, number], [number, number]]
-            updateDataStorageFn(contour.unid, existingContour)
+            }) as [[number, number], [number, number], [number, number], [number, number]]
+            updateDataStorageFn(targetPolygon.unid, existingContour)
         })
+
+
         contour.unid = feature.id
         contour.notation.forEach((_, idx) => {
             // @ts-ignore
