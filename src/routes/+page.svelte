@@ -21,6 +21,9 @@
     const { apiURL } = apiUrlStore
     let initialAPIURL = $apiURL
 
+    let stateVariable: States;
+    state.subscribe((value) => stateVariable = value)
+
 	const title = 'Rust Road Traffic UI'
     // let scaleWidth: number, scaleHeight: number
     let canvas: HTMLCanvasElement
@@ -55,6 +58,7 @@
             if (value === true) {
                 // Initialize canvas if it's empty (due the MJPEG error)
                 if (fbCanvas === undefined || fbCanvas == null) {
+                    console.log(`Prepare canvas: ${subType}`)
                     initializeCanvas()
                 }
             }
@@ -122,7 +126,7 @@
 
         // Override DeleteClickedZone click event
         DeleteClickedZone.onClick = (s: any, e: any) => {
-            if (e.featureTarget && $state === States.DeletingZoneMap) {
+            if (e.featureTarget && stateVariable === States.DeletingZoneMap) {
                 const mapTargetFeature = e.featureTarget
                 const spatialID = mapTargetFeature.properties.id
                 state.set(States.Waiting)
@@ -208,26 +212,26 @@
         fbCanvasParent = document.getElementsByClassName('custom-container-canvas')[0];
         fbCanvasParent.id = "fbcanvas";
         fbCanvas.on('selection:created', (options: any) => {
-            if ($state === States.DeletingZoneCanvas) {
+            if (stateVariable === States.DeletingZoneCanvas) {
                 deleteZoneFromCanvas(fbCanvas, options.selected[0].unid);
                 state.set(States.Waiting)
             }
         })
         fbCanvas.on('selection:updated', (options: any) => {
-            if ($state === States.DeletingZoneCanvas) {
+            if (stateVariable === States.DeletingZoneCanvas) {
                 deleteZoneFromCanvas(fbCanvas, options.selected[0].unid);
                 state.set(States.Waiting)
             }
         })
         fbCanvas.on('mouse:move', (options: any) => {
-            if (fbCanvas.contourTemporary[0] !== null && fbCanvas.contourTemporary[0] !== undefined && $state === States.AddingZoneCanvas) {
+            if (fbCanvas.contourTemporary[0] !== null && fbCanvas.contourTemporary[0] !== undefined && stateVariable === States.AddingZoneCanvas) {
                 const clicked = getClickPoint(fbCanvas, options)
                 fbCanvas.contourTemporary[fbCanvas.contourTemporary.length - 1].set({ x2: clicked.x, y2: clicked.y })
                 fbCanvas.renderAll()
             }
         });
         fbCanvas.on('mouse:down', (options: any) => {
-            if ($state !== States.AddingZoneCanvas) {
+            if (stateVariable !== States.AddingZoneCanvas) {
                 return
             }
             fbCanvas.selection = false
@@ -273,10 +277,10 @@
                 // Handle right-click
                 // Turn on "Edit" mode
                 if (options.button === 3) {
-                    if ($state !== States.EditingZone) {
-                        $state = States.EditingZone;
+                    if (stateVariable !== States.EditingZone) {
+                        state.set(States.EditingZone);
                     } else {
-                        $state = States.Waiting;
+                        state.set(States.Waiting);
                         let existingContour = $dataStorage.get(contour.unid);
                         if (!existingContour) {
                             return
@@ -402,7 +406,7 @@
     }
 
     const stateAddToCanvas = () => {
-        if ($state !== States.AddingZoneCanvas) {
+        if (stateVariable !== States.AddingZoneCanvas) {
             state.set(States.AddingZoneCanvas)
             $draw.changeMode('draw_restricted_polygon');
         } else {
@@ -412,7 +416,7 @@
     }
 
     const stateAddToMap = () => {
-        if ($state !== States.AddingZoneMap) {
+        if (stateVariable !== States.AddingZoneMap) {
             state.set(States.AddingZoneMap)
             $draw.changeMode('draw_restricted_polygon');
         } else {
@@ -422,7 +426,7 @@
     }
 
     const stateDelFromCanvas = () => {
-        if ($state !== States.DeletingZoneCanvas) {
+        if (stateVariable !== States.DeletingZoneCanvas) {
             state.set(States.DeletingZoneCanvas)
         } else {
             state.set(States.Waiting)
@@ -430,7 +434,7 @@
     }
 
     const stateDelFromMap = () => {
-        if ($state !== States.DeletingZoneMap) {
+        if (stateVariable !== States.DeletingZoneMap) {
             state.set(States.DeletingZoneMap)
             $draw.changeMode('delete_zone');
         } else {
