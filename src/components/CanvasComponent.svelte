@@ -7,6 +7,7 @@
 	import { getClickPoint, rgba2array } from '$lib/utils.js';
 	import { dataStorage, deattachCanvasFromSpatial, deleteFromDataStorage, updateDataStorage } from '../store/data_storage.js';
 	import { draw } from '../store/map.js';
+	import { writable } from 'svelte/store';
 
     export let klass: string = ''
 
@@ -16,6 +17,8 @@
     let stateVariable: States;
     state.subscribe((value) => stateVariable = value)
     
+    let imgSrcLoaded = writable(false)
+
     const imageLoaded = () => {
         console.log('Image source reloaded')
         if ($canvasState === undefined || $canvasState == null) {
@@ -23,6 +26,7 @@
             const fbCanvas = initializeCanvas()
             canvasState.set(fbCanvas)
         }
+        imgSrcLoaded.set(true)
         canvasReady.set(true)
     }
 
@@ -30,6 +34,7 @@
         if (initialAPIURL !== value) {
             console.log(`Need to change API URL for MJPEG: '${$apiURL}'`)
             initialAPIURL = value
+            imgSrcLoaded.set(false)
         }
     })
 
@@ -176,16 +181,26 @@
 </script>
 
 <div id="mjpeg" class={"mjpeg-canvas" + ' ' + klass}>
+    <div id="loading-message" class={$imgSrcLoaded? 'd-none' : 'loading d-block'}>
+        Please wait until image is loaded
+    </div>
     <!-- svelte-ignore a11y-missing-attribute -->
-    <img id="fit_img" src="{initialAPIURL}/live_streaming" width="500" height="500" on:load={imageLoaded}>
+    <img id="fit_img" src="{initialAPIURL}/live_streaming" width="500" height="500" class={$imgSrcLoaded? 'd-block' : 'd-none'} on:load={imageLoaded}>
     <!-- <img id="fit_img" src="https://pngimg.com/uploads/google/google_PNG19632.png" width="500" height="500" on:load={imageLoaded}> -->
-    <canvas id="fit_canvas"></canvas>
+    <canvas id="fit_canvas" class={$imgSrcLoaded? 'd-block' : 'd-none'}></canvas>
 </div>
 
-<style global>
+
+<style scoped>
+    .d-block {
+        display: block;
+    }
+    .d-none {
+        display: none;
+    }
     #mjpeg {
         grid-area: A;
-        background: green;
+        background-color: rgba(128, 128, 128, 0.8);
     }
     #fit_img {
         height: 100%;
@@ -198,5 +213,40 @@
         position: absolute;
         left: 0;
         top: 0;
+    }
+    #loading-message {
+        justify-content: center;
+        align-items: center;
+        position: absolute;
+        top: 40%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background-color: rgba(128, 128, 128, 0.8);
+        padding: 0.66665rem;
+        border-radius: 5px;
+        pointer-events: none;
+    }
+    .loading {
+       font-size: 2rem;
+    }
+    .loading:after {
+        overflow: hidden;
+        display: inline-block;
+        vertical-align: bottom;
+        -webkit-animation: ellipsis steps(6, end) 1000ms infinite;
+        animation: ellipsis steps(6, end) 1000ms infinite;
+        content: "\2026";
+        /* ascii code for the ellipsis character */
+        width: 0px;
+    }
+    @keyframes ellipsis {
+        to {
+            width: 40px;
+        }
+    }
+    @-webkit-keyframes ellipsis {
+        to {
+            width: 40px;
+        }
     }
 </style>
