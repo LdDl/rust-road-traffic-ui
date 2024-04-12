@@ -18,8 +18,11 @@
     
     const imageLoaded = () => {
         console.log('Image source reloaded')
-        const fbCanvas = initializeCanvas()
-        canvasState.set(fbCanvas)
+        if ($canvasState === undefined || $canvasState == null) {
+            console.log(`Prepare canvas on first initialization`)
+            const fbCanvas = initializeCanvas()
+            canvasState.set(fbCanvas)
+        }
         canvasReady.set(true)
     }
 
