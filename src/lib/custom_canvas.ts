@@ -241,6 +241,11 @@ export const drawCanvasPolygons = (extendedCanvas: FabricCanvasWrap, state: Writ
                 console.error('Unhandled type. Only CustomPolygon on top of fabric.Object has been implemented. Options:', options)
             }
             const targetPolygon = targetContour as CustomPolygon
+            const targetExtendedCanvas: FabricCanvasWrap | undefined = targetContour.canvas as FabricCanvasWrap | undefined
+            if (!targetExtendedCanvas) {
+                console.error('Empty target canvas. Options:', options)
+                return
+            }
             // Recalculate points
             const matrix = targetPolygon.inner.calcTransformMatrix();
             if (!targetPolygon.inner.points) {
@@ -272,8 +277,8 @@ export const drawCanvasPolygons = (extendedCanvas: FabricCanvasWrap, state: Writ
             }
             existingContour.properties.coordinates = targetPolygon.current_points.map((element: { x: number; y: number; }) => {
                 return [
-                    Math.floor(element.x/extendedCanvas.scaleWidth),
-                    Math.floor(element.y/extendedCanvas.scaleHeight)
+                    Math.floor(element.x/targetExtendedCanvas.scaleWidth),
+                    Math.floor(element.y/targetExtendedCanvas.scaleHeight)
                 ]
             }) as [[number, number], [number, number], [number, number], [number, number]]
             updateDataStorageFn(targetPolygon.unid, existingContour)

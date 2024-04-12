@@ -322,7 +322,11 @@
                     console.error('Unhandled type. Only CustomPolygon on top of fabric.Object has been implemented. Options:', options)
                 }
                 const targetPolygon = targetContour as CustomPolygon
-                
+                const targetExtendedCanvas: FabricCanvasWrap | undefined = targetContour.canvas as FabricCanvasWrap | undefined
+                if (!targetExtendedCanvas) {
+                    console.error('Empty target canvas. Options:', options)
+                    return
+                }
                 // Recalculate points
                 const matrix = targetPolygon.inner.calcTransformMatrix();
                 if (!targetPolygon.inner.points) {
@@ -355,8 +359,8 @@
                 }
                 existingContour.properties.coordinates = targetPolygon.current_points.map((element: { x: number; y: number; }) => {
                     return [
-                        Math.floor(element.x/fbCanvas.scaleWidth),
-                        Math.floor(element.y/fbCanvas.scaleHeight)
+                        Math.floor(element.x/targetExtendedCanvas.scaleWidth),
+                        Math.floor(element.y/targetExtendedCanvas.scaleHeight)
                     ]
                 }) as [[number, number], [number, number], [number, number], [number, number]]
                 updateDataStorage(targetPolygon.unid, existingContour)
@@ -367,7 +371,7 @@
                 //@ts-ignore
                 contour.notation[idx].text_id = contour.unid
             })
-            
+
             const newContour = {
                 type: 'Feature',
                 id: contour.unid,
