@@ -39,6 +39,7 @@
 		"fabric": "^5.3.0",
 		"geojson": "^0.5.0",
 		"maplibre-gl": "^4.1.2",
+		"material-icons": "^1.13.12",
 		"materialize-css": "^1.0.0-rc.2"
 	}
 }

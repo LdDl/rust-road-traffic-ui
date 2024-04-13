@@ -231,7 +231,6 @@
 </script>
 
 <sveltekit:head>
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 	<title>{title}</title>
 </sveltekit:head>
 
