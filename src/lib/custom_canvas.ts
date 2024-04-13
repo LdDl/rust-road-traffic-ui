@@ -146,11 +146,19 @@ export const verticesChars = ['A', 'B', 'C', 'D']
 export const makeContour = (coordinates: any, color = getRandomRGB()): ContourWrap => {
     let left = findLefTopX(coordinates)
     let top = findLeftTopY(coordinates)
+    
+    const shadow = new fabric.Shadow({  
+        color: color,  
+        affectStroke: true,
+        blur: 0 
+    });  
+
     let contour = new CustomPolygon(coordinates, {
         fill: 'rgba(0,0,0,0)',
         stroke: color,
         strokeWidth: 3,
-        objectCaching: false
+        objectCaching: false,
+        shadow: shadow
     })
     contour.set({
         left: left,
@@ -182,6 +190,48 @@ export function prepareContour(contourFinalized: any, state: Writable<States>, s
     const contour = makeContour(contourFinalized, color)
     contour.inner.on('mousedown', contourMouseDownEventWrapper(state, storage, updateDataStorageFn))
     contour.inner.on('modified', contourModifiedEventWrapper(storage, updateDataStorageFn))
+    contour.inner.on('mouseover', function(options: fabric.IEvent<MouseEvent>) {
+        const targetContour = options.target
+        if (!targetContour) {
+            console.error('Empty target contour on modified. Options:', options)
+            return
+        }
+        const targetExtendedCanvas: FabricCanvasWrap | undefined = targetContour.canvas as FabricCanvasWrap | undefined
+        if (!targetExtendedCanvas) {
+            console.error('Empty target canvas on modified. Options:', options)
+            return
+        }
+        targetContour.set('fill', 'rgba(0, 0, 0, 0.1)')
+        const targetShadowObj = targetContour.shadow?.valueOf()
+        const isShadow = targetShadowObj && targetShadowObj instanceof fabric.Shadow
+        if (!isShadow) {
+            return
+        }
+        const targetShadow = targetShadowObj as fabric.Shadow
+        targetShadow.blur = 30
+        targetExtendedCanvas.renderAll()
+    });
+    contour.inner.on('mouseout', function(options: fabric.IEvent<MouseEvent>) {
+        const targetContour = options.target
+        if (!targetContour) {
+            console.error('Empty target contour on modified. Options:', options)
+            return
+        }
+        const targetExtendedCanvas: FabricCanvasWrap | undefined = targetContour.canvas as FabricCanvasWrap | undefined
+        if (!targetExtendedCanvas) {
+            console.error('Empty target canvas on modified. Options:', options)
+            return
+        }
+        targetContour.set('fill', 'rgba(0, 0, 0, 0)')
+        const targetShadowObj = targetContour.shadow?.valueOf()
+        const isShadow = targetShadowObj && targetShadowObj instanceof fabric.Shadow
+        if (!isShadow) {
+            return
+        }
+        const targetShadow = targetShadowObj as fabric.Shadow
+        targetShadow.blur = 0
+        targetExtendedCanvas.renderAll()
+    });    
     if (featureID !== '') {
         contour.unid = featureID
     } else {
