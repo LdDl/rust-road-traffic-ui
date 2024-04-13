@@ -47,8 +47,6 @@
 
 
 <style>
-    @import url("https://fonts.googleapis.com/css?family=Roboto");
-
     .addr-container{
         display: flex;
         flex-direction: column;
@@ -59,7 +57,7 @@
 
     .addr-form {
         background-color: rgb(240, 240, 240);
-        font-family: 'Roboto', sans-serif;
+        font-family: 'Roboto';
         font-size: 1.5rem;
         display: flex;
         flex-direction: row;
