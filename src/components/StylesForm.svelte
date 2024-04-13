@@ -38,8 +38,6 @@
 </div>
 
 <style>
-	@import url('https://fonts.googleapis.com/css?family=Roboto');
-
 	.styles-switch-container {
 		/* position: absolute; */
 		display: flex;
@@ -51,7 +49,7 @@
 
 	.styles-switch-form {
 		background-color: rgb(240, 240, 240);
-		font-family: 'Roboto', sans-serif;
+		font-family: 'Roboto';
 		font-size: 1.5rem;
 		display: flex;
 		flex-direction: row;

@@ -284,11 +284,10 @@
 </div>
 
 <style global>
-    @import url("https://fonts.googleapis.com/css?family=Roboto");
     :global(body) {
 		margin: 0;
         padding: 0;
-        font-family: 'Roboto', sans-serif;
+        font-family: 'Roboto';
 	}
 
     #right_workspace, #left_workspace {
@@ -358,7 +357,6 @@
     #main_workspace {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        /* font-family: arial, sans-serif; */
         height: 100%
     }
 
