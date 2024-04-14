@@ -42,17 +42,85 @@ const lineControlHandler = (eventData: MouseEvent, transformData: fabric.Transfo
     const dist = 30
     const L1 = interpolatePoint(Dpoint, Apoint, dist);
     const L2 = interpolatePoint(Cpoint, Bpoint, dist);
+    const shadow = new fabric.Shadow({  
+        color: 'rgba(0, 0, 0, 1)',  
+        affectStroke: true,
+        blur: 30
+    });  
     const segment = new fabric.Line([L1.x, L1.y, L2.x, L2.y], {
         stroke: targetContour.stroke,
-        strokeWidth: 5
+        strokeWidth: 5,
+        strokeDashArray: [5],
+        shadow: shadow
     })
     targetExtendedCanvas.add(segment)
 
     segment.on('mouseover', function(options: fabric.IEvent<MouseEvent>) {
-        // @todo: add shadow
+        const targetObject = options.target
+        if (!targetObject) {
+            console.error('Empty target object on segment mouseover. Options:', options)
+            return
+        }
+        const targetCanvas: FabricCanvasWrap | undefined = targetObject.canvas as FabricCanvasWrap | undefined
+        if (!targetCanvas) {
+            console.error('Empty target canvas on segment mouseover. Options:', options)
+            return
+        }
+
+        const targetShadowObj = targetObject.shadow?.valueOf()
+        const isShadow = targetShadowObj && targetShadowObj instanceof fabric.Shadow
+        if (!isShadow) {
+            return
+        }
+        const targetShadow = targetShadowObj as fabric.Shadow
+        targetShadow.color = 'rgba(255, 255, 255, 1)'  
+        targetShadow.blur = 30
+
+        // Apply some styling to parent contour too
+        const parentObject = targetContour
+        const parentShadowObj = parentObject.shadow?.valueOf()
+        const isParentShadow = parentShadowObj && parentShadowObj instanceof fabric.Shadow
+        if (!isParentShadow) {
+            return
+        }
+        const parentShadow = parentShadowObj as fabric.Shadow
+        parentShadow.color = 'rgba(255, 255, 255, 1)'  
+        parentShadow.blur = 30
+        
+        targetCanvas.renderAll()
     });
     segment.on('mouseout', function(options: fabric.IEvent<MouseEvent>) {
-        // @todo: remove shadow
+        const targetObject = options.target
+        if (!targetObject) {
+            console.error('Empty target object on segment mouseout. Options:', options)
+            return
+        }
+        const targetCanvas: FabricCanvasWrap | undefined = targetObject.canvas as FabricCanvasWrap | undefined
+        if (!targetCanvas) {
+            console.error('Empty target canvas on segment mouseout. Options:', options)
+            return
+        }
+        const targetShadowObj = targetObject.shadow?.valueOf()
+        const isShadow = targetShadowObj && targetShadowObj instanceof fabric.Shadow
+        if (!isShadow) {
+            return
+        }
+        const targetShadow = targetShadowObj as fabric.Shadow
+        targetShadow.color = 'rgba(0, 0, 0, 1)'  
+        targetShadow.blur = 30
+
+        // Reset parent shadow
+        const parentObject = targetContour
+        const parentShadowObj = parentObject.shadow?.valueOf()
+        const isParentShadow = parentShadowObj && parentShadowObj instanceof fabric.Shadow
+        if (!isParentShadow) {
+            return
+        }
+        const parentShadow = parentShadowObj as fabric.Shadow
+        parentShadow.color = parentObject.stroke
+        parentShadow.blur = 0
+
+        targetCanvas.renderAll()
     }); 
 
     // @todo

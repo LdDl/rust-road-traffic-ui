@@ -193,12 +193,12 @@ export function prepareContour(contourFinalized: any, state: Writable<States>, s
     contour.inner.on('mouseover', function(options: fabric.IEvent<MouseEvent>) {
         const targetContour = options.target
         if (!targetContour) {
-            console.error('Empty target contour on modified. Options:', options)
+            console.error('Empty target contour on mouseover. Options:', options)
             return
         }
         const targetExtendedCanvas: FabricCanvasWrap | undefined = targetContour.canvas as FabricCanvasWrap | undefined
         if (!targetExtendedCanvas) {
-            console.error('Empty target canvas on modified. Options:', options)
+            console.error('Empty target canvas on mouseover. Options:', options)
             return
         }
         targetContour.set('fill', 'rgba(0, 0, 0, 0.1)')
@@ -214,12 +214,12 @@ export function prepareContour(contourFinalized: any, state: Writable<States>, s
     contour.inner.on('mouseout', function(options: fabric.IEvent<MouseEvent>) {
         const targetContour = options.target
         if (!targetContour) {
-            console.error('Empty target contour on modified. Options:', options)
+            console.error('Empty target contour on mouseout. Options:', options)
             return
         }
         const targetExtendedCanvas: FabricCanvasWrap | undefined = targetContour.canvas as FabricCanvasWrap | undefined
         if (!targetExtendedCanvas) {
-            console.error('Empty target canvas on modified. Options:', options)
+            console.error('Empty target canvas on mouseout. Options:', options)
             return
         }
         targetContour.set('fill', 'rgba(0, 0, 0, 0)')
