@@ -121,6 +121,7 @@ export interface ContourWrap {
     unid: string,
     notation: fabric.Text[]
     current_points?: fabric.Point[] | undefined
+    virtual_line?: fabric.Line | undefined
 }
 
 export class CustomPolygon extends fabric.Polygon implements ContourWrap {
@@ -128,7 +129,7 @@ export class CustomPolygon extends fabric.Polygon implements ContourWrap {
     unid: string;
     notation: fabric.Text[];
     current_points?: fabric.Point[] | undefined
-
+    virtual_line?: fabric.Line | undefined
     constructor(points: fabric.Point[], options?: fabric.IPolylineOptions) {
         super(points, options);
         // Initialize additional properties
@@ -136,6 +137,7 @@ export class CustomPolygon extends fabric.Polygon implements ContourWrap {
         this.notation = [];
         this.inner = this
         this.current_points = []
+        this.virtual_line = undefined
     }
 }
 

@@ -1,5 +1,6 @@
 import { fabric } from "fabric"
 import { CustomPolygon, type FabricCanvasWrap } from "./custom_canvas";
+import { interpolatePoint } from "./utils";
 
 // http://fabricjs.com/custom-control-render
 
@@ -23,13 +24,41 @@ const lineControlHandler = (eventData: MouseEvent, transformData: fabric.Transfo
         console.error('Unhandled type. Only CustomPolygon on top of fabric.Object has been implemented. Event: control click. Transform data:', transformData)
         return false
     }
-    
+
+    const abcdPoints = targetContour.points?.slice() // Copy data
+    if (!abcdPoints) {
+        console.error('Empty target canvas points on control click. transform Data:', transformData)
+        return false
+    }
+    if (abcdPoints.length !== 4) {
+        console.error('Target canvas points should have 4 points exactly on control click. transform Data:', transformData)
+        return false
+    }
+
+    const Apoint = abcdPoints[0]
+    const Bpoint = abcdPoints[1]
+    const Cpoint = abcdPoints[2]
+    const Dpoint = abcdPoints[3]
+    const dist = 30
+    const L1 = interpolatePoint(Dpoint, Apoint, dist);
+    const L2 = interpolatePoint(Cpoint, Bpoint, dist);
+    const segment = new fabric.Line([L1.x, L1.y, L2.x, L2.y], {
+        stroke: targetContour.stroke,
+        strokeWidth: 5
+    })
+    targetExtendedCanvas.add(segment)
+
+    segment.on('mouseover', function(options: fabric.IEvent<MouseEvent>) {
+        // @todo: add shadow
+    });
+    segment.on('mouseout', function(options: fabric.IEvent<MouseEvent>) {
+        // @todo: remove shadow
+    }); 
+
     // @todo
     console.warn("Need to implement 'lineControlHandler'")
     return true
 }
-
-// <rect width="100%" height="100%" fill="green"/>
 
 const lineRenderControlHandler = (ctx: CanvasRenderingContext2D, left: number, top: number, styleOverride: any, fabricObject: fabric.Object): void => {
     ctx.save()

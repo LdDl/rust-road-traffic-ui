@@ -1,5 +1,5 @@
 //@ts-nocheck
-import type { fabric } from 'fabric'
+import { fabric } from 'fabric'
 
 export function getRandomRGB() {
     // https://stackoverflow.com/a/23095731/6026885
@@ -88,4 +88,16 @@ export class UUIDv4 {
             + '-' + this.generateXes(12)
         return result;
     };
+}
+
+// Interpolate a point by specified distance from B point for segment AB
+export const interpolatePoint = (p1: fabric.Point, p2: fabric.Point, dist: number) => {
+    const x1 = p1.x
+    const y1 = p1.y
+    const x2 = p2.x
+    const y2 = p2.y
+    const ratio = dist / Math.hypot(x2-x1, y2-y1)
+    const x = x2 + (x2 - x1) * ratio
+    const y = y2 + (y2 - y1) * ratio
+    return new fabric.Point(x, y)
 }
