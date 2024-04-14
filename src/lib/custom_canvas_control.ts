@@ -53,6 +53,7 @@ const lineControlHandler = (eventData: MouseEvent, transformData: fabric.Transfo
         strokeDashArray: [5],
         shadow: shadow
     })
+
     targetExtendedCanvas.add(segment)
 
     segment.on('mouseover', function(options: fabric.IEvent<MouseEvent>) {
@@ -123,6 +124,7 @@ const lineControlHandler = (eventData: MouseEvent, transformData: fabric.Transfo
         targetCanvas.renderAll()
     }); 
 
+    
     // @todo
     console.warn("Need to implement 'lineControlHandler'")
     return true
@@ -131,6 +133,7 @@ const lineControlHandler = (eventData: MouseEvent, transformData: fabric.Transfo
 const lineRenderControlHandler = (ctx: CanvasRenderingContext2D, left: number, top: number, styleOverride: any, fabricObject: fabric.Object): void => {
     if (!(fabricObject instanceof CustomPolygon)) {
         // Render this control for this type of object only
+        // It still "transparent" and clickable, but error will be occured during click
         return
     }
     ctx.save()
