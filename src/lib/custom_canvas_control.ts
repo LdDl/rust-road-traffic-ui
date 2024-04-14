@@ -19,7 +19,10 @@ const lineControlHandler = (eventData: MouseEvent, transformData: fabric.Transfo
         console.error('Unhandled type. Only CustomPolygon on top of fabric.Object has been implemented. Event: control click. Transform data:', transformData)
         return false
     }
-
+    if (targetContour.virtual_line) {
+        console.warn("Target contour already has virtual line. Ignoring. Transform data:", transformData)
+        return false
+    }
     const targetExtendedCanvas: FabricCanvasWrap | undefined = targetContour.canvas as FabricCanvasWrap | undefined
     if (!targetExtendedCanvas) {
         console.error('Empty target canvas on control click. transform Data:', transformData)
@@ -53,8 +56,6 @@ const lineControlHandler = (eventData: MouseEvent, transformData: fabric.Transfo
         strokeDashArray: [5],
         shadow: shadow
     })
-
-    targetExtendedCanvas.add(segment)
 
     segment.on('mouseover', function(options: fabric.IEvent<MouseEvent>) {
         const targetObject = options.target
@@ -124,7 +125,9 @@ const lineControlHandler = (eventData: MouseEvent, transformData: fabric.Transfo
         targetCanvas.renderAll()
     }); 
 
-    
+    targetContour.virtual_line = segment
+
+    targetExtendedCanvas.add(segment)
     // @todo
     console.warn("Need to implement 'lineControlHandler'")
     return true
