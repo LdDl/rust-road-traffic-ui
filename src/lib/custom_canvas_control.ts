@@ -15,16 +15,16 @@ const lineControlHandler = (eventData: MouseEvent, transformData: fabric.Transfo
         console.error('Empty target contour on control click. Transform data:', transformData)
         return false
     }
-    const targetExtendedCanvas: FabricCanvasWrap | undefined = targetContour.canvas as FabricCanvasWrap | undefined
-    if (!targetExtendedCanvas) {
-        console.error('Empty target canvas on control click. transform Data:', transformData)
-        return false
-    }
     if (!(targetContour instanceof CustomPolygon)) {
         console.error('Unhandled type. Only CustomPolygon on top of fabric.Object has been implemented. Event: control click. Transform data:', transformData)
         return false
     }
 
+    const targetExtendedCanvas: FabricCanvasWrap | undefined = targetContour.canvas as FabricCanvasWrap | undefined
+    if (!targetExtendedCanvas) {
+        console.error('Empty target canvas on control click. transform Data:', transformData)
+        return false
+    }
     const abcdPoints = targetContour.points?.slice() // Copy data
     if (!abcdPoints) {
         console.error('Empty target canvas points on control click. transform Data:', transformData)
@@ -129,6 +129,10 @@ const lineControlHandler = (eventData: MouseEvent, transformData: fabric.Transfo
 }
 
 const lineRenderControlHandler = (ctx: CanvasRenderingContext2D, left: number, top: number, styleOverride: any, fabricObject: fabric.Object): void => {
+    if (!(fabricObject instanceof CustomPolygon)) {
+        // Render this control for this type of object only
+        return
+    }
     ctx.save()
     ctx.translate(left, top)
     if (fabricObject.angle) {
