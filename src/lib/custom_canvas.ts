@@ -3,8 +3,6 @@ import { UUIDv4, findLefTopX, findLeftTopY, getObjectSizeWithStroke, getRandomRG
 import type { Zone } from "./zones";
 import { get, type Writable } from "svelte/store";
 import { States } from "./states";
-import { updateDataStorage } from "../store/data_storage";
-
 
 // Extend fabric.Canvas with custom properties
 export interface FabricCanvasWrap extends fabric.Canvas {
