@@ -1,5 +1,5 @@
 import { fabric } from "fabric"
-import { UUIDv4, findLefTopX, findLeftTopY, getObjectSizeWithStroke, getRandomRGB} from './utils'
+import { UUIDv4, findLefTopX, findLeftTopY, getObjectSizeWithStroke, getRandomRGB } from './utils'
 import { type Zone } from "./zones";
 import { get, type Writable } from "svelte/store";
 import { States } from "./states";
@@ -7,7 +7,7 @@ import type { LineWrap } from "./custom_line";
 
 // Extend fabric.Canvas with custom properties
 export interface FabricCanvasWrap extends fabric.Canvas {
-    editContour (contour: fabric.Polygon): void;
+    editContour(contour: fabric.Polygon): void;
     scaleWidth: number;
     scaleHeight: number;
     contourTemporary: Array<fabric.Line>;
@@ -39,7 +39,7 @@ export class ExtendedCanvas extends fabric.Canvas implements FabricCanvasWrap {
             contour.cornerStyle = 'circle';
             contour.cornerSize = 15;
             contour.cornerColor = 'rgba(0, 0, 255, 1.0)';
-            contour.controls = contour?.points?.reduce(function(acc: any, point: any, index: any) {
+            contour.controls = contour?.points?.reduce(function (acc: any, point: any, index: any) {
                 acc['p' + index] = new fabric.Control({
                     positionHandler: polygonPositionHandler,
                     actionHandler: anchorWrapper(index > 0 ? index - 1 : lastControl, actionHandler),
@@ -48,7 +48,7 @@ export class ExtendedCanvas extends fabric.Canvas implements FabricCanvasWrap {
                     pointIndex: index
                 });
                 return acc;
-            }, { });
+            }, {});
         } else {
             contour.cornerColor = 'rgb(178, 204, 255)';
             contour.cornerStyle = 'rect';
@@ -63,7 +63,7 @@ export class ExtendedCanvas extends fabric.Canvas implements FabricCanvasWrap {
 // define a function that can keep the polygon in the same position when we change its
 // width/height/top/left.
 const anchorWrapper = function (anchorIndex: any, fn: any) {
-    return function(eventData: any, transform: any, x: any, y: any) {
+    return function (eventData: any, transform: any, x: any, y: any) {
         let fabricObject = transform.target;
         const pt = new fabric.Point((fabricObject.points[anchorIndex].x - fabricObject.pathOffset.x), (fabricObject.points[anchorIndex].y - fabricObject.pathOffset.y))
         let absolutePoint = fabric.util.transformPoint(pt, fabricObject.calcTransformMatrix());
@@ -147,12 +147,12 @@ export const verticesChars = ['A', 'B', 'C', 'D']
 export const makeContour = (coordinates: any, color = getRandomRGB()): ContourWrap => {
     let left = findLefTopX(coordinates)
     let top = findLeftTopY(coordinates)
-    
-    const shadow = new fabric.Shadow({  
-        color: color,  
+
+    const shadow = new fabric.Shadow({
+        color: color,
         affectStroke: true,
-        blur: 0 
-    });  
+        blur: 0
+    });
 
     let contour = new CustomPolygon(coordinates, {
         fill: 'rgba(0,0,0,0)',
@@ -191,9 +191,10 @@ export function prepareContour(contourFinalized: any, state: Writable<States>, s
     const contour = makeContour(contourFinalized, color)
     contour.inner.on('mousedown', contourMouseDownEventWrapper(state, storage, updateDataStorageFn))
     contour.inner.on('modified', contourModifiedEventWrapper(storage, updateDataStorageFn))
-    contour.inner.on('virtial_line:created', customEventForVirtualLine(storage, updateDataStorageFn))
+    contour.inner.on('virtial_line:created', customEventCreatedForVirtualLine(storage, updateDataStorageFn))
+    contour.inner.on('virtial_line:modified', customEventModifiedForVirtualLine(storage, updateDataStorageFn))
 
-    contour.inner.on('mouseover', function(options: fabric.IEvent<MouseEvent>) {
+    contour.inner.on('mouseover', function (options: fabric.IEvent<MouseEvent>) {
         const targetContour = options.target
         if (!targetContour) {
             console.error('Empty target contour on mouseover. Options:', options)
@@ -214,7 +215,7 @@ export function prepareContour(contourFinalized: any, state: Writable<States>, s
         targetShadow.blur = 30
         targetExtendedCanvas.renderAll()
     });
-    contour.inner.on('mouseout', function(options: fabric.IEvent<MouseEvent>) {
+    contour.inner.on('mouseout', function (options: fabric.IEvent<MouseEvent>) {
         const targetContour = options.target
         if (!targetContour) {
             console.error('Empty target contour on mouseout. Options:', options)
@@ -234,7 +235,7 @@ export function prepareContour(contourFinalized: any, state: Writable<States>, s
         const targetShadow = targetShadowObj as fabric.Shadow
         targetShadow.blur = 0
         targetExtendedCanvas.renderAll()
-    });    
+    });
     if (featureID !== '') {
         contour.unid = featureID
     } else {
@@ -247,8 +248,8 @@ export function prepareContour(contourFinalized: any, state: Writable<States>, s
     return contour
 }
 
-function customEventForVirtualLine(storage: Writable<Map<string, Zone>>, updateDataStorageFn: (key: string, value: Zone) => void) {
-    return function(options: fabric.IEvent<Event>) {
+function customEventCreatedForVirtualLine(storage: Writable<Map<string, Zone>>, updateDataStorageFn: (key: string, value: Zone) => void) {
+    return function (options: fabric.IEvent<Event>) {
         const targetContour = options.target
         if (!targetContour) {
             console.error('Empty target contour on virtual_line:created. Options:', options)
@@ -278,8 +279,14 @@ function customEventForVirtualLine(storage: Writable<Map<string, Zone>>, updateD
     }
 }
 
+function customEventModifiedForVirtualLine(storage: Writable<Map<string, Zone>>, updateDataStorageFn: (key: string, value: Zone) => void) {
+    // Modified == Created currently
+    // Could change this behaviour when need to.
+    return customEventCreatedForVirtualLine(storage, updateDataStorageFn)
+}
+
 function contourMouseDownEventWrapper(state: Writable<States>, storage: Writable<Map<string, Zone>>, updateDataStorageFn: (key: string, value: Zone) => void) {
-    return function(options: fabric.IEvent<MouseEvent>) {
+    return function (options: fabric.IEvent<MouseEvent>) {
         const targetContour = options.target
         if (!targetContour) {
             console.error('Empty target contour on mouse:down. Options:', options)
@@ -318,19 +325,19 @@ function contourMouseDownEventWrapper(state: Writable<States>, storage: Writable
                 }
                 existingContour.properties.coordinates = targetPolygon.current_points.map((element: { x: number; y: number; }) => {
                     return [
-                        Math.floor(element.x/targetExtendedCanvas.scaleWidth),
-                        Math.floor(element.y/targetExtendedCanvas.scaleHeight)
+                        Math.floor(element.x / targetExtendedCanvas.scaleWidth),
+                        Math.floor(element.y / targetExtendedCanvas.scaleHeight)
                     ]
                 }) as [[number, number], [number, number], [number, number], [number, number]]
                 updateDataStorageFn(targetPolygon.unid, existingContour)
             }
             targetExtendedCanvas.editContour(targetPolygon);
-        }                
+        }
     }
 }
 
 function contourModifiedEventWrapper(storage: Writable<Map<string, Zone>>, updateDataStorageFn: (key: string, value: Zone) => void) {
-    return function(options: fabric.IEvent<Event>) {
+    return function (options: fabric.IEvent<Event>) {
         const targetContour = options.target
         if (!targetContour) {
             console.error('Empty target contour on modified. Options:', options)
@@ -378,8 +385,8 @@ function contourModifiedEventWrapper(storage: Writable<Map<string, Zone>>, updat
         }
         existingContour.properties.coordinates = targetPolygon.current_points.map((element: { x: number; y: number; }) => {
             return [
-                Math.floor(element.x/targetExtendedCanvas.scaleWidth),
-                Math.floor(element.y/targetExtendedCanvas.scaleHeight)
+                Math.floor(element.x / targetExtendedCanvas.scaleWidth),
+                Math.floor(element.y / targetExtendedCanvas.scaleHeight)
             ]
         }) as [[number, number], [number, number], [number, number], [number, number]]
         updateDataStorageFn(targetPolygon.unid, existingContour)
@@ -390,8 +397,8 @@ export const drawCanvasPolygons = (extendedCanvas: FabricCanvasWrap, state: Writ
     get(storage).forEach(feature => {
         const contourFinalized = feature.properties.coordinates.map((element: any) => {
             return {
-                x: element[0]*extendedCanvas.scaleWidth,
-                y: element[1]*extendedCanvas.scaleHeight
+                x: element[0] * extendedCanvas.scaleWidth,
+                y: element[1] * extendedCanvas.scaleHeight
             }
         });
         const contour = prepareContour(contourFinalized, state, storage, updateDataStorageFn, feature.id, `rgb(${feature.properties.color_rgb[0]},${feature.properties.color_rgb[1]},${feature.properties.color_rgb[2]})`)

@@ -132,8 +132,6 @@ const lineControlHandler = (eventData: MouseEvent, transformData: fabric.Transfo
         targetCanvas.renderAll()
     }); 
     segment.on('modified', (options: fabric.IEvent<Event>) => {
-        // @todo
-        console.warn("Need to implement modified for line")    
         const targetObject = options.target
         if (!targetObject) {
             console.error('Empty target object on segment. Event: modified. Options:', options)
@@ -158,6 +156,8 @@ const lineControlHandler = (eventData: MouseEvent, transformData: fabric.Transfo
         targetLine.current_points[0][1] = L1Scaled.y
         targetLine.current_points[1][0] = L2Scaled.x
         targetLine.current_points[1][1] = L2Scaled.y
+
+        targetContour.fire('virtial_line:modified', { target: targetContour })
     })
 
     targetContour.virtual_line = segment
@@ -165,7 +165,6 @@ const lineControlHandler = (eventData: MouseEvent, transformData: fabric.Transfo
     targetExtendedCanvas.add(segment)
     // @todo
     console.warn("Need to implement 'lineControlHandler'")
-    console.warn("Need to implement virtual_line:modified listener")
     return true
 }
 
