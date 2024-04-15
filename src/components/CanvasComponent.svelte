@@ -2,7 +2,7 @@
     import { onMount, onDestroy } from 'svelte'
     import { fabric } from "fabric"
     import { canvasReady, canvasState, apiUrlStore, changeAPI, state } from '../store/state.js'
-	import { ExtendedCanvas, prepareContour, verticesChars, type FabricCanvasWrap } from '$lib/custom_canvas.js';
+	import { ExtendedCanvas, prepareContour, verticesChars, type FabricCanvasWrap, CustomPolygon } from '$lib/custom_canvas.js';
 	import { States } from '$lib/states.js';
 	import { getClickPoint, rgba2array } from '$lib/utils.js';
 	import { dataStorage, deattachCanvasFromSpatial, deleteFromDataStorage, updateDataStorage } from '../store/data_storage.js';
@@ -46,18 +46,16 @@
         unsubApiChange()
     });
 
-    const deleteZoneFromCanvas = (extendedCanvas: any, zoneID: string) => {
-        // Пересмотреть поведение
-        extendedCanvas.getObjects().forEach( (contour: { unid: string; }) => {
-            if (contour.unid === zoneID) {
-                extendedCanvas.remove(contour)
-                return
-            }
-        })
-        extendedCanvas.getObjects().forEach( (textObject: { text_id: string; }) => {
-            if (textObject.text_id === zoneID) {
-                extendedCanvas.remove(textObject)
-                return
+    const deleteZoneFromCanvas = (extendedCanvas: FabricCanvasWrap, zoneID: string) => {
+        extendedCanvas.getObjects().forEach((object) => {
+            if (object instanceof CustomPolygon && object.unid === zoneID) {
+                if (object.virtual_line) {
+                    extendedCanvas.remove(object.virtual_line._inner)                    
+                }
+                object.notation.forEach((textObject) => {
+                    extendedCanvas.remove(textObject)    
+                })
+                extendedCanvas.remove(object)
             }
         })
         deattachCanvasFromSpatial($dataStorage, $draw, zoneID)
