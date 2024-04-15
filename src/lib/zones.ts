@@ -11,16 +11,18 @@ export interface Zone {
       road_lane_num: number,
       coordinates: [[number, number], [number, number], [number, number], [number, number]],
       color_rgb: [number, number, number],
-      virtual_line?: {
-        geometry: [[number, number], [number, number]],
-        color_rgb: [number, number, number],
-        direction: DirectionType
-      },
+      virtual_line?: VirtualLineProps,
       ds_id?: string,
       spatial_object_id?: string,
       color_rgb_str?: string,
     },
     geometry: PolygonGeoJSON
+}
+
+export interface VirtualLineProps {
+    geometry: [[number, number], [number, number]],
+    color_rgb: [number, number, number],
+    direction: DirectionType
 }
 
 interface PolygonGeoJSON {
@@ -35,7 +37,8 @@ export interface ZoneFeature {
         road_lane_direction: number,
         road_lane_num: number,
         coordinates: [[number, number], [number, number], [number, number], [number, number]],
-        color_rgb: [number, number, number]
+        color_rgb: [number, number, number],
+        virtual_line?: VirtualLineProps
     },
     geometry: PolygonGeoJSON
 }

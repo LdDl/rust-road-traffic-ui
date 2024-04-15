@@ -1,6 +1,6 @@
 import { fabric } from "fabric"
 import { UUIDv4, findLefTopX, findLeftTopY, getObjectSizeWithStroke, getRandomRGB } from './utils'
-import { type Zone } from "./zones";
+import { type VirtualLineProps, type Zone } from "./zones";
 import { get, type Writable } from "svelte/store";
 import { States } from "./states";
 import type { LineWrap } from "./custom_line";
@@ -187,7 +187,7 @@ export const makeContour = (coordinates: any, color = getRandomRGB()): ContourWr
     return contour
 }
 
-export function prepareContour(contourFinalized: any, state: Writable<States>, storage: Writable<Map<string, Zone>>, updateDataStorageFn: (key: string, value: Zone) => void, featureID: string = '', color = getRandomRGB()) {
+export function prepareContour(contourFinalized: any, state: Writable<States>, storage: Writable<Map<string, Zone>>, updateDataStorageFn: (key: string, value: Zone) => void, virtual_line?: VirtualLineProps, featureID: string = '', color = getRandomRGB()) {
     const contour = makeContour(contourFinalized, color)
     contour.inner.on('mousedown', contourMouseDownEventWrapper(state, storage, updateDataStorageFn))
     contour.inner.on('modified', contourModifiedEventWrapper(storage, updateDataStorageFn))
@@ -245,6 +245,11 @@ export function prepareContour(contourFinalized: any, state: Writable<States>, s
         //@ts-ignore
         contour.notation[idx].text_id = contour.unid
     })
+
+    if (virtual_line) {
+        // @todo
+        console.warn("need to implement virtual line on initial values", virtual_line)
+    }
     return contour
 }
 
@@ -401,7 +406,7 @@ export const drawCanvasPolygons = (extendedCanvas: FabricCanvasWrap, state: Writ
                 y: element[1] * extendedCanvas.scaleHeight
             }
         });
-        const contour = prepareContour(contourFinalized, state, storage, updateDataStorageFn, feature.id, `rgb(${feature.properties.color_rgb[0]},${feature.properties.color_rgb[1]},${feature.properties.color_rgb[2]})`)
+        const contour = prepareContour(contourFinalized, state, storage, updateDataStorageFn, feature.properties.virtual_line, feature.id, `rgb(${feature.properties.color_rgb[0]},${feature.properties.color_rgb[1]},${feature.properties.color_rgb[2]})`)
 
         extendedCanvas.add(contour.inner);
         contour.notation.forEach((vertextNotation: fabric.Text) => {
