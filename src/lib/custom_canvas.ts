@@ -247,7 +247,7 @@ export function prepareContour(contourFinalized: any, state: Writable<States>, s
     return contour
 }
 
-function customEventForVirtualLine(storage: Map<string, Zone>, updateDataStorageFn: (key: string, value: Zone) => void) {
+function customEventForVirtualLine(storage: Writable<Map<string, Zone>>, updateDataStorageFn: (key: string, value: Zone) => void) {
     return function(options: fabric.IEvent<Event>) {
         const targetContour = options.target
         if (!targetContour) {
@@ -264,7 +264,7 @@ function customEventForVirtualLine(storage: Map<string, Zone>, updateDataStorage
             console.error('Empty virtual line. Event: virtual_line:created. Options:', options)
             return
         }
-        let existingContour = storage.get(targetPolygon.unid);
+        let existingContour = get(storage).get(targetPolygon.unid);
         if (!existingContour) {
             console.error('No contour in datastorage. Event: virtual_line:created. Options:', options)
             return
