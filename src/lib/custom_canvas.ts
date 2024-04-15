@@ -1,8 +1,9 @@
 import { fabric } from "fabric"
 import { UUIDv4, findLefTopX, findLeftTopY, getObjectSizeWithStroke, getRandomRGB} from './utils'
-import { DirectionType, type Zone } from "./zones";
+import { type Zone } from "./zones";
 import { get, type Writable } from "svelte/store";
 import { States } from "./states";
+import type { LineWrap } from "./custom_line";
 
 // Extend fabric.Canvas with custom properties
 export interface FabricCanvasWrap extends fabric.Canvas {
@@ -121,7 +122,7 @@ export interface ContourWrap {
     unid: string,
     notation: fabric.Text[]
     current_points?: fabric.Point[] | undefined
-    virtual_line?: fabric.Line | undefined
+    virtual_line?: LineWrap | undefined
 }
 
 export class CustomPolygon extends fabric.Polygon implements ContourWrap {
@@ -129,7 +130,7 @@ export class CustomPolygon extends fabric.Polygon implements ContourWrap {
     unid: string;
     notation: fabric.Text[];
     current_points?: fabric.Point[] | undefined
-    virtual_line?: fabric.Line | undefined
+    virtual_line?: LineWrap | undefined
     constructor(points: fabric.Point[], options?: fabric.IPolylineOptions) {
         super(points, options);
         // Initialize additional properties
@@ -268,12 +269,10 @@ function customEventForVirtualLine(storage: Map<string, Zone>, updateDataStorage
             console.error('No contour in datastorage. Event: virtual_line:created. Options:', options)
             return
         }
-        console.warn("Need to implement 'customEventForVirtualLine'")
-        // @todo: inherit this params
         existingContour.properties.virtual_line = {
-            geometry: [[0, 0], [0, 0]],
-            color_rgb: existingContour.properties.color_rgb,
-            direction: DirectionType.LeftRightTopBottom
+            geometry: targetVirtualLine.geometry,
+            color_rgb: targetVirtualLine.color_rgb,
+            direction: targetVirtualLine.direction
         }
         updateDataStorageFn(targetPolygon.unid, existingContour)
     }
@@ -310,6 +309,7 @@ function contourMouseDownEventWrapper(state: Writable<States>, storage: Map<stri
                 state.set(States.Waiting);
                 let existingContour = storage.get(targetPolygon.unid);
                 if (!existingContour) {
+                    console.error('No contour in datastorage. Event: mouse:down. Options:', options)
                     return
                 }
                 if (!targetPolygon.current_points) {
@@ -373,6 +373,7 @@ function contourModifiedEventWrapper(storage: Map<string, Zone>, updateDataStora
         })
         let existingContour = storage.get(targetPolygon.unid);
         if (!existingContour) {
+            console.error('No contour in datastorage. Event: modified. Options:', options)
             return
         }
         existingContour.properties.coordinates = targetPolygon.current_points.map((element: { x: number; y: number; }) => {

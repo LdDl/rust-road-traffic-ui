@@ -1,6 +1,8 @@
 import { fabric } from "fabric"
 import { CustomPolygon, type FabricCanvasWrap } from "./custom_canvas";
-import { interpolatePoint } from "./utils";
+import { interpolatePoint, rgba2array } from "./utils";
+import { CustomLine } from "./custom_line";
+import { DirectionType } from "./zones";
 
 // http://fabricjs.com/custom-control-render
 
@@ -50,12 +52,14 @@ const lineControlHandler = (eventData: MouseEvent, transformData: fabric.Transfo
         affectStroke: true,
         blur: 30
     });  
-    const segment = new fabric.Line([L1.x, L1.y, L2.x, L2.y], {
+    const segment = new CustomLine([L1.x, L1.y, L2.x, L2.y], {
         stroke: targetContour.stroke,
         strokeWidth: 5,
         strokeDashArray: [5],
         shadow: shadow
     })
+    segment.color_rgb = rgba2array(segment.stroke)
+    segment.direction = DirectionType.LeftRightTopBottom
 
     segment.on('mouseover', function(options: fabric.IEvent<MouseEvent>) {
         const targetObject = options.target
@@ -126,10 +130,11 @@ const lineControlHandler = (eventData: MouseEvent, transformData: fabric.Transfo
     }); 
 
     targetContour.virtual_line = segment
-    targetContour.fire('virtial_line:created', {target: targetContour})
+    targetContour.fire('virtial_line:created', { target: targetContour })
     targetExtendedCanvas.add(segment)
     // @todo
     console.warn("Need to implement 'lineControlHandler'")
+    console.warn("Need to implement virtual_line:modified listener")
     return true
 }
 
