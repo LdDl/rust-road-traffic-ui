@@ -56,6 +56,9 @@ const lineControlHandler = (eventData: MouseEvent, transformData: fabric.Transfo
         stroke: targetContour.stroke,
         strokeWidth: 5,
         strokeDashArray: [5],
+        // http://fabricjs.com/stroke-uniform
+        strokeUniform: true,
+        objectCaching: false, // For real-time rendering updates
         shadow: shadow
     })
     const L1Scaled = new fabric.Point(Math.floor(L1.x/targetExtendedCanvas.scaleWidth), Math.floor(L1.y/targetExtendedCanvas.scaleHeight))
