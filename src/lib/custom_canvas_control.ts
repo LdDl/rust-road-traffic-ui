@@ -30,7 +30,7 @@ const lineControlHandler = (eventData: MouseEvent, transformData: fabric.Transfo
         console.error('Empty target canvas on control click. transform Data:', transformData)
         return false
     }
-    const abcdPoints = targetContour.points?.slice() // Copy data
+    const abcdPoints = targetContour.current_points?.slice() // Copy data
     if (!abcdPoints) {
         console.error('Empty target canvas points on control click. transform Data:', transformData)
         return false
