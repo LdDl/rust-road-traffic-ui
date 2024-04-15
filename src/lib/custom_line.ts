@@ -2,6 +2,8 @@ import { fabric } from "fabric"
 import { DirectionType } from "./zones";
 import { makeValidPoint } from "./utils";
 
+export const TYPE_VIRTUAL_LINE = 'TYPE_VIRTUAL_LINE'
+
 export interface LineWrap {
     _inner: fabric.Line,
     calcCurrentPoints(): [fabric.Point, fabric.Point],
@@ -21,6 +23,7 @@ export class CustomLine extends fabric.Line implements LineWrap {
         this.direction = DirectionType.LeftRightTopBottom
         this.current_points = [[0, 0], [0, 0]]
         this.color_rgb = [0, 0, 0]
+        this.type = TYPE_VIRTUAL_LINE
     }
     // https://github.com/fabricjs/fabric.js/issues/6711#issuecomment-739978578
     calcCurrentPoints(): [fabric.Point, fabric.Point] {

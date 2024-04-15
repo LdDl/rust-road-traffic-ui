@@ -1,7 +1,7 @@
 import { fabric } from "fabric"
 import { CustomPolygon, type FabricCanvasWrap } from "./custom_canvas";
-import { interpolatePoint, makeValidPoint, rgba2array, scalePoint } from "./utils";
-import { CustomLine } from "./custom_line";
+import { interpolatePoint, makeValidPoint, perpendicularToVectorByMidpoint, rgba2array, scalePoint } from "./utils";
+import { CustomLine, TYPE_VIRTUAL_LINE } from "./custom_line";
 import { DirectionType } from "./zones";
 
 // http://fabricjs.com/custom-control-render
@@ -72,106 +72,141 @@ const lineControlHandler = (eventData: MouseEvent, transformData: fabric.Transfo
     segment.color_rgb = rgba2array(segment.stroke)
     segment.direction = DirectionType.LeftRightTopBottom
 
-    segment.on('mouseover', function(options: fabric.IEvent<MouseEvent>) {
-        const targetObject = options.target
-        if (!targetObject) {
-            console.error('Empty target object on segment mouseover. Options:', options)
+    /* Arrow part */
+    /* Do we need full Arrow class implementation in future? */
+    const perpendicularDist = dist + 10
+    const [p1, p2] = perpendicularToVectorByMidpoint(L1, L2, perpendicularDist)
+    const arrow = new fabric.Line([p1.x, p1.y, p2.x, p2.y], {
+        stroke: targetContour.stroke,
+        strokeWidth: 5,
+        strokeDashArray: [5],
+        strokeUniform: true,
+        objectCaching: false,
+        shadow: shadow,
+        selectable: false
+    })
+    /* */
+    const virtLineGroup = new fabric.Group([segment, arrow], {
+        strokeUniform: true,
+        objectCaching: false, // For real-time rendering updates
+    })
+    virtLineGroup.on('modified', (options: fabric.IEvent<Event>) => {
+        const targetGroupObject = options.target
+        if (!targetGroupObject) {
+            console.error('Empty target group object on line group. Event: modified. Options:', options)
             return
         }
-        const targetCanvas: FabricCanvasWrap | undefined = targetObject.canvas as FabricCanvasWrap | undefined
+        if (!(targetGroupObject instanceof fabric.Group)) {
+            console.error('Unhandled type. Only fabric.Group has been implemented. Event: modified. Options:', options)
+            return
+        }
+        const targetCanvas: FabricCanvasWrap | undefined = targetGroupObject.canvas as FabricCanvasWrap | undefined
         if (!targetCanvas) {
-            console.error('Empty target canvas on segment mouseover. Options:', options)
+            console.error('Empty target canvas on line group. Event: modified. Options:', options)
             return
         }
+        const targetObjects = targetGroupObject.getObjects(TYPE_VIRTUAL_LINE)
+        targetObjects.forEach((targetObject) => {
+            if (!(targetObject instanceof CustomLine)) {
+                console.error('Unhandled type. Only CustomLime on top of fabric.Object has been implemented. Event: modified. Options:', options)
+                return
+            }
+            const targetLine = targetObject as CustomLine
+            const currentPoints = targetLine.calcCurrentPoints()
+            // calcCurrentPoints grants that points will fit into canvas width/height, but rendered object itself won't have correct representation.
+            // @todo: think how to handle it (and for polygons too) and do we even need this since REST API will accept correct values? 
+            const L1Scaled = scalePoint(currentPoints[0], targetCanvas.scaleWidth, targetCanvas.scaleHeight)
+            const L2Scaled = scalePoint(currentPoints[1], targetCanvas.scaleWidth, targetCanvas.scaleHeight)
+            targetLine.current_points[0][0] = L1Scaled.x
+            targetLine.current_points[0][1] = L1Scaled.y
+            targetLine.current_points[1][0] = L2Scaled.x
+            targetLine.current_points[1][1] = L2Scaled.y
+            targetContour.fire('virtial_line:modified', { target: targetContour })
+        })
+    })
 
-        const targetShadowObj = targetObject.shadow?.valueOf()
-        const isShadow = targetShadowObj && targetShadowObj instanceof fabric.Shadow
-        if (!isShadow) {
+    virtLineGroup.on('mouseover', function(options: fabric.IEvent<MouseEvent>) {
+        const targetGroupObject = options.target
+        if (!targetGroupObject) {
+            console.error('Empty target group object on line group. Event: mouseover. Options:', options)
             return
         }
-        const targetShadow = targetShadowObj as fabric.Shadow
-        targetShadow.color = 'rgba(255, 255, 255, 1)'  
-        targetShadow.blur = 30
+        const targetCanvas: FabricCanvasWrap | undefined = targetGroupObject.canvas as FabricCanvasWrap | undefined
+        if (!targetCanvas) {
+            console.error('Empty target canvas on line group. Event: mouseover. Options:', options)
+            return
+        }
+        if (!(targetGroupObject instanceof fabric.Group)) {
+            return
+        }
+        const targetObjects = targetGroupObject.getObjects()
+        targetObjects.forEach((targetObject) => {
+            const targetShadowObj = targetObject.shadow?.valueOf()
+            const isShadow = targetShadowObj && targetShadowObj instanceof fabric.Shadow
+            if (!isShadow) {
+                return
+            }
+            const targetShadow = targetShadowObj as fabric.Shadow
+            targetShadow.color = 'rgba(255, 255, 255, 1)'  
+            targetShadow.blur = 30
 
-        // Apply some styling to parent contour too
-        const parentObject = targetContour
-        const parentShadowObj = parentObject.shadow?.valueOf()
-        const isParentShadow = parentShadowObj && parentShadowObj instanceof fabric.Shadow
-        if (!isParentShadow) {
-            return
-        }
-        const parentShadow = parentShadowObj as fabric.Shadow
-        parentShadow.color = 'rgba(255, 255, 255, 1)'  
-        parentShadow.blur = 30
-        
+            // Apply some styling to parent contour too
+            const parentObject = targetContour
+            const parentShadowObj = parentObject.shadow?.valueOf()
+            const isParentShadow = parentShadowObj && parentShadowObj instanceof fabric.Shadow
+            if (!isParentShadow) {
+                return
+            }
+            const parentShadow = parentShadowObj as fabric.Shadow
+            parentShadow.color = 'rgba(255, 255, 255, 1)'  
+            parentShadow.blur = 30
+        })
         targetCanvas.renderAll()
-    });
-    segment.on('mouseout', function(options: fabric.IEvent<MouseEvent>) {
-        const targetObject = options.target
-        if (!targetObject) {
-            console.error('Empty target object on segment mouseout. Options:', options)
+    })
+
+    virtLineGroup.on('mouseout', function(options: fabric.IEvent<MouseEvent>) {
+        const targetGroupObject = options.target
+        if (!targetGroupObject) {
+            console.error('Empty target object on line group. Event: mouseout. Options:', options)
             return
         }
-        const targetCanvas: FabricCanvasWrap | undefined = targetObject.canvas as FabricCanvasWrap | undefined
+        const targetCanvas: FabricCanvasWrap | undefined = targetGroupObject.canvas as FabricCanvasWrap | undefined
         if (!targetCanvas) {
-            console.error('Empty target canvas on segment mouseout. Options:', options)
+            console.error('Empty target canvas on line group. Event: mouseout. Options:', options)
             return
         }
-        const targetShadowObj = targetObject.shadow?.valueOf()
-        const isShadow = targetShadowObj && targetShadowObj instanceof fabric.Shadow
-        if (!isShadow) {
+        if (!(targetGroupObject instanceof fabric.Group)) {
             return
         }
-        const targetShadow = targetShadowObj as fabric.Shadow
-        targetShadow.color = 'rgba(0, 0, 0, 1)'  
-        targetShadow.blur = 30
+        const targetObjects = targetGroupObject.getObjects()
+        targetObjects.forEach((targetObject) => {
+            const targetShadowObj = targetObject.shadow?.valueOf()
+            const isShadow = targetShadowObj && targetShadowObj instanceof fabric.Shadow
+            if (!isShadow) {
+                return
+            }
+            const targetShadow = targetShadowObj as fabric.Shadow
+            targetShadow.color = 'rgba(0, 0, 0, 1)'  
+            targetShadow.blur = 30
 
-        // Reset parent shadow
-        const parentObject = targetContour
-        const parentShadowObj = parentObject.shadow?.valueOf()
-        const isParentShadow = parentShadowObj && parentShadowObj instanceof fabric.Shadow
-        if (!isParentShadow) {
-            return
-        }
-        const parentShadow = parentShadowObj as fabric.Shadow
-        parentShadow.color = parentObject.stroke
-        parentShadow.blur = 0
-
+            // Reset parent shadow
+            const parentObject = targetContour
+            const parentShadowObj = parentObject.shadow?.valueOf()
+            const isParentShadow = parentShadowObj && parentShadowObj instanceof fabric.Shadow
+            if (!isParentShadow) {
+                return
+            }
+            const parentShadow = parentShadowObj as fabric.Shadow
+            parentShadow.color = parentObject.stroke
+            parentShadow.blur = 0
+        })
         targetCanvas.renderAll()
-    }); 
-    segment.on('modified', (options: fabric.IEvent<Event>) => {
-        const targetObject = options.target
-        if (!targetObject) {
-            console.error('Empty target object on segment. Event: modified. Options:', options)
-            return
-        }
-        if (!(targetObject instanceof CustomLine)) {
-            console.error('Unhandled type. Only CustomLime on top of fabric.Object has been implemented. Event: modified. Options:', options)
-            return
-        }
-        const targetCanvas: FabricCanvasWrap | undefined = targetObject.canvas as FabricCanvasWrap | undefined
-        if (!targetCanvas) {
-            console.error('Empty target canvas on segment. Event: modified. Options:', options)
-            return
-        }
-
-        const targetLine = targetObject as CustomLine
-        const currentPoints = targetLine.calcCurrentPoints()
-        // calcCurrentPoints grants that points will fit into canvas width/height, but rendered object itself won't have correct representation.
-        // @todo: think how to handle it (and for polygons too) and do we even need this since REST API will accept correct values? 
-        const L1Scaled = scalePoint(currentPoints[0], targetCanvas.scaleWidth, targetCanvas.scaleHeight)
-        const L2Scaled = scalePoint(currentPoints[1], targetCanvas.scaleWidth, targetCanvas.scaleHeight)
-        targetLine.current_points[0][0] = L1Scaled.x
-        targetLine.current_points[0][1] = L1Scaled.y
-        targetLine.current_points[1][0] = L2Scaled.x
-        targetLine.current_points[1][1] = L2Scaled.y
-
-        targetContour.fire('virtial_line:modified', { target: targetContour })
     })
 
     targetContour.virtual_line = segment
     targetContour.fire('virtial_line:created', { target: targetContour })
-    targetExtendedCanvas.add(segment)
+    targetExtendedCanvas.add(virtLineGroup)
+
     // @todo
     console.warn("Need to implement 'lineControlHandler'")
     return true
