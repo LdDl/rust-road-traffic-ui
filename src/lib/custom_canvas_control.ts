@@ -126,7 +126,7 @@ const lineControlHandler = (eventData: MouseEvent, transformData: fabric.Transfo
     }); 
 
     targetContour.virtual_line = segment
-
+    targetContour.fire('virtial_line:created', {target: targetContour})
     targetExtendedCanvas.add(segment)
     // @todo
     console.warn("Need to implement 'lineControlHandler'")

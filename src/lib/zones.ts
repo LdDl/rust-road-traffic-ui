@@ -1,3 +1,8 @@
+export enum DirectionType {
+    LeftRightTopBottom = 'lrtb',
+    RightLeftBottomTop = 'rlbt'
+}
+
 export interface Zone {
     type?: string,
     id: string,
@@ -9,7 +14,7 @@ export interface Zone {
       virtual_line?: {
         geometry: [[number, number], [number, number]],
         color_rgb: [number, number, number],
-        direction: string
+        direction: DirectionType
       },
       ds_id?: string,
       spatial_object_id?: string,

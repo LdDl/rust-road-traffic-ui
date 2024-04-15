@@ -1,6 +1,6 @@
 import { fabric } from "fabric"
 import { UUIDv4, findLefTopX, findLeftTopY, getObjectSizeWithStroke, getRandomRGB} from './utils'
-import type { Zone } from "./zones";
+import { DirectionType, type Zone } from "./zones";
 import { get, type Writable } from "svelte/store";
 import { States } from "./states";
 
@@ -190,6 +190,8 @@ export function prepareContour(contourFinalized: any, state: Writable<States>, s
     const contour = makeContour(contourFinalized, color)
     contour.inner.on('mousedown', contourMouseDownEventWrapper(state, storage, updateDataStorageFn))
     contour.inner.on('modified', contourModifiedEventWrapper(storage, updateDataStorageFn))
+    contour.inner.on('virtial_line:created', customEventForVirtualLine(storage, updateDataStorageFn))
+
     contour.inner.on('mouseover', function(options: fabric.IEvent<MouseEvent>) {
         const targetContour = options.target
         if (!targetContour) {
@@ -244,6 +246,38 @@ export function prepareContour(contourFinalized: any, state: Writable<States>, s
     return contour
 }
 
+function customEventForVirtualLine(storage: Map<string, Zone>, updateDataStorageFn: (key: string, value: Zone) => void) {
+    return function(options: fabric.IEvent<Event>) {
+        const targetContour = options.target
+        if (!targetContour) {
+            console.error('Empty target contour on virtual_line:created. Options:', options)
+            return
+        }
+        if (!(targetContour instanceof CustomPolygon)) {
+            console.error('Unhandled type. Only CustomPolygon on top of fabric.Object has been implemented. Event: virtual_line:created. Options:', options)
+            return
+        }
+        const targetPolygon = targetContour as CustomPolygon
+        const targetVirtualLine = targetPolygon.virtual_line
+        if (!targetVirtualLine) {
+            console.error('Empty virtual line. Event: virtual_line:created. Options:', options)
+            return
+        }
+        let existingContour = storage.get(targetPolygon.unid);
+        if (!existingContour) {
+            console.error('No contour in datastorage. Event: virtual_line:created. Options:', options)
+            return
+        }
+        console.warn("Need to implement 'customEventForVirtualLine'")
+        // @todo: inherit this params
+        existingContour.properties.virtual_line = {
+            geometry: [[0, 0], [0, 0]],
+            color_rgb: existingContour.properties.color_rgb,
+            direction: DirectionType.LeftRightTopBottom
+        }
+        updateDataStorageFn(targetPolygon.unid, existingContour)
+    }
+}
 
 function contourMouseDownEventWrapper(state: Writable<States>, storage: Map<string, Zone>, updateDataStorageFn: (key: string, value: Zone) => void) {
     return function(options: fabric.IEvent<MouseEvent>) {
