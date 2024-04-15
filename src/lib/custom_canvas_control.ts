@@ -159,7 +159,6 @@ const lineControlHandler = (eventData: MouseEvent, transformData: fabric.Transfo
         const currentPoints = targetLine.calcCurrentPoints()
         // calcCurrentPoints grants that points will fit into canvas width/height, but rendered object itself won't have correct representation.
         // @todo: think how to handle it (and for polygons too) and do we even need this since REST API will accept correct values? 
-
         const L1Scaled = scalePoint(currentPoints[0], targetCanvas.scaleWidth, targetCanvas.scaleHeight)
         const L2Scaled = scalePoint(currentPoints[1], targetCanvas.scaleWidth, targetCanvas.scaleHeight)
         targetLine.current_points[0][0] = L1Scaled.x
