@@ -58,6 +58,7 @@ const lineControlHandler = (eventData: MouseEvent, transformData: fabric.Transfo
         strokeDashArray: [5],
         shadow: shadow
     })
+    segment.current_points = [[L1.x, L1.y], [L2.x, L2.y]]
     segment.color_rgb = rgba2array(segment.stroke)
     segment.direction = DirectionType.LeftRightTopBottom
 
@@ -128,6 +129,10 @@ const lineControlHandler = (eventData: MouseEvent, transformData: fabric.Transfo
 
         targetCanvas.renderAll()
     }); 
+    segment.on('modified', (options: fabric.IEvent<Event>) => {
+        // @todo
+        console.warn("Need to implement modified for line")    
+    })
 
     targetContour.virtual_line = segment
     targetContour.fire('virtial_line:created', { target: targetContour })
