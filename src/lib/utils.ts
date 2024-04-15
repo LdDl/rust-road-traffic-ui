@@ -102,6 +102,21 @@ export const interpolatePoint = (p1: fabric.Point, p2: fabric.Point, dist: numbe
     return new fabric.Point(x, y)
 }
 
+export const makeValidPoint = (p: fabric.Point, minx: number, miny: number, maxx: number, maxy: number) => {
+    if (p.x < minx) {
+        p.x = minx
+    }
+    if (p.y < miny) {
+        p.y = miny
+    }
+    if (p.x > maxx) {
+        p.x = maxx
+    }
+    if (p.y > maxy) {
+        p.y = maxy
+    }
+}
+
 export const scalePoint = (p: fabric.Point, scaleWidth: number, scaleHeight: number): fabric.Point => {
     return new fabric.Point(Math.floor(p.x/scaleWidth), Math.floor(p.y/scaleHeight))
 }

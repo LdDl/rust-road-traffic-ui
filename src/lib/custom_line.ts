@@ -1,5 +1,6 @@
 import { fabric } from "fabric"
 import { DirectionType } from "./zones";
+import { makeValidPoint } from "./utils";
 
 export interface LineWrap {
     _inner: fabric.Line,
@@ -25,20 +26,12 @@ export class CustomLine extends fabric.Line implements LineWrap {
     calcCurrentPoints(): [fabric.Point, fabric.Point] {
         const points = this.calcLinePoints()
         const matrix = this.calcTransformMatrix()
+        const maxx = this.canvas?.getWidth()  ?? 10
+        const maxy = this.canvas?.getHeight() ?? 10
         const point1 = fabric.util.transformPoint(new fabric.Point(points.x1, points.y1), matrix)
-        if (point1.x < 0) {
-            point1.x = 0
-        }
-        if (point1.y < 0) {
-            point1.y = 0
-        }
+        makeValidPoint(point1, 0, 0, maxx, maxy)
         const point2 = fabric.util.transformPoint(new fabric.Point(points.x2, points.y2), matrix)
-        if (point2.x < 0) {
-            point2.x = 0
-        }
-        if (point2.y < 0) {
-            point2.y = 0
-        }
+        makeValidPoint(point2, 0, 0, maxx, maxy)
         return [point1, point2]
     }
 }

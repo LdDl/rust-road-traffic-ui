@@ -1,6 +1,6 @@
 import { fabric } from "fabric"
 import { CustomPolygon, type FabricCanvasWrap } from "./custom_canvas";
-import { interpolatePoint, rgba2array, scalePoint } from "./utils";
+import { interpolatePoint, makeValidPoint, rgba2array, scalePoint } from "./utils";
 import { CustomLine } from "./custom_line";
 import { DirectionType } from "./zones";
 
@@ -45,8 +45,13 @@ const lineControlHandler = (eventData: MouseEvent, transformData: fabric.Transfo
     const Cpoint = abcdPoints[2]
     const Dpoint = abcdPoints[3]
     const dist = 30
+    const maxx = targetExtendedCanvas.getWidth() - 10
+    const maxy = targetExtendedCanvas.getHeight() - 10
     const L1 = interpolatePoint(Dpoint, Apoint, dist);
+    makeValidPoint(L1, 0, 0, maxx, maxy)
     const L2 = interpolatePoint(Cpoint, Bpoint, dist);
+    makeValidPoint(L2, 0, 0, maxx, maxy)
+
     const shadow = new fabric.Shadow({  
         color: 'rgba(0, 0, 0, 1)',  
         affectStroke: true,
