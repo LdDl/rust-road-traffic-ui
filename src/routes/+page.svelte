@@ -47,13 +47,13 @@
         unsubscribeCanvas = canvasReady.subscribe(value => {
             if (value === true && $dataReady == true) {
                 console.log(`MJPEG is loaded after geo data: ${subType}`)
-                drawCanvasPolygons($canvasState, state, $dataStorage, updateDataStorage)
+                drawCanvasPolygons($canvasState, state, dataStorage, updateDataStorage)
             }
         })
         unsubscribeGeoData = dataReady.subscribe(value => {
             if (value === true && $canvasReady == true) {
                 console.log(`MJPEG is loaded before geo data: '${subType}'`)
-                drawCanvasPolygons($canvasState, state, $dataStorage, updateDataStorage)
+                drawCanvasPolygons($canvasState, state, dataStorage, updateDataStorage)
             }
         })
         const endpoint = `${initialAPIURL}/api/polygons/geojson`

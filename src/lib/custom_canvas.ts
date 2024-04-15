@@ -186,7 +186,7 @@ export const makeContour = (coordinates: any, color = getRandomRGB()): ContourWr
     return contour
 }
 
-export function prepareContour(contourFinalized: any, state: Writable<States>, storage: Map<string, Zone>, updateDataStorageFn: (key: string, value: Zone) => void, featureID: string = '', color = getRandomRGB()) {
+export function prepareContour(contourFinalized: any, state: Writable<States>, storage: Writable<Map<string, Zone>>, updateDataStorageFn: (key: string, value: Zone) => void, featureID: string = '', color = getRandomRGB()) {
     const contour = makeContour(contourFinalized, color)
     contour.inner.on('mousedown', contourMouseDownEventWrapper(state, storage, updateDataStorageFn))
     contour.inner.on('modified', contourModifiedEventWrapper(storage, updateDataStorageFn))
@@ -245,7 +245,7 @@ export function prepareContour(contourFinalized: any, state: Writable<States>, s
 }
 
 
-function contourMouseDownEventWrapper(state: Writable<States>, storage: Map<string, Zone>, updateDataStorageFn: (key: string, value: Zone) => void) {
+function contourMouseDownEventWrapper(state: Writable<States>, storage: Writable<Map<string, Zone>>, updateDataStorageFn: (key: string, value: Zone) => void) {
     return function(options: fabric.IEvent<MouseEvent>) {
         const targetContour = options.target
         if (!targetContour) {
@@ -274,8 +274,9 @@ function contourMouseDownEventWrapper(state: Writable<States>, storage: Map<stri
                 state.set(States.EditingZone);
             } else {
                 state.set(States.Waiting);
-                let existingContour = storage.get(targetPolygon.unid);
+                let existingContour = get(storage).get(targetPolygon.unid);
                 if (!existingContour) {
+                    console.error('No contour in datastorage. Event: mouse:down. Options:', options)
                     return
                 }
                 if (!targetPolygon.current_points) {
@@ -295,7 +296,7 @@ function contourMouseDownEventWrapper(state: Writable<States>, storage: Map<stri
     }
 }
 
-function contourModifiedEventWrapper(storage: Map<string, Zone>, updateDataStorageFn: (key: string, value: Zone) => void) {
+function contourModifiedEventWrapper(storage: Writable<Map<string, Zone>>, updateDataStorageFn: (key: string, value: Zone) => void) {
     return function(options: fabric.IEvent<Event>) {
         const targetContour = options.target
         if (!targetContour) {
@@ -332,13 +333,14 @@ function contourModifiedEventWrapper(storage: Map<string, Zone>, updateDataStora
         targetPolygon.notation.forEach((vertextNotation: fabric.Text, idx: number) => {
             const vertex = targetPolygon.current_points?.[idx]
             if (!vertex) {
-                console.error(`No vertex at pos #${idx} in target polygon`, 'Options:', options)
+                console.error(`No vertex at pos #${idx} in target polygon. Event: modified`, 'Options:', options)
                 return
             }
             vertextNotation.set({ left: vertex.x, top: vertex.y })
         })
-        let existingContour = storage.get(targetPolygon.unid);
+        let existingContour = get(storage).get(targetPolygon.unid);
         if (!existingContour) {
+            console.error('No contour in datastorage. Event: modified. Options:', options)
             return
         }
         existingContour.properties.coordinates = targetPolygon.current_points.map((element: { x: number; y: number; }) => {
@@ -351,8 +353,8 @@ function contourModifiedEventWrapper(storage: Map<string, Zone>, updateDataStora
     }
 }
 
-export const drawCanvasPolygons = (extendedCanvas: FabricCanvasWrap, state: Writable<States>, storage: Map<string, Zone>, updateDataStorageFn: (key: string, value: Zone) => void) => {
-    storage.forEach(feature => {
+export const drawCanvasPolygons = (extendedCanvas: FabricCanvasWrap, state: Writable<States>, storage: Writable<Map<string, Zone>>, updateDataStorageFn: (key: string, value: Zone) => void) => {
+    get(storage).forEach(feature => {
         const contourFinalized = feature.properties.coordinates.map((element: any) => {
             return {
                 x: element[0]*extendedCanvas.scaleWidth,
