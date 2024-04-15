@@ -270,7 +270,7 @@ function customEventForVirtualLine(storage: Writable<Map<string, Zone>>, updateD
             return
         }
         existingContour.properties.virtual_line = {
-            geometry: targetVirtualLine.geometry,
+            geometry: targetVirtualLine.current_points,
             color_rgb: targetVirtualLine.color_rgb,
             direction: targetVirtualLine.direction
         }

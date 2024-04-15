@@ -132,6 +132,21 @@ const lineControlHandler = (eventData: MouseEvent, transformData: fabric.Transfo
     segment.on('modified', (options: fabric.IEvent<Event>) => {
         // @todo
         console.warn("Need to implement modified for line")    
+        const targetObject = options.target
+        if (!targetObject) {
+            console.error('Empty target object on segment. Event: modified. Options:', options)
+            return
+        }
+        if (!(targetObject instanceof CustomLine)) {
+            console.error('Unhandled type. Only CustomLime on top of fabric.Object has been implemented. Event: modified. Options:', options)
+            return
+        }
+        const targetLine = targetObject as CustomLine
+        const currentPoints = targetLine.calcCurrentPoints()
+        targetLine.current_points[0][0] = currentPoints[0].x
+        targetLine.current_points[0][1] = currentPoints[0].y
+        targetLine.current_points[1][0] = currentPoints[1].x
+        targetLine.current_points[1][1] = currentPoints[1].y
     })
 
     targetContour.virtual_line = segment
