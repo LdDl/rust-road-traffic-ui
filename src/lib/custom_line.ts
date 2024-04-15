@@ -120,8 +120,6 @@ export function prepareVirtualLine(targetContour: CustomPolygon, props: VirtualL
             targetLine.current_points[0][1] = L1ModifiedScaled.y
             targetLine.current_points[1][0] = L2ModifiedScaled.x
             targetLine.current_points[1][1] = L2ModifiedScaled.y
-            console.log('modified', L1ModifiedScaled, L2ModifiedScaled)
-            console.log('before', L1, L2)
             targetContour.fire('virtial_line:modified', { target: targetContour })
         })
     })
@@ -203,7 +201,7 @@ export function prepareVirtualLine(targetContour: CustomPolygon, props: VirtualL
         })
         targetCanvas.renderAll()
     })
-    
+
     targetContour.virtual_line = segment
     targetContour.fire('virtial_line:created', { target: targetContour })
     targetExtendedCanvas.add(virtLineGroup)

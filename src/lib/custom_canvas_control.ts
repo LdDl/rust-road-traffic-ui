@@ -208,7 +208,7 @@ const lineControlHandler = (eventData: MouseEvent, transformData: fabric.Transfo
     targetExtendedCanvas.add(virtLineGroup)
 
     // @todo
-    console.warn("Need to implement 'lineControlHandler'")
+    console.warn("Need to implement 'lineControlHandler': remove code duplication. See prepareVirtualLine")
     return true
 }
 

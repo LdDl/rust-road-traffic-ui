@@ -405,9 +405,7 @@ export const drawCanvasPolygons = (extendedCanvas: FabricCanvasWrap, state: Writ
         const contour = prepareContour(contourFinalized, state, storage, updateDataStorageFn, feature.id, `rgb(${feature.properties.color_rgb[0]},${feature.properties.color_rgb[1]},${feature.properties.color_rgb[2]})`)
         extendedCanvas.add(contour.inner);
         if (feature.properties.virtual_line) {
-            // @todo
             prepareVirtualLine(contour, feature.properties.virtual_line)
-            console.warn("need to implement virtual line on initial values", feature.properties.virtual_line)
         }
         contour.notation.forEach((vertextNotation: fabric.Text) => {
             extendedCanvas.add(vertextNotation)
