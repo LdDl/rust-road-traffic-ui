@@ -1,6 +1,6 @@
 import { fabric } from "fabric"
 import { CustomPolygon, type FabricCanvasWrap } from "./custom_canvas";
-import { interpolatePoint, rgba2array } from "./utils";
+import { interpolatePoint, rgba2array, scalePoint } from "./utils";
 import { CustomLine } from "./custom_line";
 import { DirectionType } from "./zones";
 
@@ -58,7 +58,9 @@ const lineControlHandler = (eventData: MouseEvent, transformData: fabric.Transfo
         strokeDashArray: [5],
         shadow: shadow
     })
-    segment.current_points = [[L1.x, L1.y], [L2.x, L2.y]]
+    const L1Scaled = new fabric.Point(Math.floor(L1.x/targetExtendedCanvas.scaleWidth), Math.floor(L1.y/targetExtendedCanvas.scaleHeight))
+    const L2Scaled = new fabric.Point(Math.floor(L2.x/targetExtendedCanvas.scaleWidth), Math.floor(L2.y/targetExtendedCanvas.scaleHeight))
+    segment.current_points = [[L1Scaled.x, L1Scaled.y], [L2Scaled.x, L2Scaled.y]]
     segment.color_rgb = rgba2array(segment.stroke)
     segment.direction = DirectionType.LeftRightTopBottom
 
@@ -141,12 +143,21 @@ const lineControlHandler = (eventData: MouseEvent, transformData: fabric.Transfo
             console.error('Unhandled type. Only CustomLime on top of fabric.Object has been implemented. Event: modified. Options:', options)
             return
         }
+        const targetCanvas: FabricCanvasWrap | undefined = targetObject.canvas as FabricCanvasWrap | undefined
+        if (!targetCanvas) {
+            console.error('Empty target canvas on segment. Event: modified. Options:', options)
+            return
+        }
+
         const targetLine = targetObject as CustomLine
         const currentPoints = targetLine.calcCurrentPoints()
-        targetLine.current_points[0][0] = currentPoints[0].x
-        targetLine.current_points[0][1] = currentPoints[0].y
-        targetLine.current_points[1][0] = currentPoints[1].x
-        targetLine.current_points[1][1] = currentPoints[1].y
+        
+        const L1Scaled = scalePoint(currentPoints[0], targetCanvas.scaleWidth, targetCanvas.scaleHeight)
+        const L2Scaled = scalePoint(currentPoints[1], targetCanvas.scaleWidth, targetCanvas.scaleHeight)
+        targetLine.current_points[0][0] = L1Scaled.x
+        targetLine.current_points[0][1] = L1Scaled.y
+        targetLine.current_points[1][0] = L2Scaled.x
+        targetLine.current_points[1][1] = L2Scaled.y
     })
 
     targetContour.virtual_line = segment

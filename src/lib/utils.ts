@@ -101,3 +101,7 @@ export const interpolatePoint = (p1: fabric.Point, p2: fabric.Point, dist: numbe
     const y = y2 + (y2 - y1) * ratio
     return new fabric.Point(x, y)
 }
+
+export const scalePoint = (p: fabric.Point, scaleWidth: number, scaleHeight: number): fabric.Point => {
+    return new fabric.Point(Math.floor(p.x/scaleWidth), Math.floor(p.y/scaleHeight))
+}
