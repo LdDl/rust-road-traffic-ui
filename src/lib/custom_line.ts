@@ -165,6 +165,28 @@ export function prepareVirtualLine(targetContour: CustomPolygon, givenByAPI: boo
         })
     })
 
+    virtLineGroup.on('rotating', function(options: fabric.IEvent<Event>) {
+        const transform = options.transform
+        if (!transform) {
+            console.error('Empty transform event for group object on line group. Event: modified. Options:', options)
+            return
+        }
+        const targetGroupObject = transform.target
+        if (!targetGroupObject) {
+            console.error('Empty target group object on line group. Event: scaling. Options:', options)
+            return
+        }
+        if (!(targetGroupObject instanceof fabric.Group)) {
+            console.error('Unhandled type. Only fabric.Group has been implemented. Event: scaling. Options:', options)
+            return
+        }
+        const textObjects = targetGroupObject.getObjects('text')
+        const angle = 360 - (targetGroupObject.angle ?? 0)
+        textObjects.forEach((textObject) => {
+            textObject.rotate(angle)
+        })
+    })
+
     virtLineGroup.on('modified', (options: fabric.IEvent<Event>) => {
         const targetGroupObject = options.target
         if (!targetGroupObject) {
