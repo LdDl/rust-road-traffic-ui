@@ -98,7 +98,30 @@ export function prepareVirtualLine(targetContour: CustomPolygon, givenByAPI: boo
     })
     /* */
 
-    const virtLineGroup = new fabric.Group([segment, arrow], {
+    /* Denote line vertices */
+    const L1Text = new fabric.Text("L1", {
+        left: L1Canvas.x,
+        top: L1Canvas.y,
+        fontSize: 18,
+        fontFamily: 'Roboto',
+        fill: targetContour.stroke,
+        shadow: '0 0 10px rgba(255, 255, 255, 0.7)',
+        stroke: 'rgb(0, 0, 0)',
+        strokeWidth: 0.9,
+    });
+    const L2Text = new fabric.Text("L2", {
+        left: L2Canvas.x,
+        top: L2Canvas.y,
+        fontSize: 18,
+        fontFamily: 'Roboto',
+        fill: targetContour.stroke,
+        shadow: '0 0 10px rgba(255, 255, 255, 0.7)',
+        stroke: 'rgb(0, 0, 0)',
+        strokeWidth: 0.9,
+    });
+    /* */
+
+    const virtLineGroup = new fabric.Group([segment, arrow, L1Text, L2Text], {
         strokeUniform: true,
         objectCaching: false, // For real-time rendering updates
     })
