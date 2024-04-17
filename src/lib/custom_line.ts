@@ -98,32 +98,71 @@ export function prepareVirtualLine(targetContour: CustomPolygon, givenByAPI: boo
     })
     /* */
 
+    
     /* Denote line vertices */
     const L1Text = new fabric.Text("L1", {
-        left: L1Canvas.x,
-        top: L1Canvas.y,
+        left: L1Canvas.x - 5,
+        top: L1Canvas.y + 10,
         fontSize: 18,
         fontFamily: 'Roboto',
         fill: targetContour.stroke,
         shadow: '0 0 10px rgba(255, 255, 255, 0.7)',
         stroke: 'rgb(0, 0, 0)',
         strokeWidth: 0.9,
+        objectCaching: false,
     });
     const L2Text = new fabric.Text("L2", {
-        left: L2Canvas.x,
-        top: L2Canvas.y,
+        left: L2Canvas.x - 5,
+        top: L2Canvas.y + 10,
         fontSize: 18,
         fontFamily: 'Roboto',
         fill: targetContour.stroke,
         shadow: '0 0 10px rgba(255, 255, 255, 0.7)',
         stroke: 'rgb(0, 0, 0)',
         strokeWidth: 0.9,
+        objectCaching: false,
     });
     /* */
 
     const virtLineGroup = new fabric.Group([segment, arrow, L1Text, L2Text], {
         strokeUniform: true,
         objectCaching: false, // For real-time rendering updates
+    })
+    // http://fabricjs.com/docs/fabric.Object.html#setControlsVisibility
+    virtLineGroup.setControlsVisibility({
+        bl: false,
+        br: false,
+        mb: false,
+        ml: true,
+        mr: true,
+        mt: false,
+        tl: false,
+        tr: false,
+        mtr: true
+    })
+
+    virtLineGroup.on('scaling', function(options: fabric.IEvent<Event>) {
+        const transform = options.transform
+        if (!transform) {
+            console.error('Empty transform event for group object on line group. Event: modified. Options:', options)
+            return
+        }
+        const targetGroupObject = transform.target
+        if (!targetGroupObject) {
+            console.error('Empty target group object on line group. Event: scaling. Options:', options)
+            return
+        }
+        if (!(targetGroupObject instanceof fabric.Group)) {
+            console.error('Unhandled type. Only fabric.Group has been implemented. Event: scaling. Options:', options)
+            return
+        }
+        const scaleX = 1 / (targetGroupObject.scaleX ?? 1)
+        const scaleY = 1 / (targetGroupObject.scaleY ?? 1)
+        const textObjects = targetGroupObject.getObjects('text')
+        textObjects.forEach((textObject) => {
+            textObject.set('scaleX', scaleX)
+            textObject.set('scaleY', scaleY)
+        })
     })
 
     virtLineGroup.on('modified', (options: fabric.IEvent<Event>) => {
@@ -160,7 +199,7 @@ export function prepareVirtualLine(targetContour: CustomPolygon, givenByAPI: boo
             targetContour.fire('virtial_line:modified', { target: targetContour })
         })
     })
-    
+
     virtLineGroup.on('mouseover', function(options: fabric.IEvent<MouseEvent>) {
         const targetGroupObject = options.target
         if (!targetGroupObject) {
