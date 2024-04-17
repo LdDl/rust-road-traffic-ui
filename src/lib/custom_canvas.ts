@@ -1,6 +1,6 @@
 import { fabric } from "fabric"
 import { UUIDv4, findLefTopX, findLeftTopY, getObjectSizeWithStroke, getRandomRGB } from './utils'
-import { type VirtualLineProps, type Zone } from "./zones";
+import { type Zone } from "./zones";
 import { get, type Writable } from "svelte/store";
 import { States } from "./states";
 import { prepareVirtualLine, type LineWrap } from "./custom_line";
@@ -405,7 +405,7 @@ export const drawCanvasPolygons = (extendedCanvas: FabricCanvasWrap, state: Writ
         const contour = prepareContour(contourFinalized, state, storage, updateDataStorageFn, feature.id, `rgb(${feature.properties.color_rgb[0]},${feature.properties.color_rgb[1]},${feature.properties.color_rgb[2]})`)
         extendedCanvas.add(contour.inner);
         if (feature.properties.virtual_line) {
-            prepareVirtualLine(contour, feature.properties.virtual_line)
+            prepareVirtualLine(contour, true, feature.properties.virtual_line)
         }
         contour.notation.forEach((vertextNotation: fabric.Text) => {
             extendedCanvas.add(vertextNotation)

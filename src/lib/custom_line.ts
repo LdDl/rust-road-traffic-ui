@@ -40,7 +40,7 @@ export class CustomLine extends fabric.Line implements LineWrap {
     }
 }
 
-export function prepareVirtualLine(targetContour: CustomPolygon, props: VirtualLineProps) {
+export function prepareVirtualLine(targetContour: CustomPolygon, givenByAPI: boolean, props: VirtualLineProps) {
     const targetExtendedCanvas: FabricCanvasWrap | undefined = targetContour.canvas as FabricCanvasWrap | undefined
     if (!targetExtendedCanvas) {
         console.error('Empty target canvas for preparing virtual line')
@@ -53,9 +53,18 @@ export function prepareVirtualLine(targetContour: CustomPolygon, props: VirtualL
         affectStroke: true,
         blur: 30
     });  
-    const L1Scaled = new fabric.Point(Math.floor(L1.x*targetExtendedCanvas.scaleWidth), Math.floor(L1.y*targetExtendedCanvas.scaleHeight))
-    const L2Scaled = new fabric.Point(Math.floor(L2.x*targetExtendedCanvas.scaleWidth), Math.floor(L2.y*targetExtendedCanvas.scaleHeight))
-    const segment = new CustomLine([L1Scaled.x, L1Scaled.y, L2Scaled.x, L2Scaled.y], {
+    const L1Scaled = givenByAPI ? 
+        new fabric.Point(Math.floor(L1.x*targetExtendedCanvas.scaleWidth), Math.floor(L1.y*targetExtendedCanvas.scaleHeight)) :
+        new fabric.Point(Math.floor(L1.x/targetExtendedCanvas.scaleWidth), Math.floor(L1.y/targetExtendedCanvas.scaleHeight))
+
+    const L2Scaled = givenByAPI ?
+        new fabric.Point(Math.floor(L2.x*targetExtendedCanvas.scaleWidth), Math.floor(L2.y*targetExtendedCanvas.scaleHeight)) :
+        new fabric.Point(Math.floor(L2.x/targetExtendedCanvas.scaleWidth), Math.floor(L2.y/targetExtendedCanvas.scaleHeight))
+
+    const L1Canvas = givenByAPI ? L1Scaled : L1
+    const L2Canvas = givenByAPI ? L2Scaled : L2
+
+    const segment = new CustomLine([L1Canvas.x, L1Canvas.y, L2Canvas.x, L2Canvas.y], {
         stroke: targetContour.stroke,
         strokeWidth: 5,
         strokeDashArray: [5],
@@ -64,7 +73,12 @@ export function prepareVirtualLine(targetContour: CustomPolygon, props: VirtualL
         objectCaching: false, // For real-time rendering updates
         shadow: shadow
     })
-    segment.current_points = [[L1.x, L1.y], [L2.x, L2.y]]
+    
+    segment.current_points = givenByAPI ? 
+        [[L1.x, L1.y], [L2.x, L2.y]] :
+        [[L1Scaled.x, L1Scaled.y], [L2Scaled.x, L2Scaled.y]]
+        
+
     segment.color_rgb = rgba2array(segment.stroke)
     segment.direction = DirectionType.LeftRightTopBottom
 
@@ -72,7 +86,7 @@ export function prepareVirtualLine(targetContour: CustomPolygon, props: VirtualL
     /* Do we need full Arrow class implementation in future? */
     const dist = 30
     const perpendicularDist = dist + 10
-    const [p1, p2] = perpendicularToVectorByMidpoint(L1Scaled, L2Scaled, perpendicularDist)
+    const [p1, p2] = perpendicularToVectorByMidpoint(L1Canvas, L2Canvas, perpendicularDist)
     const arrow = new fabric.Line([p1.x, p1.y, p2.x, p2.y], {
         stroke: targetContour.stroke,
         strokeWidth: 5,

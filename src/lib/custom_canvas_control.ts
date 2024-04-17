@@ -1,7 +1,7 @@
 import { fabric } from "fabric"
 import { CustomPolygon, type FabricCanvasWrap } from "./custom_canvas";
 import { interpolatePoint, makeValidPoint, perpendicularToVectorByMidpoint, rgba2array, scalePoint } from "./utils";
-import { CustomLine, TYPE_VIRTUAL_LINE } from "./custom_line";
+import { prepareVirtualLine } from "./custom_line";
 import { DirectionType } from "./zones";
 
 // http://fabricjs.com/custom-control-render
@@ -39,7 +39,6 @@ const lineControlHandler = (eventData: MouseEvent, transformData: fabric.Transfo
         console.error('Target canvas points should have 4 points exactly on control click. transform Data:', transformData)
         return false
     }
-
     const Apoint = abcdPoints[0]
     const Bpoint = abcdPoints[1]
     const Cpoint = abcdPoints[2]
@@ -52,163 +51,14 @@ const lineControlHandler = (eventData: MouseEvent, transformData: fabric.Transfo
     const L2 = interpolatePoint(Cpoint, Bpoint, dist);
     makeValidPoint(L2, 0, 0, maxx, maxy)
 
-    const shadow = new fabric.Shadow({  
-        color: 'rgba(0, 0, 0, 1)',  
-        affectStroke: true,
-        blur: 30
-    });  
-    const segment = new CustomLine([L1.x, L1.y, L2.x, L2.y], {
-        stroke: targetContour.stroke,
-        strokeWidth: 5,
-        strokeDashArray: [5],
-        // http://fabricjs.com/stroke-uniform
-        strokeUniform: true,
-        objectCaching: false, // For real-time rendering updates
-        shadow: shadow
+    prepareVirtualLine(targetContour, false, {
+        geometry: [[L1.x, L1.y], [L2.x, L2.y]],
+        color_rgb: rgba2array(targetContour.stroke),
+        direction: DirectionType.LeftRightTopBottom
     })
-    const L1Scaled = new fabric.Point(Math.floor(L1.x/targetExtendedCanvas.scaleWidth), Math.floor(L1.y/targetExtendedCanvas.scaleHeight))
-    const L2Scaled = new fabric.Point(Math.floor(L2.x/targetExtendedCanvas.scaleWidth), Math.floor(L2.y/targetExtendedCanvas.scaleHeight))
-    segment.current_points = [[L1Scaled.x, L1Scaled.y], [L2Scaled.x, L2Scaled.y]]
-    segment.color_rgb = rgba2array(segment.stroke)
-    segment.direction = DirectionType.LeftRightTopBottom
-
-    /* Arrow part */
-    /* Do we need full Arrow class implementation in future? */
-    const perpendicularDist = dist + 10
-    const [p1, p2] = perpendicularToVectorByMidpoint(L1, L2, perpendicularDist)
-    const arrow = new fabric.Line([p1.x, p1.y, p2.x, p2.y], {
-        stroke: targetContour.stroke,
-        strokeWidth: 5,
-        strokeDashArray: [5],
-        strokeUniform: true,
-        objectCaching: false,
-        shadow: shadow,
-        selectable: false
-    })
-    /* */
-    const virtLineGroup = new fabric.Group([segment, arrow], {
-        strokeUniform: true,
-        objectCaching: false, // For real-time rendering updates
-    })
-    virtLineGroup.on('modified', (options: fabric.IEvent<Event>) => {
-        const targetGroupObject = options.target
-        if (!targetGroupObject) {
-            console.error('Empty target group object on line group. Event: modified. Options:', options)
-            return
-        }
-        if (!(targetGroupObject instanceof fabric.Group)) {
-            console.error('Unhandled type. Only fabric.Group has been implemented. Event: modified. Options:', options)
-            return
-        }
-        const targetCanvas: FabricCanvasWrap | undefined = targetGroupObject.canvas as FabricCanvasWrap | undefined
-        if (!targetCanvas) {
-            console.error('Empty target canvas on line group. Event: modified. Options:', options)
-            return
-        }
-        const targetObjects = targetGroupObject.getObjects(TYPE_VIRTUAL_LINE)
-        targetObjects.forEach((targetObject) => {
-            if (!(targetObject instanceof CustomLine)) {
-                console.error('Unhandled type. Only CustomLime on top of fabric.Object has been implemented. Event: modified. Options:', options)
-                return
-            }
-            const targetLine = targetObject as CustomLine
-            const currentPoints = targetLine.calcCurrentPoints()
-            // calcCurrentPoints grants that points will fit into canvas width/height, but rendered object itself won't have correct representation.
-            // @todo: think how to handle it (and for polygons too) and do we even need this since REST API will accept correct values? 
-            const L1Scaled = scalePoint(currentPoints[0], targetCanvas.scaleWidth, targetCanvas.scaleHeight)
-            const L2Scaled = scalePoint(currentPoints[1], targetCanvas.scaleWidth, targetCanvas.scaleHeight)
-            targetLine.current_points[0][0] = L1Scaled.x
-            targetLine.current_points[0][1] = L1Scaled.y
-            targetLine.current_points[1][0] = L2Scaled.x
-            targetLine.current_points[1][1] = L2Scaled.y
-            targetContour.fire('virtial_line:modified', { target: targetContour })
-        })
-    })
-
-    virtLineGroup.on('mouseover', function(options: fabric.IEvent<MouseEvent>) {
-        const targetGroupObject = options.target
-        if (!targetGroupObject) {
-            console.error('Empty target group object on line group. Event: mouseover. Options:', options)
-            return
-        }
-        const targetCanvas: FabricCanvasWrap | undefined = targetGroupObject.canvas as FabricCanvasWrap | undefined
-        if (!targetCanvas) {
-            console.error('Empty target canvas on line group. Event: mouseover. Options:', options)
-            return
-        }
-        if (!(targetGroupObject instanceof fabric.Group)) {
-            return
-        }
-        const targetObjects = targetGroupObject.getObjects()
-        targetObjects.forEach((targetObject) => {
-            const targetShadowObj = targetObject.shadow?.valueOf()
-            const isShadow = targetShadowObj && targetShadowObj instanceof fabric.Shadow
-            if (!isShadow) {
-                return
-            }
-            const targetShadow = targetShadowObj as fabric.Shadow
-            targetShadow.color = 'rgba(255, 255, 255, 1)'  
-            targetShadow.blur = 30
-
-            // Apply some styling to parent contour too
-            const parentObject = targetContour
-            const parentShadowObj = parentObject.shadow?.valueOf()
-            const isParentShadow = parentShadowObj && parentShadowObj instanceof fabric.Shadow
-            if (!isParentShadow) {
-                return
-            }
-            const parentShadow = parentShadowObj as fabric.Shadow
-            parentShadow.color = 'rgba(255, 255, 255, 1)'  
-            parentShadow.blur = 30
-        })
-        targetCanvas.renderAll()
-    })
-
-    virtLineGroup.on('mouseout', function(options: fabric.IEvent<MouseEvent>) {
-        const targetGroupObject = options.target
-        if (!targetGroupObject) {
-            console.error('Empty target object on line group. Event: mouseout. Options:', options)
-            return
-        }
-        const targetCanvas: FabricCanvasWrap | undefined = targetGroupObject.canvas as FabricCanvasWrap | undefined
-        if (!targetCanvas) {
-            console.error('Empty target canvas on line group. Event: mouseout. Options:', options)
-            return
-        }
-        if (!(targetGroupObject instanceof fabric.Group)) {
-            return
-        }
-        const targetObjects = targetGroupObject.getObjects()
-        targetObjects.forEach((targetObject) => {
-            const targetShadowObj = targetObject.shadow?.valueOf()
-            const isShadow = targetShadowObj && targetShadowObj instanceof fabric.Shadow
-            if (!isShadow) {
-                return
-            }
-            const targetShadow = targetShadowObj as fabric.Shadow
-            targetShadow.color = 'rgba(0, 0, 0, 1)'  
-            targetShadow.blur = 30
-
-            // Reset parent shadow
-            const parentObject = targetContour
-            const parentShadowObj = parentObject.shadow?.valueOf()
-            const isParentShadow = parentShadowObj && parentShadowObj instanceof fabric.Shadow
-            if (!isParentShadow) {
-                return
-            }
-            const parentShadow = parentShadowObj as fabric.Shadow
-            parentShadow.color = parentObject.stroke
-            parentShadow.blur = 0
-        })
-        targetCanvas.renderAll()
-    })
-
-    targetContour.virtual_line = segment
-    targetContour.fire('virtial_line:created', { target: targetContour })
-    targetExtendedCanvas.add(virtLineGroup)
 
     // @todo
-    console.warn("Need to implement 'lineControlHandler': remove code duplication. See prepareVirtualLine")
+    console.warn("Need to implement 'lineControlHandler'")
     return true
 }
 
