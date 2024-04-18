@@ -176,6 +176,8 @@ export function prepareVirtualLine(targetContour: CustomPolygon, givenByAPI: boo
         tr: false,
         mtr: true
     })
+    // http://fabricjs.com/docs/fabric.Object.html#setControlVisible - for custom controls
+    virtLineGroup.setControlVisible('lineControl', false)
 
     virtLineGroup.on('scaling', function(options: fabric.IEvent<Event>) {
         const transform = options.transform
