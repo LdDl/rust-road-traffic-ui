@@ -10,7 +10,12 @@ export const saveTOML = (baseURL: string, dataToSave: [string, Zone][]) => {
                 lane_direction: element.properties.road_lane_direction,
                 color_rgb: element.properties.color_rgb,
                 pixel_points: element.properties.coordinates,
-                spatial_points: [...element.geometry.coordinates[0].slice(0, -1)]
+                spatial_points: [...element.geometry.coordinates[0].slice(0, -1)],
+                virtual_line: element.properties.virtual_line ? {
+                    geometry: element.properties.virtual_line.geometry,
+                    color_rgb: element.properties.virtual_line.color_rgb,
+                    direction: element.properties.virtual_line.direction
+                } : null
             };
         })
     };
