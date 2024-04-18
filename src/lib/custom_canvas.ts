@@ -4,6 +4,7 @@ import { type Zone } from "./zones";
 import { get, type Writable } from "svelte/store";
 import { States } from "./states";
 import { prepareVirtualLine, type LineWrap } from "./custom_line";
+import { CUSTOM_CONTROL_TYPES } from "./custom_canvas_control";
 
 // Extend fabric.Canvas with custom properties
 export interface FabricCanvasWrap extends fabric.Canvas {
@@ -189,6 +190,10 @@ export const makeContour = (coordinates: any, color = getRandomRGB()): CustomPol
 
 export function prepareContour(contourFinalized: any, state: Writable<States>, storage: Writable<Map<string, Zone>>, updateDataStorageFn: (key: string, value: Zone) => void, featureID: string = '', color = getRandomRGB()) {
     const contour = makeContour(contourFinalized, color)
+    // http://fabricjs.com/docs/fabric.Object.html#setControlVisible - for custom controls
+    contour.setControlVisible(CUSTOM_CONTROL_TYPES.LINE_CONTROL, true)
+    contour.setControlVisible(CUSTOM_CONTROL_TYPES.CHANGE_DIRECTION_CONTROL, false)
+
     contour.inner.on('mousedown', contourMouseDownEventWrapper(state, storage, updateDataStorageFn))
     contour.inner.on('modified', contourModifiedEventWrapper(storage, updateDataStorageFn))
     contour.inner.on('virtial_line:created', customEventCreatedForVirtualLine(storage, updateDataStorageFn))

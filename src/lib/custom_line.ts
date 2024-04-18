@@ -2,6 +2,7 @@ import { fabric } from "fabric"
 import { DirectionType, type VirtualLineProps } from "./zones";
 import { makeValidPoint, rgba2array, scalePoint } from "./utils";
 import type { CustomPolygon, FabricCanvasWrap } from "./custom_canvas";
+import { CUSTOM_CONTROL_TYPES } from "./custom_canvas_control";
 
 export const TYPE_VIRTUAL_LINE = 'TYPE_VIRTUAL_LINE'
 
@@ -177,7 +178,8 @@ export function prepareVirtualLine(targetContour: CustomPolygon, givenByAPI: boo
         mtr: true
     })
     // http://fabricjs.com/docs/fabric.Object.html#setControlVisible - for custom controls
-    virtLineGroup.setControlVisible('lineControl', false)
+    virtLineGroup.setControlVisible(CUSTOM_CONTROL_TYPES.LINE_CONTROL, false)
+    virtLineGroup.setControlVisible(CUSTOM_CONTROL_TYPES.CHANGE_DIRECTION_CONTROL, true)
 
     virtLineGroup.on('scaling', function(options: fabric.IEvent<Event>) {
         const transform = options.transform
