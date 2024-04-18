@@ -140,7 +140,7 @@
                 fbCanvas.remove(value)
             })
 
-            const contour = prepareContour(fbCanvas.contourFinalized, state, dataStorage, updateDataStorage)
+            const contour = prepareContour(fbCanvas.contourFinalized, state, dataStorage, updateDataStorage, true)
 
             const newContour = {
                 type: 'Feature',

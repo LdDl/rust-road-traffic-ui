@@ -188,7 +188,7 @@ export const makeContour = (coordinates: any, color = getRandomRGB()): CustomPol
     return contour
 }
 
-export function prepareContour(contourFinalized: any, state: Writable<States>, storage: Writable<Map<string, Zone>>, updateDataStorageFn: (key: string, value: Zone) => void, featureID: string = '', color = getRandomRGB()) {
+export function prepareContour(contourFinalized: any, state: Writable<States>, storage: Writable<Map<string, Zone>>, updateDataStorageFn: (key: string, value: Zone) => void, featureID: string = '', color = getRandomRGB(), init_virtual_lines_events: boolean = true) {
     const contour = makeContour(contourFinalized, color)
     // http://fabricjs.com/docs/fabric.Object.html#setControlVisible - for custom controls
     contour.setControlVisible(CUSTOM_CONTROL_TYPES.LINE_CONTROL, true)
@@ -196,8 +196,10 @@ export function prepareContour(contourFinalized: any, state: Writable<States>, s
 
     contour.inner.on('mousedown', contourMouseDownEventWrapper(state, storage, updateDataStorageFn))
     contour.inner.on('modified', contourModifiedEventWrapper(storage, updateDataStorageFn))
-    contour.inner.on('virtial_line:created', customEventCreatedForVirtualLine(storage, updateDataStorageFn))
-    contour.inner.on('virtial_line:modified', customEventModifiedForVirtualLine(storage, updateDataStorageFn))
+    if (init_virtual_lines_events) {
+        contour.inner.on('virtial_line:created', customEventCreatedForVirtualLine(storage, updateDataStorageFn))
+        contour.inner.on('virtial_line:modified', customEventModifiedForVirtualLine(storage, updateDataStorageFn))
+    }
 
     contour.inner.on('mouseover', function (options: fabric.IEvent<MouseEvent>) {
         const targetContour = options.target
@@ -407,10 +409,13 @@ export const drawCanvasPolygons = (extendedCanvas: FabricCanvasWrap, state: Writ
                 y: element[1] * extendedCanvas.scaleHeight
             }
         });
-        const contour = prepareContour(contourFinalized, state, storage, updateDataStorageFn, feature.id, `rgb(${feature.properties.color_rgb[0]},${feature.properties.color_rgb[1]},${feature.properties.color_rgb[2]})`)
+        const contour = prepareContour(contourFinalized, state, storage, updateDataStorageFn, feature.id, `rgb(${feature.properties.color_rgb[0]},${feature.properties.color_rgb[1]},${feature.properties.color_rgb[2]})`, false)
         extendedCanvas.add(contour.inner);
         if (feature.properties.virtual_line) {
             prepareVirtualLine(contour, true, feature.properties.virtual_line)
+            /* Special case: should add events only after lines has been added to avoid excess updateDataStorageFn call */
+            contour.inner.on('virtial_line:created', customEventCreatedForVirtualLine(storage, updateDataStorageFn))
+            contour.inner.on('virtial_line:modified', customEventModifiedForVirtualLine(storage, updateDataStorageFn))
         }
         contour.notation.forEach((vertextNotation: fabric.Text) => {
             extendedCanvas.add(vertextNotation)
