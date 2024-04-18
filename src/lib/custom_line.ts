@@ -5,6 +5,7 @@ import type { CustomPolygon, FabricCanvasWrap } from "./custom_canvas";
 import { CUSTOM_CONTROL_TYPES } from "./custom_canvas_control";
 
 export const TYPE_VIRTUAL_LINE = 'TYPE_VIRTUAL_LINE'
+export const TYPE_VIRTUAL_LINE_GROUP = 'TYPE_VIRTUAL_LINE_GROUP'
 
 export interface LineWrap {
     _inner: fabric.Line,
@@ -38,6 +39,18 @@ export class CustomLine extends fabric.Line implements LineWrap {
         const point2 = fabric.util.transformPoint(new fabric.Point(points.x2, points.y2), matrix)
         makeValidPoint(point2, 0, 0, maxx, maxy)
         return [point1, point2]
+    }
+}
+
+interface GroupWrap {
+    segment?: CustomLine
+}
+
+export class CustomLineGroup extends fabric.Group implements GroupWrap {
+    segment?: CustomLine;
+    constructor(objects?: fabric.Object[], options?: fabric.IGroupOptions, isAlreadyGrouped?: boolean) {
+        super(objects, options, isAlreadyGrouped);
+        this.type = TYPE_VIRTUAL_LINE_GROUP
     }
 }
 
@@ -135,7 +148,6 @@ export function prepareVirtualLine(targetContour: CustomPolygon, givenByAPI: boo
     // })
     /* */
 
-    
     /* Denote line vertices */
     const L1Text = new fabric.Text("L1", {
         left: L1Canvas.x - 5,
@@ -161,10 +173,11 @@ export function prepareVirtualLine(targetContour: CustomPolygon, givenByAPI: boo
     });
     /* */
 
-    const virtLineGroup = new fabric.Group([segment, directionText, L1Text, L2Text], {
+    const virtLineGroup = new CustomLineGroup([segment, directionText, L1Text, L2Text], {
         strokeUniform: true,
         objectCaching: false, // For real-time rendering updates
     })
+    virtLineGroup.segment = segment
     // http://fabricjs.com/docs/fabric.Object.html#setControlsVisibility
     virtLineGroup.setControlsVisibility({
         bl: false,
