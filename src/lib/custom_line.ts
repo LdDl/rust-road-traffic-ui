@@ -147,7 +147,6 @@ export function prepareVirtualLine(targetContour: CustomPolygon, givenByAPI: boo
     //     selectable: false
     // })
     /* */
-
     /* Denote line vertices */
     const L1Text = new fabric.Text("L1", {
         left: L1Canvas.x - 5,

@@ -1,7 +1,7 @@
 import { fabric } from "fabric"
 import { CustomPolygon, type FabricCanvasWrap } from "./custom_canvas";
 import { interpolatePoint, makeValidPoint, perpendicularToVectorByMidpoint, rgba2array, scalePoint } from "./utils";
-import { prepareVirtualLine } from "./custom_line";
+import { CustomLineGroup, prepareVirtualLine } from "./custom_line";
 import { DirectionType } from "./zones";
 
 // http://fabricjs.com/custom-control-render
@@ -100,8 +100,23 @@ const changeDirectionElem = document.createElement('img');
 changeDirectionElem.src = changeDirectionIcon;
 
 const changeDirectionControlHandler = (eventData: MouseEvent, transformData: fabric.Transform, x: number, y: number): boolean => {
+    const targetObject = transformData.target
+    if (!targetObject) {
+        console.error('Empty target. Event: change_direction_control. Transform data:', transformData)
+        return false
+    }
+    if (!(targetObject instanceof CustomLineGroup)) {
+        console.error('Unhandled type. Only CustomLineGroup on top of fabric.Group has been implemented. Event: change_direction_control. Transform data:', transformData)
+        return false
+    }
+    if (!targetObject.segment) {
+        console.error('No segment. Event: change_direction_control. Transform data:', transformData)
+        return false
+    }
+    targetObject.segment.direction = targetObject.segment.direction === DirectionType.LeftRightTopBottom ? DirectionType.RightLeftBottomTop : DirectionType.LeftRightTopBottom
+
     // @todo
-    console.warn("Need to implement 'changeDirectionControlHandler'")
+    console.warn("Need to implement 'changeDirectionControlHandler'. Call update storage / change text")
     return true
 }
 
