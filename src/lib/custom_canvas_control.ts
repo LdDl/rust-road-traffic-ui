@@ -58,7 +58,7 @@ const lineControlHandler = (eventData: MouseEvent, transformData: fabric.Transfo
     })
 
     // @todo
-    console.warn("Need to implement 'lineControlHandler'")
+    console.warn("Need to implement 'lineControlHandler'. Remove 'arrow' and place text instead: LR-TB, RL-BT")
     return true
 }
 

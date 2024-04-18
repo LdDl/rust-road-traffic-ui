@@ -1,7 +1,7 @@
 import { fabric } from "fabric"
 import { DirectionType, type VirtualLineProps } from "./zones";
-import { makeValidPoint, perpendicularToVectorByMidpoint, rgba2array, scalePoint } from "./utils";
-import type { ContourWrap, CustomPolygon, FabricCanvasWrap } from "./custom_canvas";
+import { makeValidPoint, rgba2array, scalePoint } from "./utils";
+import type { CustomPolygon, FabricCanvasWrap } from "./custom_canvas";
 
 export const TYPE_VIRTUAL_LINE = 'TYPE_VIRTUAL_LINE'
 
@@ -80,22 +80,58 @@ export function prepareVirtualLine(targetContour: CustomPolygon, givenByAPI: boo
         
 
     segment.color_rgb = rgba2array(segment.stroke)
-    segment.direction = DirectionType.LeftRightTopBottom
+    segment.direction = props.direction
 
     /* Arrow part */
-    /* Do we need full Arrow class implementation in future? */
-    const dist = 30
-    const perpendicularDist = dist + 10
-    const [p1, p2] = perpendicularToVectorByMidpoint(L1Canvas, L2Canvas, perpendicularDist)
-    const arrow = new fabric.Line([p1.x, p1.y, p2.x, p2.y], {
-        stroke: targetContour.stroke,
-        strokeWidth: 5,
-        strokeDashArray: [5],
-        strokeUniform: true,
+    let dirText = "→↓"
+    switch (props.direction) {
+        case DirectionType.LeftRightTopBottom:
+            break
+        case DirectionType.RightLeftBottomTop:
+            dirText = "←↑"
+            break
+        default:
+            dirText = "err"
+            break
+    }
+    const textArrowsProps = {
+        fontWeight: 'bold',
+        fontSize: 42
+    }
+    // IText is used here just in case
+    const directionText = new fabric.IText(dirText, {
+        left: L1Canvas.x + 20,
+        top: L1Canvas.y,
+        fontSize: 18,
+        fontFamily: 'Roboto',
+        fill: targetContour.stroke,
+        shadow: '0 0 10px rgba(255, 255, 255, 0.7)',
+        stroke: 'rgb(0, 0, 0)',
+        strokeWidth: 0.9,
         objectCaching: false,
-        shadow: shadow,
-        selectable: false
-    })
+        // https://www.tutorialspoint.com/how-to-set-the-style-of-individual-characters-in-itext-using-fabricjs
+        // http://fabricjs.com/docs/fabric.IText.html
+        // Object containing character styles - top-level properties -> line numbers, 2nd-level properties - character numbers
+        styles: {
+            0: {
+                0: textArrowsProps,
+                1: textArrowsProps
+            }
+        }
+    });
+    /* Do we need full Arrow class implementation in future? */
+    // const dist = 30
+    // const perpendicularDist = dist + 10
+    // const [p1, p2] = perpendicularToVectorByMidpoint(L1Canvas, L2Canvas, perpendicularDist)
+    // const arrow = new fabric.Line([p1.x, p1.y, p2.x, p2.y], {
+    //     stroke: targetContour.stroke,
+    //     strokeWidth: 5,
+    //     strokeDashArray: [5],
+    //     strokeUniform: true,
+    //     objectCaching: false,
+    //     shadow: shadow,
+    //     selectable: false
+    // })
     /* */
 
     
@@ -124,7 +160,7 @@ export function prepareVirtualLine(targetContour: CustomPolygon, givenByAPI: boo
     });
     /* */
 
-    const virtLineGroup = new fabric.Group([segment, arrow, L1Text, L2Text], {
+    const virtLineGroup = new fabric.Group([segment, directionText, L1Text, L2Text], {
         strokeUniform: true,
         objectCaching: false, // For real-time rendering updates
     })
@@ -163,6 +199,11 @@ export function prepareVirtualLine(targetContour: CustomPolygon, givenByAPI: boo
             textObject.set('scaleX', scaleX)
             textObject.set('scaleY', scaleY)
         })
+        const iTextObjects = targetGroupObject.getObjects('i-text')
+        iTextObjects.forEach((iTextObject) => {
+            iTextObject.set('scaleX', scaleX)
+            iTextObject.set('scaleY', scaleY)
+        })
     })
 
     virtLineGroup.on('rotating', function(options: fabric.IEvent<Event>) {
@@ -180,10 +221,14 @@ export function prepareVirtualLine(targetContour: CustomPolygon, givenByAPI: boo
             console.error('Unhandled type. Only fabric.Group has been implemented. Event: scaling. Options:', options)
             return
         }
-        const textObjects = targetGroupObject.getObjects('text')
         const angle = 360 - (targetGroupObject.angle ?? 0)
+        const textObjects = targetGroupObject.getObjects('text')
         textObjects.forEach((textObject) => {
             textObject.rotate(angle)
+        })
+        const iTextObjects = targetGroupObject.getObjects('i-text')
+        iTextObjects.forEach((iTextObject) => {
+            iTextObject.rotate(angle)
         })
     })
 
