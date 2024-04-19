@@ -113,18 +113,14 @@ const changeDirectionControlHandler = (eventData: MouseEvent, transformData: fab
         console.error('Empty parent contour. Event: change_direction_control. Transform data:', transformData)
         return false
     }
-    if (!targetObject.segment) {
-        console.error('No segment. Event: change_direction_control. Transform data:', transformData)
-        return false
-    }
-    targetObject.segment.direction = targetObject.segment.direction === DirectionType.LeftRightTopBottom ? DirectionType.RightLeftBottomTop : DirectionType.LeftRightTopBottom
+    targetObject.direction = targetObject.direction === DirectionType.LeftRightTopBottom ? DirectionType.RightLeftBottomTop : DirectionType.LeftRightTopBottom
     // Source group has 4 objects: [segment, directionText, L1Text, L2Text]
     const directionTextObject = targetObject.getObjects()[1]
     if (!(directionTextObject instanceof fabric.IText)) {
         console.error('Unhandled object. Should be fabric.IText at position #1 Event: change_direction_control. Transform data:', transformData)
         return false
     }
-    directionTextObject.set('text', DirectionType.toString(targetObject.segment.direction))
+    directionTextObject.set('text', DirectionType.toString(targetObject.direction))
     targetObject.parentContour.fire('virtial_line:modified', { target: targetObject.parentContour })
     targetObject.canvas?.renderAll() // Force call of render
     return true

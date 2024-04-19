@@ -7,26 +7,13 @@ import { CUSTOM_CONTROL_TYPES } from "./custom_canvas_control";
 export const TYPE_VIRTUAL_LINE = 'TYPE_VIRTUAL_LINE'
 export const TYPE_VIRTUAL_LINE_GROUP = 'TYPE_VIRTUAL_LINE_GROUP'
 
-export interface LineWrap {
-    _inner: fabric.Line,
+interface LineWrapOne {
     calcCurrentPoints(): [fabric.Point, fabric.Point],
-    direction: DirectionType,
-    current_points: [[number, number], [number, number]],
-    color_rgb: [number, number, number]
 }
 
-export class CustomLine extends fabric.Line implements LineWrap {
-    _inner: fabric.Line
-    direction: DirectionType
-    current_points: [[number, number], [number, number]]
-    color_rgb: [number, number, number]
+class CustomLineOne extends fabric.Line implements LineWrapOne {
     constructor(points: number[], options?: fabric.ILineOptions) {
         super(points, options);
-        this._inner = this
-        this.direction = DirectionType.LeftRightTopBottom
-        this.current_points = [[0, 0], [0, 0]]
-        this.color_rgb = [0, 0, 0]
-        this.type = TYPE_VIRTUAL_LINE
     }
     // https://github.com/fabricjs/fabric.js/issues/6711#issuecomment-739978578
     calcCurrentPoints(): [fabric.Point, fabric.Point] {
@@ -43,15 +30,25 @@ export class CustomLine extends fabric.Line implements LineWrap {
 }
 
 interface GroupWrap {
-    segment?: CustomLine
     parentContour?: CustomPolygon
+    segment_object_idx: number
+    direction: DirectionType
+    current_points: [[number, number], [number, number]]
+    color_rgb: [number, number, number]
 }
 
 export class CustomLineGroup extends fabric.Group implements GroupWrap {
-    segment?: CustomLine;
-    parentContour?: CustomPolygon;
+    segment_object_idx: number
+    direction: DirectionType
+    current_points: [[number, number], [number, number]]
+    color_rgb: [number, number, number]
+    parentContour?: CustomPolygon
     constructor(objects?: fabric.Object[], options?: fabric.IGroupOptions, isAlreadyGrouped?: boolean) {
         super(objects, options, isAlreadyGrouped);
+        this.segment_object_idx = 0
+        this.direction = DirectionType.LeftRightTopBottom
+        this.current_points = [[0, 0], [0, 0]]
+        this.color_rgb = [0, 0, 0]
         this.type = TYPE_VIRTUAL_LINE_GROUP
     }
 }
@@ -68,7 +65,7 @@ export function prepareVirtualLine(targetContour: CustomPolygon, givenByAPI: boo
         color: 'rgba(0, 0, 0, 1)',  
         affectStroke: true,
         blur: 30
-    });  
+    });
     const L1Scaled = givenByAPI ? 
         new fabric.Point(Math.floor(L1.x*targetExtendedCanvas.scaleWidth), Math.floor(L1.y*targetExtendedCanvas.scaleHeight)) :
         new fabric.Point(Math.floor(L1.x/targetExtendedCanvas.scaleWidth), Math.floor(L1.y/targetExtendedCanvas.scaleHeight))
@@ -80,7 +77,7 @@ export function prepareVirtualLine(targetContour: CustomPolygon, givenByAPI: boo
     const L1Canvas = givenByAPI ? L1Scaled : L1
     const L2Canvas = givenByAPI ? L2Scaled : L2
 
-    const segment = new CustomLine([L1Canvas.x, L1Canvas.y, L2Canvas.x, L2Canvas.y], {
+    const segment = new CustomLineOne([L1Canvas.x, L1Canvas.y, L2Canvas.x, L2Canvas.y], {
         stroke: targetContour.stroke,
         strokeWidth: 5,
         strokeDashArray: [5],
@@ -89,14 +86,6 @@ export function prepareVirtualLine(targetContour: CustomPolygon, givenByAPI: boo
         objectCaching: false, // For real-time rendering updates
         shadow: shadow
     })
-    
-    segment.current_points = givenByAPI ? 
-        [[L1.x, L1.y], [L2.x, L2.y]] :
-        [[L1Scaled.x, L1Scaled.y], [L2Scaled.x, L2Scaled.y]]
-        
-
-    segment.color_rgb = rgba2array(segment.stroke)
-    segment.direction = props.direction
 
     /* Arrow part */
     const textArrowsProps = {
@@ -167,7 +156,12 @@ export function prepareVirtualLine(targetContour: CustomPolygon, givenByAPI: boo
         strokeUniform: true,
         objectCaching: false, // For real-time rendering updates
     })
-    virtLineGroup.segment = segment
+    virtLineGroup.current_points = givenByAPI ? [[L1.x, L1.y], [L2.x, L2.y]] : [[L1Scaled.x, L1Scaled.y], [L2Scaled.x, L2Scaled.y]]
+    virtLineGroup.color_rgb = rgba2array(segment.stroke)
+    virtLineGroup.direction = props.direction
+
+    virtLineGroup.segment_object_idx = 0
+
     // http://fabricjs.com/docs/fabric.Object.html#setControlsVisibility
     virtLineGroup.setControlsVisibility({
         bl: false,
@@ -195,8 +189,8 @@ export function prepareVirtualLine(targetContour: CustomPolygon, givenByAPI: boo
             console.error('Empty target group object on line group. Event: scaling. Options:', options)
             return
         }
-        if (!(targetGroupObject instanceof fabric.Group)) {
-            console.error('Unhandled type. Only fabric.Group has been implemented. Event: scaling. Options:', options)
+        if (!(targetGroupObject instanceof CustomLineGroup)) {
+            console.error('Unhandled type. Only CustomLineGroup on top of fabric.Group has been implemented. Event: scaling. Options:', options)
             return
         }
         const scaleX = 1 / (targetGroupObject.scaleX ?? 1)
@@ -224,8 +218,8 @@ export function prepareVirtualLine(targetContour: CustomPolygon, givenByAPI: boo
             console.error('Empty target group object on line group. Event: scaling. Options:', options)
             return
         }
-        if (!(targetGroupObject instanceof fabric.Group)) {
-            console.error('Unhandled type. Only fabric.Group has been implemented. Event: scaling. Options:', options)
+        if (!(targetGroupObject instanceof CustomLineGroup)) {
+            console.error('Unhandled type. Only CustomLineGroup on top of fabric.Group has been implemented. Event: scaling. Options:', options)
             return
         }
         const angle = 360 - (targetGroupObject.angle ?? 0)
@@ -245,8 +239,8 @@ export function prepareVirtualLine(targetContour: CustomPolygon, givenByAPI: boo
             console.error('Empty target group object on line group. Event: modified. Options:', options)
             return
         }
-        if (!(targetGroupObject instanceof fabric.Group)) {
-            console.error('Unhandled type. Only fabric.Group has been implemented. Event: modified. Options:', options)
+        if (!(targetGroupObject instanceof CustomLineGroup)) {
+            console.error('Unhandled type. Only CustomLineGroup on top of fabric.Group has been implemented. Event: modified. Options:', options)
             return
         }
         const targetCanvas: FabricCanvasWrap | undefined = targetGroupObject.canvas as FabricCanvasWrap | undefined
@@ -254,24 +248,21 @@ export function prepareVirtualLine(targetContour: CustomPolygon, givenByAPI: boo
             console.error('Empty target canvas on line group. Event: modified. Options:', options)
             return
         }
-        const targetObjects = targetGroupObject.getObjects(TYPE_VIRTUAL_LINE)
-        targetObjects.forEach((targetObject) => {
-            if (!(targetObject instanceof CustomLine)) {
-                console.error('Unhandled type. Only CustomLime on top of fabric.Object has been implemented. Event: modified. Options:', options)
-                return
-            }
-            const targetLine = targetObject as CustomLine
-            const currentPoints = targetLine.calcCurrentPoints()
-            // calcCurrentPoints grants that points will fit into canvas width/height, but rendered object itself won't have correct representation.
-            // @todo: think how to handle it (and for polygons too) and do we even need this since REST API will accept correct values? 
-            const L1ModifiedScaled = scalePoint(currentPoints[0], targetCanvas.scaleWidth, targetCanvas.scaleHeight)
-            const L2ModifiedScaled = scalePoint(currentPoints[1], targetCanvas.scaleWidth, targetCanvas.scaleHeight)
-            targetLine.current_points[0][0] = L1ModifiedScaled.x
-            targetLine.current_points[0][1] = L1ModifiedScaled.y
-            targetLine.current_points[1][0] = L2ModifiedScaled.x
-            targetLine.current_points[1][1] = L2ModifiedScaled.y
-            targetContour.fire('virtial_line:modified', { target: targetContour })
-        })
+        const segmentObject = targetGroupObject.getObjects()[targetGroupObject.segment_object_idx]
+        if (!(segmentObject instanceof CustomLineOne)) {
+            console.error('Unhandled type. Only CustomLime on top of fabric.Object has been implemented. Event: modified. Options:', options)
+            return
+        }
+        const currentPoints = segmentObject.calcCurrentPoints()
+        // calcCurrentPoints grants that points will fit into canvas width/height, but rendered object itself won't have correct representation.
+        // @todo: think how to handle it (and for polygons too) and do we even need this since REST API will accept correct values? 
+        const L1ModifiedScaled = scalePoint(currentPoints[0], targetCanvas.scaleWidth, targetCanvas.scaleHeight)
+        const L2ModifiedScaled = scalePoint(currentPoints[1], targetCanvas.scaleWidth, targetCanvas.scaleHeight)
+        targetGroupObject.current_points[0][0] = L1ModifiedScaled.x
+        targetGroupObject.current_points[0][1] = L1ModifiedScaled.y
+        targetGroupObject.current_points[1][0] = L2ModifiedScaled.x
+        targetGroupObject.current_points[1][1] = L2ModifiedScaled.y
+        targetContour.fire('virtial_line:modified', { target: targetContour })
     })
 
     virtLineGroup.on('mouseover', function(options: fabric.IEvent<MouseEvent>) {
@@ -285,7 +276,7 @@ export function prepareVirtualLine(targetContour: CustomPolygon, givenByAPI: boo
             console.error('Empty target canvas on line group. Event: mouseover. Options:', options)
             return
         }
-        if (!(targetGroupObject instanceof fabric.Group)) {
+        if (!(targetGroupObject instanceof CustomLineGroup)) {
             return
         }
         const targetObjects = targetGroupObject.getObjects()
@@ -324,7 +315,7 @@ export function prepareVirtualLine(targetContour: CustomPolygon, givenByAPI: boo
             console.error('Empty target canvas on line group. Event: mouseout. Options:', options)
             return
         }
-        if (!(targetGroupObject instanceof fabric.Group)) {
+        if (!(targetGroupObject instanceof CustomLineGroup)) {
             return
         }
         const targetObjects = targetGroupObject.getObjects()
@@ -352,7 +343,7 @@ export function prepareVirtualLine(targetContour: CustomPolygon, givenByAPI: boo
         targetCanvas.renderAll()
     })
 
-    targetContour.virtual_line = segment
+    targetContour.virtual_line = virtLineGroup
     targetContour.fire('virtial_line:created', { target: targetContour })
 
     virtLineGroup.parentContour = targetContour

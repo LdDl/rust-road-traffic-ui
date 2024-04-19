@@ -35,6 +35,7 @@ export function updateDataStorage(key: string, value: Zone) {
     dataStorage.update(currentHashmap => {
       const updatedHashmap = new Map<string, Zone>(currentHashmap);
       updatedHashmap.set(key, value);
+      console.log('updated', JSON.stringify(value))
       return updatedHashmap;
     });
 }

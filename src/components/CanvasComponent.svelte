@@ -50,7 +50,7 @@
         extendedCanvas.getObjects().forEach((object) => {
             if (object instanceof CustomPolygon && object.unid === zoneID) {
                 if (object.virtual_line) {
-                    extendedCanvas.remove(object.virtual_line._inner)                    
+                    extendedCanvas.remove(object.virtual_line)                    
                 }
                 object.notation.forEach((textObject) => {
                     extendedCanvas.remove(textObject)    
@@ -140,7 +140,7 @@
                 fbCanvas.remove(value)
             })
 
-            const contour = prepareContour(fbCanvas.contourFinalized, state, dataStorage, updateDataStorage, true)
+            const contour = prepareContour(fbCanvas.contourFinalized, state, dataStorage, updateDataStorage)
 
             const newContour = {
                 type: 'Feature',

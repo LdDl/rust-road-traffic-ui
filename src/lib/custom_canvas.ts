@@ -3,7 +3,7 @@ import { UUIDv4, findLefTopX, findLeftTopY, getObjectSizeWithStroke, getRandomRG
 import { type Zone } from "./zones";
 import { get, type Writable } from "svelte/store";
 import { States } from "./states";
-import { prepareVirtualLine, type LineWrap } from "./custom_line";
+import { CustomLineGroup, prepareVirtualLine } from "./custom_line";
 import { CUSTOM_CONTROL_TYPES } from "./custom_canvas_control";
 
 // Extend fabric.Canvas with custom properties
@@ -123,7 +123,7 @@ export interface ContourWrap {
     unid: string,
     notation: fabric.Text[]
     current_points?: fabric.Point[] | undefined
-    virtual_line?: LineWrap | undefined
+    virtual_line?: CustomLineGroup | undefined
 }
 
 export class CustomPolygon extends fabric.Polygon implements ContourWrap {
@@ -131,7 +131,7 @@ export class CustomPolygon extends fabric.Polygon implements ContourWrap {
     unid: string;
     notation: fabric.Text[];
     current_points?: fabric.Point[] | undefined
-    virtual_line?: LineWrap | undefined
+    virtual_line?: CustomLineGroup | undefined
     constructor(points: fabric.Point[], options?: fabric.IPolylineOptions) {
         super(points, options);
         // Initialize additional properties
