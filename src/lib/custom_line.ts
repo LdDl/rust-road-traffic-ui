@@ -2,7 +2,7 @@ import { fabric } from "fabric"
 import { DirectionType, type VirtualLineProps } from "./zones";
 import { makeValidPoint, rgba2array, scalePoint } from "./utils";
 import type { CustomPolygon, FabricCanvasWrap } from "./custom_canvas";
-import { CUSTOM_CONTROL_TYPES } from "./custom_canvas_control";
+import { CUSTOM_CONTROL_TYPES } from "./custom_control";
 
 export const TYPE_VIRTUAL_LINE_GROUP = 'TYPE_VIRTUAL_LINE_GROUP'
 

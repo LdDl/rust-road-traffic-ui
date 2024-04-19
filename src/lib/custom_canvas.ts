@@ -4,7 +4,7 @@ import { type Zone } from "./zones";
 import { get, type Writable } from "svelte/store";
 import { States } from "./states";
 import { CustomLineGroup, prepareVirtualLine } from "./custom_line";
-import { CUSTOM_CONTROL_TYPES } from "./custom_canvas_control";
+import { CUSTOM_CONTROL_TYPES } from "./custom_control";
 
 // Extend fabric.Canvas with custom properties
 export interface FabricCanvasWrap extends fabric.Canvas {

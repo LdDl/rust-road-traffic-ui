@@ -8,7 +8,9 @@
 	import { dataStorage, deattachCanvasFromSpatial, deleteFromDataStorage, updateDataStorage } from '../store/data_storage.js';
 	import { draw } from '../store/map.js';
 	import { writable } from 'svelte/store';
-	import { CUSTOM_CONTROL_TYPES, changeDirectionControl, lineControl } from '$lib/custom_canvas_control.js';
+	import { lineControl } from '$lib/custom_control_zone.js';
+	import { changeDirectionControl } from '$lib/custom_control_line.js';
+	import { CUSTOM_CONTROL_TYPES } from '$lib/custom_control.js';
 
     export let klass: string = ''
 
@@ -40,11 +42,10 @@
     onMount(() => {
         console.log('Mounted canvas component')
     });
-//
+
     onDestroy(() => {
         canvasReady.set(false)
         $canvasState.getObjects().forEach(obj => {
-            console.log('remov ..e', obj)
             $canvasState.remove(obj);
         })
         unsubApiChange()
