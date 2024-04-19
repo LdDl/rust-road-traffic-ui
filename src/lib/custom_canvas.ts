@@ -193,6 +193,7 @@ export function prepareContour(contourFinalized: any, state: Writable<States>, s
     // http://fabricjs.com/docs/fabric.Object.html#setControlVisible - for custom controls
     contour.setControlVisible(CUSTOM_CONTROL_TYPES.LINE_CONTROL, true)
     contour.setControlVisible(CUSTOM_CONTROL_TYPES.CHANGE_DIRECTION_CONTROL, false)
+    contour.setControlVisible(CUSTOM_CONTROL_TYPES.DELETE_VIRTUAL_LINE_CONTROL, false)
 
     contour.inner.on('mousedown', contourMouseDownEventWrapper(state, storage, updateDataStorageFn))
     contour.inner.on('modified', contourModifiedEventWrapper(storage, updateDataStorageFn))

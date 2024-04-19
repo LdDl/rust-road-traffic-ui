@@ -9,7 +9,7 @@
 	import { draw } from '../store/map.js';
 	import { writable } from 'svelte/store';
 	import { lineControl } from '$lib/custom_control_zone.js';
-	import { changeDirectionControl } from '$lib/custom_control_line.js';
+	import { changeDirectionControl, deleteVirtualLineControl } from '$lib/custom_control_line.js';
 	import { CUSTOM_CONTROL_TYPES } from '$lib/custom_control.js';
 
     export let klass: string = ''
@@ -82,6 +82,7 @@
         fbCanvas.scaleHeight = imageElem.clientHeight/imageElem.naturalHeight
         fabric.Object.prototype.controls[CUSTOM_CONTROL_TYPES.LINE_CONTROL] = lineControl
         fabric.Object.prototype.controls[CUSTOM_CONTROL_TYPES.CHANGE_DIRECTION_CONTROL] = changeDirectionControl
+        fabric.Object.prototype.controls[CUSTOM_CONTROL_TYPES.DELETE_VIRTUAL_LINE_CONTROL] = deleteVirtualLineControl
 
         const fbCanvasParent = document.getElementsByClassName('custom-container-canvas')[0];
         fbCanvasParent.id = "fbcanvas";
