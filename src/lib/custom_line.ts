@@ -4,7 +4,6 @@ import { makeValidPoint, rgba2array, scalePoint } from "./utils";
 import type { CustomPolygon, FabricCanvasWrap } from "./custom_canvas";
 import { CUSTOM_CONTROL_TYPES } from "./custom_canvas_control";
 
-export const TYPE_VIRTUAL_LINE = 'TYPE_VIRTUAL_LINE'
 export const TYPE_VIRTUAL_LINE_GROUP = 'TYPE_VIRTUAL_LINE_GROUP'
 
 interface LineWrapOne {
