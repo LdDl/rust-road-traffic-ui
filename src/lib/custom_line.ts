@@ -91,10 +91,11 @@ export function prepareVirtualLine(targetContour: CustomPolygon, givenByAPI: boo
         fontWeight: 'bold',
         fontSize: 42
     }
+    const midPoint = new fabric.Point((L1Canvas.x + L2Canvas.x) / 2.0, (L1Canvas.y + L2Canvas.y) / 2.0)
     // IText is used here just in case
     const directionText = new fabric.IText(DirectionType.toString(props.direction), {
-        left: L1Canvas.x + 20,
-        top: L1Canvas.y,
+        left: midPoint.x - 20,
+        top: midPoint.y,
         fontSize: 18,
         fontFamily: 'Roboto',
         fill: targetContour.stroke,
