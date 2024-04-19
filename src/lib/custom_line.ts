@@ -44,10 +44,12 @@ export class CustomLine extends fabric.Line implements LineWrap {
 
 interface GroupWrap {
     segment?: CustomLine
+    parentContour?: CustomPolygon
 }
 
 export class CustomLineGroup extends fabric.Group implements GroupWrap {
     segment?: CustomLine;
+    parentContour?: CustomPolygon;
     constructor(objects?: fabric.Object[], options?: fabric.IGroupOptions, isAlreadyGrouped?: boolean) {
         super(objects, options, isAlreadyGrouped);
         this.type = TYPE_VIRTUAL_LINE_GROUP
@@ -352,5 +354,8 @@ export function prepareVirtualLine(targetContour: CustomPolygon, givenByAPI: boo
 
     targetContour.virtual_line = segment
     targetContour.fire('virtial_line:created', { target: targetContour })
+
+    virtLineGroup.parentContour = targetContour
+    
     targetExtendedCanvas.add(virtLineGroup)
 }

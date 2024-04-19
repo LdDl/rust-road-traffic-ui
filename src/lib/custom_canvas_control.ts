@@ -109,6 +109,10 @@ const changeDirectionControlHandler = (eventData: MouseEvent, transformData: fab
         console.error('Unhandled type. Only CustomLineGroup on top of fabric.Group has been implemented. Event: change_direction_control. Transform data:', transformData)
         return false
     }
+    if (!targetObject.parentContour) {
+        console.error('Empty parent contour. Event: change_direction_control. Transform data:', transformData)
+        return false
+    }
     if (!targetObject.segment) {
         console.error('No segment. Event: change_direction_control. Transform data:', transformData)
         return false
@@ -121,10 +125,8 @@ const changeDirectionControlHandler = (eventData: MouseEvent, transformData: fab
         return false
     }
     directionTextObject.set('text', DirectionType.toString(targetObject.segment.direction))
+    targetObject.parentContour.fire('virtial_line:modified', { target: targetObject.parentContour })
     targetObject.canvas?.renderAll() // Force call of render
-
-    // @todo
-    console.warn("Need to implement 'changeDirectionControlHandler'. Call update storage / change text")
     return true
 }
 
