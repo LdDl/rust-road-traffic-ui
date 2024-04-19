@@ -97,23 +97,12 @@ export function prepareVirtualLine(targetContour: CustomPolygon, givenByAPI: boo
     segment.direction = props.direction
 
     /* Arrow part */
-    let dirText = "→↓"
-    switch (props.direction) {
-        case DirectionType.LeftRightTopBottom:
-            break
-        case DirectionType.RightLeftBottomTop:
-            dirText = "←↑"
-            break
-        default:
-            dirText = "err"
-            break
-    }
     const textArrowsProps = {
         fontWeight: 'bold',
         fontSize: 42
     }
     // IText is used here just in case
-    const directionText = new fabric.IText(dirText, {
+    const directionText = new fabric.IText(DirectionType.toString(props.direction), {
         left: L1Canvas.x + 20,
         top: L1Canvas.y,
         fontSize: 18,

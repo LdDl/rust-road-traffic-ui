@@ -3,6 +3,25 @@ export enum DirectionType {
     RightLeftBottomTop = 'rlbt'
 }
 
+const DIRECTION_TYPE_TEXT = new Map([
+    [DirectionType.LeftRightTopBottom, '→↓'],
+    [DirectionType.RightLeftBottomTop, '←↑'],
+])
+
+const TEXT_DIRECTION_TYPE = new Map([
+    ['→↓', DirectionType.LeftRightTopBottom],
+    ['←↑', DirectionType.RightLeftBottomTop],
+])
+
+export namespace DirectionType {
+    export function toString(dirType: DirectionType): string {
+        return DIRECTION_TYPE_TEXT.get(dirType) ?? 'err';
+    }
+    export function parse(dirStr: string): DirectionType | undefined {
+        return TEXT_DIRECTION_TYPE.get(dirStr);
+    }
+}
+
 export interface Zone {
     type?: string,
     id: string,

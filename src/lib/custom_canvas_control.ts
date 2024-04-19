@@ -114,6 +114,14 @@ const changeDirectionControlHandler = (eventData: MouseEvent, transformData: fab
         return false
     }
     targetObject.segment.direction = targetObject.segment.direction === DirectionType.LeftRightTopBottom ? DirectionType.RightLeftBottomTop : DirectionType.LeftRightTopBottom
+    // Source group has 4 objects: [segment, directionText, L1Text, L2Text]
+    const directionTextObject = targetObject.getObjects()[1]
+    if (!(directionTextObject instanceof fabric.IText)) {
+        console.error('Unhandled object. Should be fabric.IText at position #1 Event: change_direction_control. Transform data:', transformData)
+        return false
+    }
+    directionTextObject.set('text', DirectionType.toString(targetObject.segment.direction))
+    targetObject.canvas?.renderAll() // Force call of render
 
     // @todo
     console.warn("Need to implement 'changeDirectionControlHandler'. Call update storage / change text")
