@@ -103,7 +103,7 @@
     })
 
     onMount(() => {
-        console.log('Mounted')
+        console.log('Mounted page')
         initializeMaterialize()
         initSubscribers(SubscriberState.Init)
 

@@ -1,6 +1,6 @@
 <script lang="ts">
     import { type Writable } from 'svelte/store'
-    import { type Zone } from '../store/data_storage'
+	import type { Zone } from '$lib/zones';
 
     export let klass: string = ''
     export let dataReady: Writable<boolean>

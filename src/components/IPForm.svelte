@@ -1,4 +1,4 @@
-<script lang="ts">
+<script setup lang="ts">
     import { apiUrlStore, changeAPI } from "../store/state"
     import { onMount } from 'svelte'
 
@@ -15,7 +15,7 @@
     }
     
     onMount(() =>{
-        console.log(`Initial address: '${$apiURL}'`)
+        console.log(`Mount IP form. Initial address: '${$apiURL}'`)
     })
 </script>
 

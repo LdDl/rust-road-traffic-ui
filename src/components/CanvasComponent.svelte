@@ -1,4 +1,4 @@
-<script lang="ts">
+<script setup lang="ts">
     import { onMount, onDestroy } from 'svelte'
     import { fabric } from "fabric"
     import { canvasReady, canvasState, apiUrlStore, changeAPI, state } from '../store/state.js'
@@ -22,11 +22,9 @@
 
     const imageLoaded = () => {
         console.log('Image source reloaded')
-        if ($canvasState === undefined || $canvasState == null) {
-            console.log(`Prepare canvas on first initialization`)
-            const fbCanvas = initializeCanvas()
-            canvasState.set(fbCanvas)
-        }
+        console.log('Prepare canvas on first initialization')
+        const fbCanvas = initializeCanvas()
+        canvasState.set(fbCanvas)
         imgSrcLoaded.set(true)
         canvasReady.set(true)
     }
@@ -40,9 +38,15 @@
     })
 
     onMount(() => {
+        console.log('Mounted canvas component')
     });
-
+//
     onDestroy(() => {
+        canvasReady.set(false)
+        $canvasState.getObjects().forEach(obj => {
+            console.log('remov ..e', obj)
+            $canvasState.remove(obj);
+        })
         unsubApiChange()
     });
 

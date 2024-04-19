@@ -1,5 +1,5 @@
-<script lang="ts">
-	import { mapStyleStore, changeAPI } from '../store/state'
+<script setup lang="ts">
+	import { mapStyleStore } from '../store/state'
 	import { onMount } from 'svelte';
 
 	const { uri } = mapStyleStore;
@@ -14,7 +14,7 @@
 	};
 
 	onMount(() => {
-		console.log(`Initial styles URL: '${$uri}'`)
+		console.log(`Mount styles form. Initial styles URL: '${$uri}'`)
 	});
 </script>
 
