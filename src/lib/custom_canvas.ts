@@ -200,6 +200,7 @@ export function prepareContour(contourFinalized: any, state: Writable<States>, s
     if (init_virtual_lines_events) {
         contour.inner.on('virtial_line:created', customEventCreatedForVirtualLine(storage, updateDataStorageFn))
         contour.inner.on('virtial_line:modified', customEventModifiedForVirtualLine(storage, updateDataStorageFn))
+        contour.inner.on('virtial_line:removed', customEventRemovedForVirtualLine(storage, updateDataStorageFn))
     }
 
     contour.inner.on('mouseover', function (options: fabric.IEvent<MouseEvent>) {
@@ -292,6 +293,28 @@ function customEventModifiedForVirtualLine(storage: Writable<Map<string, Zone>>,
     // Modified == Created currently
     // Could change this behaviour when need to.
     return customEventCreatedForVirtualLine(storage, updateDataStorageFn)
+}
+
+function customEventRemovedForVirtualLine(storage: Writable<Map<string, Zone>>, updateDataStorageFn: (key: string, value: Zone) => void) {
+    return function (options: fabric.IEvent<Event>) {
+        const targetContour = options.target
+        if (!targetContour) {
+            console.error('Empty target contour on virtual_line:removed. Options:', options)
+            return
+        }
+        if (!(targetContour instanceof CustomPolygon)) {
+            console.error('Unhandled type. Only CustomPolygon on top of fabric.Object has been implemented. Event: virtual_line:removed. Options:', options)
+            return
+        }
+        targetContour.virtual_line = undefined
+        let existingContour = get(storage).get(targetContour.unid);
+        if (!existingContour) {
+            console.error('No contour in datastorage. Event: virtual_line:removed. Options:', options)
+            return
+        }
+        existingContour.properties.virtual_line = undefined
+        updateDataStorageFn(targetContour.unid, existingContour)
+    }
 }
 
 function contourMouseDownEventWrapper(state: Writable<States>, storage: Writable<Map<string, Zone>>, updateDataStorageFn: (key: string, value: Zone) => void) {
@@ -417,6 +440,7 @@ export const drawCanvasPolygons = (extendedCanvas: FabricCanvasWrap, state: Writ
             /* Special case: should add events only after lines has been added to avoid excess updateDataStorageFn call */
             contour.inner.on('virtial_line:created', customEventCreatedForVirtualLine(storage, updateDataStorageFn))
             contour.inner.on('virtial_line:modified', customEventModifiedForVirtualLine(storage, updateDataStorageFn))
+            contour.inner.on('virtial_line:removed', customEventRemovedForVirtualLine(storage, updateDataStorageFn))
         }
         contour.notation.forEach((vertextNotation: fabric.Text) => {
             extendedCanvas.add(vertextNotation)

@@ -67,8 +67,20 @@ const trashVirtLineElem = document.createElement('img')
 trashVirtLineElem.src = trashVirtLineIcon
 
 const deleteVirtualLineControlHandler = (eventData: MouseEvent, transformData: fabric.Transform, x: number, y: number): boolean => {
-    // @todo
-    console.log("need to impl delete for virt line group")
+    const targetObject = transformData.target
+    if (!targetObject) {
+        console.error('Empty target. Event: delete_virtual_line_control. Transform data:', transformData)
+        return false
+    }
+    if (!(targetObject instanceof CustomLineGroup)) {
+        console.error('Unhandled type. Only CustomLineGroup on top of fabric.Group has been implemented. Event: delete_virtual_line_control. Transform data:', transformData)
+        return false
+    }
+    if (!targetObject.parentContour) {
+        console.error('Empty parent contour. Event: delete_virtual_line_control. Transform data:', transformData)
+        return false
+    }
+    targetObject.canvas?.remove(targetObject) // 'removed' event would be triggered
     return true
 }
 

@@ -344,6 +344,12 @@ export function prepareVirtualLine(targetContour: CustomPolygon, givenByAPI: boo
         targetCanvas.renderAll()
     })
 
+    virtLineGroup.on('removed', function(options: fabric.IEvent<Event>) {
+        if (virtLineGroup.parentContour) {
+            virtLineGroup.parentContour.fire('virtial_line:removed', { target: targetContour })
+        }
+    })
+
     targetContour.virtual_line = virtLineGroup
     targetContour.fire('virtial_line:created', { target: targetContour })
 
