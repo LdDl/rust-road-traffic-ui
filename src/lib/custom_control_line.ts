@@ -4,7 +4,7 @@ import { DirectionType } from "./zones";
 
 // http://fabricjs.com/custom-control-render
 const cornerSize = 32
-const changeDirectionIcon = "data:image/svg+xml,%3Csvg width='1.2rem' height='1.2rem' viewBox='0 0 1474.3327 1935.947' fill='red' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='100%25' height='100%25' stroke='rgba(0, 0, 0, 1)' stroke-width='5' fill='rgba(255, 255, 255, 0.3)' /%3E%3Cpath d='M513.166 1863.974h-192q-13 0-22.5-9.5t-9.5-22.5v-1376h-192q-13 0-22.5-9.5t-9.5-22.5q0-12 10-24l320-319q9-9 22-9 14 0 23 9l320 320q9 9 9 23 0 13-9.5 22.5t-22.5 9.5h-192v1376q0 13-9.5 22.5t-22.5 9.5m544 0q-14 0-23-9l-320-320q-9-9-9-23 0-13 9.5-22.5t22.5-9.5h192v-1376q0-13 9.5-22.5t22.5-9.5h192q13 0 22.5 9.5t9.5 22.5v1376h192q14 0 23 9t9 23q0 12-10 24l-319 319q-9 9-23 9' style='opacity:1;fill:red;stroke:%23000;stroke-width:42;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1'/%3E%3C/svg%3E"
+const changeDirectionIcon = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1.2rem' height='1.2rem' viewBox='0 0 24 24'%3E%3Crect width='100%25' height='100%25' stroke='rgba(0, 0, 0, 1)' stroke-width='2px' fill='rgba(255, 255, 255, 0.3)'/%3E%3Cpath fill='none' stroke='%23ff0000' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.75' d='M17 20V8m0 12l-3.5-3.5M17 20l3.5-3.5M7 17V4m0 0L3.5 7.5M7 4l3.5 3.5'/%3E%3C/svg%3E"
 const changeDirectionElem = document.createElement('img')
 changeDirectionElem.src = changeDirectionIcon
 
