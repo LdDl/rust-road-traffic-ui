@@ -178,6 +178,7 @@ export const makeContour = (coordinates: any, color = getRandomRGB()): CustomPol
             shadow: '0 0 10px rgba(255, 255, 255, 0.7)',
             stroke: 'rgb(0, 0, 0)',
             strokeWidth: 0.9,
+            selectable: false
         });
         denotedVertices.push(vertexTextObject)
     })

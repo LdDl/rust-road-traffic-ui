@@ -137,7 +137,7 @@ export function prepareVirtualLine(targetContour: CustomPolygon, givenByAPI: boo
         shadow: '0 0 10px rgba(255, 255, 255, 0.7)',
         stroke: 'rgb(0, 0, 0)',
         strokeWidth: 0.9,
-        objectCaching: false,
+        objectCaching: false
     });
     const L2Text = new fabric.Text("L2", {
         left: L2Canvas.x - 5,
@@ -148,7 +148,7 @@ export function prepareVirtualLine(targetContour: CustomPolygon, givenByAPI: boo
         shadow: '0 0 10px rgba(255, 255, 255, 0.7)',
         stroke: 'rgb(0, 0, 0)',
         strokeWidth: 0.9,
-        objectCaching: false,
+        objectCaching: false
     });
     /* */
 
