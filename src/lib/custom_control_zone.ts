@@ -56,8 +56,6 @@ const lineControlHandler = (eventData: MouseEvent, transformData: fabric.Transfo
         direction: DirectionType.LeftRightTopBottom
     })
 
-    // @todo
-    console.warn("Need to implement 'lineControlHandler'. Checkup health of saving virtual line to rest api")
     return true
 }
 

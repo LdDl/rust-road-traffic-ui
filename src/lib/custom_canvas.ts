@@ -438,11 +438,11 @@ export const drawCanvasPolygons = (extendedCanvas: FabricCanvasWrap, state: Writ
         extendedCanvas.add(contour.inner);
         if (feature.properties.virtual_line) {
             prepareVirtualLine(contour, true, feature.properties.virtual_line)
-            /* Special case: should add events only after lines has been added to avoid excess updateDataStorageFn call */
-            contour.inner.on('virtial_line:created', customEventCreatedForVirtualLine(storage, updateDataStorageFn))
-            contour.inner.on('virtial_line:modified', customEventModifiedForVirtualLine(storage, updateDataStorageFn))
-            contour.inner.on('virtial_line:removed', customEventRemovedForVirtualLine(storage, updateDataStorageFn))
         }
+        /* Special case: should add events only after lines has been added to avoid excess updateDataStorageFn call */
+        contour.inner.on('virtial_line:created', customEventCreatedForVirtualLine(storage, updateDataStorageFn))
+        contour.inner.on('virtial_line:modified', customEventModifiedForVirtualLine(storage, updateDataStorageFn))
+        contour.inner.on('virtial_line:removed', customEventRemovedForVirtualLine(storage, updateDataStorageFn))
         contour.notation.forEach((vertextNotation: fabric.Text) => {
             extendedCanvas.add(vertextNotation)
         })
