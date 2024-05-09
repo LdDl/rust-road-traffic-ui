@@ -3,7 +3,7 @@ import { derived, writable, type Writable } from 'svelte/store'
 import type { FabricCanvasWrap } from '$lib/custom_canvas';
 // import { apiURL } from '../store/polygons'
 
-export const canvasState: Writable<FabricCanvasWrap> = writable()
+export const canvasState: Writable<FabricCanvasWrap | undefined> = writable()
 export const state = writable(States.Waiting);
 
 export const canvasReady = writable(false)

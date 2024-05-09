@@ -24,9 +24,11 @@
 
     const imageLoaded = () => {
         console.log('Image source reloaded')
-        console.log('Prepare canvas on first initialization')
-        const fbCanvas = initializeCanvas()
-        canvasState.set(fbCanvas)
+        if ($canvasState === null || $canvasState === undefined) {
+            console.log('Prepare canvas on first initialization')
+            const fbCanvas = initializeCanvas()
+            canvasState.set(fbCanvas)
+        }
         imgSrcLoaded.set(true)
         canvasReady.set(true)
     }
@@ -40,15 +42,16 @@
     })
 
     onMount(() => {
-        console.log('Mounted canvas component')
+        console.log('Mounted canvas component2')
     });
 
     onDestroy(() => {
         canvasReady.set(false)
-        $canvasState.getObjects().forEach(obj => {
+        $canvasState?.getObjects().forEach(obj => {
             $canvasState.remove(obj);
         })
         unsubApiChange()
+        canvasState.set(undefined)
     });
 
     const deleteZoneFromCanvas = (extendedCanvas: FabricCanvasWrap, zoneID: string) => {
