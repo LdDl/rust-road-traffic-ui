@@ -11,3 +11,4 @@ vite.config.ts.timestamp-*
 ansible/
 dist.tar.gz
 dist_detectors.tar.gz
+docs/*.mp4

@@ -12,10 +12,11 @@ It's just simple UI for toy utility for monitoring road traffic from video - htt
 
 W.I.P.
 
+<video src='https://github.com/LdDl/rust-road-traffic-ui/assets/8864477/fb7f5aa0-884f-4838-939f-29dfaf6cadea' width="720px"/>
+
 Current state of UI: pretty ugly code since I'm not familiar with Svelte enough.
 
 Current plans: eliminate vanilla JS from main repository and use build from this one.
-
 
 Used tech:
 1. Svelte / SvelteKit - https://kit.svelte.dev/
