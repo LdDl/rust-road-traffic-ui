@@ -1,5 +1,6 @@
 <script setup lang="ts">
     import { onMount, onDestroy } from 'svelte'
+    import ThreeDotLoader from './ThreeDotLoader.svelte'
     import { fabric } from "fabric"
     import { canvasReady, canvasState, apiUrlStore, changeAPI, state } from '../store/state.js'
 	import { ExtendedCanvas, prepareContour, verticesChars, type FabricCanvasWrap, CustomPolygon } from '$lib/custom_canvas.js';
@@ -198,7 +199,7 @@
     <canvas id="fit_canvas" ></canvas>
     <div id="loading-message" class={$imgSrcLoaded? 'd-none' : 'd-block'}>
         <div class={$imgSrcLoaded? 'd-none' : 'loading d-block'}>
-            Please wait until image is loaded
+            <ThreeDotLoader msgText="Please wait until image is loaded"/>
         </div>
     </div>
 </div>
@@ -248,17 +249,16 @@
         pointer-events: none;
         font-size: 2rem;
     }
-    .loading:after {
+    /* .loading:after {
         overflow: hidden;
         display: inline-block;
         vertical-align: bottom;
         -webkit-animation: ellipsis steps(6, end) 1000ms infinite;
         animation: ellipsis steps(6, end) 1000ms infinite;
         content: "\2026";
-        /* ascii code for the ellipsis character */
         width: 0px;
-    }
-    @keyframes ellipsis {
+    } */
+    /* @keyframes ellipsis {
         to {
             width: 40px;
         }
@@ -267,5 +267,5 @@
         to {
             width: 40px;
         }
-    }
+    } */
 </style>
