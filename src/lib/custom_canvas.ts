@@ -310,7 +310,7 @@ function customEventRemovedForVirtualLine(storage: Writable<Map<string, Zone>>, 
         targetContour.virtual_line = undefined
         let existingContour = get(storage).get(targetContour.unid);
         if (!existingContour) {
-            console.error('No contour in datastorage. Event: virtual_line:removed. Options:', options)
+            console.warn('No contour in datastorage. Event: virtual_line:removed. Options:', options)
             return
         }
         existingContour.properties.virtual_line = undefined

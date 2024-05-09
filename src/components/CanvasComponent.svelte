@@ -42,7 +42,7 @@
     })
 
     onMount(() => {
-        console.log('Mounted canvas component2')
+        console.log('Mounted canvas component')
     });
 
     onDestroy(() => {
