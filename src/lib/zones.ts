@@ -8,6 +8,11 @@ const DIRECTION_TYPE_TEXT = new Map([
     [DirectionType.RightLeftBottomTop, '←↑'],
 ])
 
+const DIRECTION_TYPE_HUMAN_TEXT = new Map([
+    [DirectionType.LeftRightTopBottom, 'Left->Right or Top->Bottom'],
+    [DirectionType.RightLeftBottomTop, 'Right->Left or Bottom->Top'],
+])
+
 const TEXT_DIRECTION_TYPE = new Map([
     ['→↓', DirectionType.LeftRightTopBottom],
     ['←↑', DirectionType.RightLeftBottomTop],
@@ -16,6 +21,9 @@ const TEXT_DIRECTION_TYPE = new Map([
 export namespace DirectionType {
     export function toString(dirType: DirectionType): string {
         return DIRECTION_TYPE_TEXT.get(dirType) ?? 'err';
+    }
+    export function toHumanString(dirType: DirectionType): string {
+        return DIRECTION_TYPE_HUMAN_TEXT.get(dirType) ?? 'err';
     }
     export function parse(dirStr: string): DirectionType | undefined {
         return TEXT_DIRECTION_TYPE.get(dirStr);

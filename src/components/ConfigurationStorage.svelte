@@ -1,6 +1,6 @@
 <script lang="ts">
     import { type Writable } from 'svelte/store'
-	import type { Zone } from '$lib/zones';
+	import { DirectionType, type Zone } from '$lib/zones';
 
     export let klass: string = ''
     export let dataReady: Writable<boolean>
@@ -13,8 +13,22 @@
             {#if $dataReady === true}
                 {#each data as [k, element]}
                     <li>
-                        <div class="collapsible-header">
-                            <i class="material-icons" style="color: {element.properties.color_rgb_str};">place</i>Polygon identifier: {element.id}
+                        <div class="collapsible-header collapsible-header-content">
+                            <div class="collapbisle-header-zone">
+                                <i class="material-icons" style="color: {element.properties.color_rgb_str};">place</i>
+                                <span>Zone identifier: {element.id}</span>
+                            </div>
+                            <div class="collapbisle-header-divider"></div>
+                            <div class="collapbisle-header-zone">
+                                <div>
+                                    <span>Virtual line:</span>
+                                    {#if element.properties.virtual_line}
+                                        <span>{DirectionType.toHumanString(element.properties.virtual_line.direction)}</span>
+                                    {:else}
+                                        <span style="font-weight: bold;">None</span>
+                                    {/if}
+                                </div>
+                            </div>
                         </div>
                         <div class="collapsible-body">
                             <table class="collapsible-table">
@@ -45,6 +59,21 @@
                                         <td>Spatial coordinates</td>
                                         <td>{JSON.stringify(element.geometry.coordinates)}</td>
                                     </tr>
+                                    {#if element.properties.virtual_line}
+                                    <tr>
+                                        <td>Virtual line direction</td>
+                                        <td><span>{DirectionType.toHumanString(element.properties.virtual_line.direction)}</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Virtual line coordinates</td>
+                                        <td>{JSON.stringify(element.properties.virtual_line.geometry)}</td>
+                                    </tr>
+                                    {:else}
+                                    <tr>
+                                        <td>Virtual line</td>
+                                        <td><span style="font-weight: bold;">None</span></td>
+                                    </tr>
+                                    {/if}
                                 </tbody>
                             </table>
                         </div>
@@ -55,8 +84,7 @@
     </div>
 </div>
 
-<style>
-
+<style scoped>
     #configuration {
         grid-area: B;
         /* background: blue; */
@@ -96,5 +124,22 @@
     .collapsible-header, .collapsible-body, .collapsible, ul.collapsible>li {
         margin: 0 !important;
     }
-
+    .collapsible-header-content{
+        display: flex;
+        flex-direction: row;
+        padding: 0 !important;
+    }
+    .collapbisle-header-zone{
+        flex: 1;
+        display: flex;
+        text-align: center;
+        flex-direction: row;
+        align-items: center;
+        padding: 1rem;
+    }
+    .collapbisle-header-divider {
+      border-left: 0.2rem solid rgb(107, 107, 107);
+      margin-top: 0.3rem;
+      margin-bottom: 0.3rem;
+    }
 </style>
