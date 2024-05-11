@@ -1,13 +1,17 @@
-<script lang="ts">
+<script setup lang="ts">
     import { onMount, onDestroy } from 'svelte'
+    import ThreeDotLoader from './ThreeDotLoader.svelte'
     import { fabric } from "fabric"
     import { canvasReady, canvasState, apiUrlStore, changeAPI, state } from '../store/state.js'
-	import { ExtendedCanvas, prepareContour, verticesChars, type FabricCanvasWrap } from '$lib/custom_canvas.js';
+	import { ExtendedCanvas, prepareContour, verticesChars, type FabricCanvasWrap, CustomPolygon } from '$lib/custom_canvas.js';
 	import { States } from '$lib/states.js';
 	import { getClickPoint, rgba2array } from '$lib/utils.js';
 	import { dataStorage, deattachCanvasFromSpatial, deleteFromDataStorage, updateDataStorage } from '../store/data_storage.js';
 	import { draw } from '../store/map.js';
 	import { writable } from 'svelte/store';
+	import { lineControl } from '$lib/custom_control_zone.js';
+	import { changeDirectionControl, deleteVirtualLineControl } from '$lib/custom_control_line.js';
+	import { CUSTOM_CONTROL_TYPES } from '$lib/custom_control.js';
 
     export let klass: string = ''
 
@@ -21,8 +25,8 @@
 
     const imageLoaded = () => {
         console.log('Image source reloaded')
-        if ($canvasState === undefined || $canvasState == null) {
-            console.log(`Prepare canvas on first initialization`)
+        if ($canvasState === null || $canvasState === undefined) {
+            console.log('Prepare canvas on first initialization')
             const fbCanvas = initializeCanvas()
             canvasState.set(fbCanvas)
         }
@@ -39,24 +43,28 @@
     })
 
     onMount(() => {
+        console.log('Mounted canvas component')
     });
 
     onDestroy(() => {
+        canvasReady.set(false)
+        $canvasState?.getObjects().forEach(obj => {
+            $canvasState.remove(obj);
+        })
         unsubApiChange()
+        canvasState.set(undefined)
     });
 
-    const deleteZoneFromCanvas = (extendedCanvas: any, zoneID: string) => {
-        // Пересмотреть поведение
-        extendedCanvas.getObjects().forEach( (contour: { unid: string; }) => {
-            if (contour.unid === zoneID) {
-                extendedCanvas.remove(contour)
-                return
-            }
-        })
-        extendedCanvas.getObjects().forEach( (textObject: { text_id: string; }) => {
-            if (textObject.text_id === zoneID) {
-                extendedCanvas.remove(textObject)
-                return
+    const deleteZoneFromCanvas = (extendedCanvas: FabricCanvasWrap, zoneID: string) => {
+        extendedCanvas.getObjects().forEach((object) => {
+            if (object instanceof CustomPolygon && object.unid === zoneID) {
+                if (object.virtual_line) {
+                    extendedCanvas.remove(object.virtual_line)                    
+                }
+                object.notation.forEach((textObject) => {
+                    extendedCanvas.remove(textObject)    
+                })
+                extendedCanvas.remove(object)
             }
         })
         deattachCanvasFromSpatial($dataStorage, $draw, zoneID)
@@ -76,6 +84,10 @@
         })
         fbCanvas.scaleWidth = imageElem.clientWidth/imageElem.naturalWidth
         fbCanvas.scaleHeight = imageElem.clientHeight/imageElem.naturalHeight
+        fabric.Object.prototype.controls[CUSTOM_CONTROL_TYPES.LINE_CONTROL] = lineControl
+        fabric.Object.prototype.controls[CUSTOM_CONTROL_TYPES.CHANGE_DIRECTION_CONTROL] = changeDirectionControl
+        fabric.Object.prototype.controls[CUSTOM_CONTROL_TYPES.DELETE_VIRTUAL_LINE_CONTROL] = deleteVirtualLineControl
+
         const fbCanvasParent = document.getElementsByClassName('custom-container-canvas')[0];
         fbCanvasParent.id = "fbcanvas";
         fbCanvas.on('selection:created', (options: any) => {
@@ -187,7 +199,7 @@
     <canvas id="fit_canvas" ></canvas>
     <div id="loading-message" class={$imgSrcLoaded? 'd-none' : 'd-block'}>
         <div class={$imgSrcLoaded? 'd-none' : 'loading d-block'}>
-            Please wait until image is loaded
+            <ThreeDotLoader msgText="Please wait until image is loaded"/>
         </div>
     </div>
 </div>
@@ -237,17 +249,16 @@
         pointer-events: none;
         font-size: 2rem;
     }
-    .loading:after {
+    /* .loading:after {
         overflow: hidden;
         display: inline-block;
         vertical-align: bottom;
         -webkit-animation: ellipsis steps(6, end) 1000ms infinite;
         animation: ellipsis steps(6, end) 1000ms infinite;
         content: "\2026";
-        /* ascii code for the ellipsis character */
         width: 0px;
-    }
-    @keyframes ellipsis {
+    } */
+    /* @keyframes ellipsis {
         to {
             width: 40px;
         }
@@ -256,5 +267,5 @@
         to {
             width: 40px;
         }
-    }
+    } */
 </style>

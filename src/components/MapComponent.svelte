@@ -1,4 +1,4 @@
-<script lang="ts">
+<script setup lang="ts">
     import { onMount, onDestroy } from 'svelte'
 
     import maplibregl, { Map as MMap, MapMouseEvent, type MapGeoJSONFeature} from 'maplibre-gl'
@@ -33,6 +33,7 @@
     }
     
     onMount(() => {
+        console.log('Mounted map component')
         const initialState = { lng: 0, lat: 0, zoom: 5 };
         map.set(new MMap({
             container: mapContainer,

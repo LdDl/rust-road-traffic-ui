@@ -16,6 +16,7 @@ export function addZoneFeature(value: ZoneFeature) {
         road_lane_num: value.properties.road_lane_num,
         coordinates: value.properties.coordinates,
         color_rgb: value.properties.color_rgb,
+        virtual_line: value.properties.virtual_line,
         ds_id: value.id,
         spatial_object_id: `spatial-${value.id}`,
         color_rgb_str: `rgb(${value.properties.color_rgb[0]},${value.properties.color_rgb[1]},${value.properties.color_rgb[2]})`
