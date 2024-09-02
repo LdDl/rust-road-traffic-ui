@@ -14,7 +14,7 @@
 	"devDependencies": {
 		"@smui/fab": "^7.0.0",
 		"@sveltejs/adapter-auto": "^3.2.2",
-		"@sveltejs/adapter-static": "^3.0.3",
+		"@sveltejs/adapter-static": "^3.0.4",
 		"@sveltejs/kit": "^2.5.24",
 		"@types/fabric": "^5.3.7",
 		"@types/mapbox__mapbox-gl-draw": "^1.3.3",
