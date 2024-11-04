@@ -13,7 +13,7 @@
 	},
 	"devDependencies": {
 		"@smui/fab": "^7.0.0",
-		"@sveltejs/adapter-auto": "^3.2.5",
+		"@sveltejs/adapter-auto": "^3.3.1",
 		"@sveltejs/adapter-static": "^3.0.5",
 		"@sveltejs/kit": "^2.7.2",
 		"@types/fabric": "^5.3.7",
