@@ -15,7 +15,7 @@
 		"@smui/fab": "^7.0.0",
 		"@sveltejs/adapter-auto": "^3.3.1",
 		"@sveltejs/adapter-static": "^3.0.6",
-		"@sveltejs/kit": "^2.8.3",
+		"@sveltejs/kit": "^2.9.0",
 		"@types/fabric": "^5.3.7",
 		"@types/mapbox__mapbox-gl-draw": "^1.4.8",
 		"@typescript-eslint/eslint-plugin": "^8.15.0",
