@@ -27,7 +27,7 @@ jobs:
         run: zip dist.zip ./build/* -r
         
       - name: Archive build files
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: dist
           path: dist.zip
