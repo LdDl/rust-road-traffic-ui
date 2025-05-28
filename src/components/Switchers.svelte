@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script lang="ts">
     import IPForm from './IPForm.svelte'
     import StylesForm from './StylesForm.svelte'
 

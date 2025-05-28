@@ -1,4 +1,8 @@
-import { fabric } from "fabric"
+import { Control, util, FabricObject } from "fabric";
+import type {
+    Transform,
+    TPointerEvent
+} from "fabric";
 import { CustomPolygon, type FabricCanvasWrap } from "./custom_canvas";
 import { interpolatePoint, makeValidPoint, perpendicularToVectorByMidpoint, rgba2array, scalePoint } from "./utils";
 import { CustomLineGroup, prepareVirtualLine } from "./custom_line";
@@ -10,14 +14,14 @@ const lineIcon = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' w
 const lineImageElem = document.createElement('img')
 lineImageElem.src = lineIcon
 
-const lineControlHandler = (eventData: MouseEvent, transformData: fabric.Transform, x: number, y: number): boolean => {
+const lineControlHandler = (eventData: TPointerEvent, transformData: Transform, x: number, y: number): boolean => {
     const targetContour = transformData.target
     if (!targetContour) {
         console.error('Empty target contour on control click. Transform data:', transformData)
         return false
     }
     if (!(targetContour instanceof CustomPolygon)) {
-        console.error('Unhandled type. Only CustomPolygon on top of fabric.Object has been implemented. Event: control click. Transform data:', transformData)
+        console.error('Unhandled type. Only CustomPolygon on top of FabricObject has been implemented. Event: control click. Transform data:', transformData)
         return false
     }
     if (targetContour.virtual_line) {
@@ -52,14 +56,14 @@ const lineControlHandler = (eventData: MouseEvent, transformData: fabric.Transfo
 
     prepareVirtualLine(targetContour, false, {
         geometry: [[L1.x, L1.y], [L2.x, L2.y]],
-        color_rgb: rgba2array(targetContour.stroke),
+        color_rgb: rgba2array(targetContour.stroke?.toString() || undefined),
         direction: DirectionType.LeftRightTopBottom
     })
 
     return true
 }
 
-const lineRenderControlHandler = (ctx: CanvasRenderingContext2D, left: number, top: number, styleOverride: any, fabricObject: fabric.Object): void => {
+const lineRenderControlHandler = (ctx: CanvasRenderingContext2D, left: number, top: number, styleOverride: any, fabricObject: FabricObject): void => {
     if (!(fabricObject instanceof CustomPolygon)) {
         // Render this control for this type of object only
         // It still "transparent" and clickable, but error will be occured during click
@@ -68,13 +72,13 @@ const lineRenderControlHandler = (ctx: CanvasRenderingContext2D, left: number, t
     ctx.save()
     ctx.translate(left, top)
     if (fabricObject.angle) {
-        ctx.rotate(fabric.util.degreesToRadians(fabricObject.angle))
+        ctx.rotate(util.degreesToRadians(fabricObject.angle))
     }
     ctx.drawImage(lineImageElem, -cornerSize/2, -cornerSize/2, cornerSize, cornerSize);
     ctx.restore()
 }
 
-export const lineControl = new fabric.Control({
+export const lineControl = new Control({
     x: 0.5,
     y: -0.5,
     offsetY: -16,

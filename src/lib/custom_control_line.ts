@@ -1,4 +1,8 @@
-import { fabric } from "fabric"
+import { Control, util, FabricObject } from "fabric";
+import type {
+    Transform,
+    TPointerEvent
+} from "fabric";
 import { CustomLineGroup } from "./custom_line";
 import { DirectionType } from "./zones";
 
@@ -8,7 +12,7 @@ const changeDirectionIcon = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 const changeDirectionElem = document.createElement('img')
 changeDirectionElem.src = changeDirectionIcon
 
-const changeDirectionControlHandler = (eventData: MouseEvent, transformData: fabric.Transform, x: number, y: number): boolean => {
+const changeDirectionControlHandler = (eventData: TPointerEvent, transformData: Transform, x: number, y: number): boolean => {
     const targetObject = transformData.target
     if (!targetObject) {
         console.error('Empty target. Event: change_direction_control. Transform data:', transformData)
@@ -24,18 +28,18 @@ const changeDirectionControlHandler = (eventData: MouseEvent, transformData: fab
     }
     targetObject.direction = targetObject.direction === DirectionType.LeftRightTopBottom ? DirectionType.RightLeftBottomTop : DirectionType.LeftRightTopBottom
     // Source group has 4 objects: [segment, directionText, L1Text, L2Text]
-    const directionTextObject = targetObject.getObjects()[1]
-    if (!(directionTextObject instanceof fabric.IText)) {
+    const directionTextObject = targetObject.getObjects()[1];
+    if (!directionTextObject.isType('IText')) {
         console.error('Unhandled object. Should be fabric.IText at position #1 Event: change_direction_control. Transform data:', transformData)
         return false
     }
     directionTextObject.set('text', DirectionType.toString(targetObject.direction))
-    targetObject.parentContour.fire('virtial_line:modified', { target: targetObject.parentContour })
+    targetObject.parentContour.fire('virtial_line:modified', { target: targetObject.parentContour });
     targetObject.canvas?.renderAll() // Force call of render
     return true
 }
 
-const changeDirectionRenderControlHandler = (ctx: CanvasRenderingContext2D, left: number, top: number, styleOverride: any, fabricObject: fabric.Object): void => {
+const changeDirectionRenderControlHandler = (ctx: CanvasRenderingContext2D, left: number, top: number, styleOverride: any, fabricObject: FabricObject): void => {
     if (!(fabricObject instanceof CustomLineGroup)) {
         // Render this control for this type of object only
         // It still "transparent" and clickable, but error will be occured during click
@@ -44,13 +48,13 @@ const changeDirectionRenderControlHandler = (ctx: CanvasRenderingContext2D, left
     ctx.save()
     ctx.translate(left, top)
     if (fabricObject.angle) {
-        ctx.rotate(fabric.util.degreesToRadians(fabricObject.angle))
+        ctx.rotate(util.degreesToRadians(fabricObject.angle))
     }
     ctx.drawImage(changeDirectionElem, -cornerSize/2, -cornerSize/2, cornerSize, cornerSize);
     ctx.restore()
 }
 
-export const changeDirectionControl = new fabric.Control({
+export const changeDirectionControl = new Control({
     x: 0.5,
     y: -0.5,
     offsetY: -16,
@@ -66,14 +70,14 @@ const trashVirtLineIcon = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/20
 const trashVirtLineElem = document.createElement('img')
 trashVirtLineElem.src = trashVirtLineIcon
 
-const deleteVirtualLineControlHandler = (eventData: MouseEvent, transformData: fabric.Transform, x: number, y: number): boolean => {
+const deleteVirtualLineControlHandler = (eventData: TPointerEvent, transformData: Transform, x: number, y: number): boolean => {
     const targetObject = transformData.target
     if (!targetObject) {
         console.error('Empty target. Event: delete_virtual_line_control. Transform data:', transformData)
         return false
     }
     if (!(targetObject instanceof CustomLineGroup)) {
-        console.error('Unhandled type. Only CustomLineGroup on top of fabric.Group has been implemented. Event: delete_virtual_line_control. Transform data:', transformData)
+        console.error('Unhandled type. Only CustomLineGroup on top of fabric.Group has been implemented. Event: delete_virtual_line_control. Transform data:', transformData);
         return false
     }
     if (!targetObject.parentContour) {
@@ -84,7 +88,7 @@ const deleteVirtualLineControlHandler = (eventData: MouseEvent, transformData: f
     return true
 }
 
-const deleteVirtualLineRenderControlHandler = (ctx: CanvasRenderingContext2D, left: number, top: number, styleOverride: any, fabricObject: fabric.Object): void => {
+const deleteVirtualLineRenderControlHandler = (ctx: CanvasRenderingContext2D, left: number, top: number, styleOverride: any, fabricObject: FabricObject): void => {
     if (!(fabricObject instanceof CustomLineGroup)) {
         // Render this control for this type of object only
         // It still "transparent" and clickable, but error will be occured during click
@@ -93,13 +97,13 @@ const deleteVirtualLineRenderControlHandler = (ctx: CanvasRenderingContext2D, le
     ctx.save()
     ctx.translate(left, top)
     if (fabricObject.angle) {
-        ctx.rotate(fabric.util.degreesToRadians(fabricObject.angle))
+        ctx.rotate(util.degreesToRadians(fabricObject.angle))
     }
     ctx.drawImage(trashVirtLineElem, -cornerSize/2, -cornerSize/2, cornerSize, cornerSize);
     ctx.restore()
 }
 
-export const deleteVirtualLineControl = new fabric.Control({
+export const deleteVirtualLineControl = new Control({
     x: 0.5,
     y: -0.5,
     offsetY: -16,

@@ -1,5 +1,5 @@
 //@ts-nocheck
-import { fabric } from 'fabric'
+import { Point, util, Shadow } from 'fabric';
 
 export function getRandomRGB() {
     // https://stackoverflow.com/a/23095731/6026885
@@ -22,7 +22,7 @@ export const rgba2array = (rgbValue?: string): [number, number, number] => {
     return [parseInt(match[1]), parseInt(match[2]), parseInt(match[3])]
 }
 
-export const getClickPoint = (fbCanvas: fabric.Canvas, options: any) => {
+export const getClickPoint = (fbCanvas: Canvas, options: any) => {
     // const left = fbCanvas.getElement().offsetLeft;
     // const top = fbCanvas.getElement().offsetTop;
     const left = fbCanvas._offset.left;
@@ -45,11 +45,11 @@ export const findLefTopX = (coordinates: any) => {
 }
 
 export const getObjectSizeWithStroke = (object: any) => {
-    let stroke = new fabric.Point(
+    let stroke = new Point(
         object.strokeUniform ? 1 / object.scaleX : 1, 
         object.strokeUniform ? 1 / object.scaleY : 1
     ).multiply(object.strokeWidth);
-    return new fabric.Point(object.width + stroke.x, object.height + stroke.y);
+    return new Point(object.width + stroke.x, object.height + stroke.y);
 }
 
 export class UUIDv4 {
@@ -91,7 +91,7 @@ export class UUIDv4 {
 }
 
 // Interpolate a point by specified distance from B point for segment AB
-export const interpolatePoint = (p1: fabric.Point, p2: fabric.Point, dist: number) => {
+export const interpolatePoint = (p1: Point, p2: Point, dist: number) => {
     const x1 = p1.x
     const y1 = p1.y
     const x2 = p2.x
@@ -99,10 +99,10 @@ export const interpolatePoint = (p1: fabric.Point, p2: fabric.Point, dist: numbe
     const ratio = dist / Math.hypot(x2-x1, y2-y1)
     const x = x2 + (x2 - x1) * ratio
     const y = y2 + (y2 - y1) * ratio
-    return new fabric.Point(x, y)
+    return new Point(x, y)
 }
 
-export const makeValidPoint = (p: fabric.Point, minx: number, miny: number, maxx: number, maxy: number) => {
+export const makeValidPoint = (p: Point, minx: number, miny: number, maxx: number, maxy: number) => {
     if (p.x < minx) {
         p.x = minx
     }
@@ -118,15 +118,15 @@ export const makeValidPoint = (p: fabric.Point, minx: number, miny: number, maxx
 }
 
 const eps = 10e-6
-export const perpendicularToVectorByMidpoint = (A: fabric.Point, B: fabric.Point, dist: number): [fabric.Point, fabric.Point] => {
-    const p1 = new fabric.Point((A.x + B.x) / 2.0, (A.y + B.y) / 2.0) // Just a midpoint
+export const perpendicularToVectorByMidpoint = (A: Point, B: Point, dist: number): [Point, Point] => {
+    const p1 = new Point((A.x + B.x) / 2.0, (A.y + B.y) / 2.0) // Just a midpoint
     if (Math.abs(B.x - A.x) < eps) {
         // Vertical
-        return [p1, new fabric.Point(p1.x + (B.y > A.y? dist : -dist), p1.y)]
+        return [p1, new Point(p1.x + (B.y > A.y? dist : -dist), p1.y)]
     }
     if (Math.abs(B.y - A.y) < eps) {
         // Horizontal
-        return [p1, new fabric.Point(p1.x, p1.y + (B.x > A.x? dist : -dist))]
+        return [p1, new Point(p1.x, p1.y + (B.x > A.x? dist : -dist))]
     }
     const slopeAB = (B.y - A.y) / (B.x - A.x)
     const slopePerpendicular = -1 / slopeAB
@@ -135,10 +135,10 @@ export const perpendicularToVectorByMidpoint = (A: fabric.Point, B: fabric.Point
     // If B is on the right side of A, P2 will be to the right, otherwise to the left
     // @todo: refactor, because of vertical-ish lines
     const direction = (B.x > A.x) ? 1 : -1
-    const p2 = new fabric.Point(p1.x + direction * deltaX, p1.y + direction * deltaY)
+    const p2 = new Point(p1.x + direction * deltaX, p1.y + direction * deltaY)
     return [p1, p2]
 }
 
-export const scalePoint = (p: fabric.Point, scaleWidth: number, scaleHeight: number): fabric.Point => {
-    return new fabric.Point(Math.floor(p.x/scaleWidth), Math.floor(p.y/scaleHeight))
+export const scalePoint = (p: Point, scaleWidth: number, scaleHeight: number): Point => {
+    return new Point(Math.floor(p.x/scaleWidth), Math.floor(p.y/scaleHeight))
 }

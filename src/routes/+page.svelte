@@ -28,8 +28,8 @@
     let mapComponent: any
     let unsubscribeCanvas: Unsubscriber
     let unsubscribeGeoData: Unsubscriber
-    $: canvasFocused = ($state === States.AddingZoneCanvas || $state === States.DeletingZoneCanvas)
-    $: mapFocused = ($state === States.AddingZoneMap || $state === States.DeletingZoneMap)
+    $: canvasFocused = (stateVariable === States.AddingZoneCanvas || stateVariable === States.DeletingZoneCanvas)
+    $: mapFocused = (stateVariable === States.AddingZoneMap || stateVariable === States.DeletingZoneMap)
     $: dataStorageFiltered = [...$dataStorage].filter((element)=> {
         return (element[1].id && element[1].properties.spatial_object_id)
     })
@@ -41,17 +41,17 @@
         [States.DeletingZoneMap, 'Deleting zone from the map'],
     ])
     const cancelActionUnexpected = 'Unexpected action'
-    $: cancelActionText = cancelActionTexts.get($state)
+    $: cancelActionText = cancelActionTexts.get(stateVariable)
 
     const initSubscribers = (subType: SubscriberState) => {
         unsubscribeCanvas = canvasReady.subscribe(value => {
-            if (value === true && $dataReady == true) {
+            if (value === true && $dataReady == true && $canvasState) {
                 console.log(`MJPEG is loaded after geo data: ${subType}`)
                 drawCanvasPolygons($canvasState, state, dataStorage, updateDataStorage)
             }
         })
         unsubscribeGeoData = dataReady.subscribe(value => {
-            if (value === true && $canvasReady == true) {
+            if (value === true && $canvasReady == true && $canvasState) {
                 console.log(`MJPEG is loaded before geo data: '${subType}'`)
                 drawCanvasPolygons($canvasState, state, dataStorage, updateDataStorage)
             }
@@ -179,7 +179,11 @@
         const collapsibleInstances = M.Collapsible.init(collapsibleElem, {})
 	}
 
-    const resetCurrentCanvasDrawing = (extendedCanvas: FabricCanvasWrap) => {
+    const resetCurrentCanvasDrawing = (extendedCanvas?: FabricCanvasWrap) => {
+        if (!extendedCanvas) {
+            console.warn('No canvas provided to reset current drawing')
+            return;
+        }
         extendedCanvas.contourTemporary.forEach((value) => {
             extendedCanvas.remove(value)
         })

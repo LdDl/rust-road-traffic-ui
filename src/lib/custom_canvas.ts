@@ -1,59 +1,61 @@
-import { fabric } from "fabric"
+import { Canvas, Polygon, Point, Line, FabricText, Shadow, util, Control, FabricObject} from "fabric";
+import type {
+    CanvasOptions,
+    TOptions,
+    FabricObjectProps,
+    TPointerEventInfo,
+    TPointerEvent,
+    ModifiedEvent
+} from "fabric";
 import { UUIDv4, findLefTopX, findLeftTopY, getObjectSizeWithStroke, getRandomRGB } from './utils'
 import { type Zone } from "./zones";
 import { get, type Writable } from "svelte/store";
 import { States } from "./states";
 import { CustomLineGroup, prepareVirtualLine } from "./custom_line";
 import { CUSTOM_CONTROL_TYPES } from "./custom_control";
+import { lineControl } from '$lib/custom_control_zone.js';
+import { changeDirectionControl, deleteVirtualLineControl } from '$lib/custom_control_line.js';
 
-// Extend fabric.Canvas with custom properties
-export interface FabricCanvasWrap extends fabric.Canvas {
-    editContour(contour: fabric.Polygon): void;
+// Extend Canvas with custom properties
+export interface FabricCanvasWrap extends Canvas {
+    editContour(contour: Polygon): void;
     scaleWidth: number;
     scaleHeight: number;
-    contourTemporary: Array<fabric.Line>;
-    contourNotationTemporary: Array<fabric.Text>;
+    contourTemporary: Array<Line>;
+    contourNotationTemporary: Array<FabricText>;
     contourFinalized: Array<ContourPoint>;
 }
 
-export class ExtendedCanvas extends fabric.Canvas implements FabricCanvasWrap {
+type PartialCanvasOptions = Partial<CanvasOptions>;
+
+export class ExtendedCanvas extends Canvas implements FabricCanvasWrap {
     scaleWidth: number;
     scaleHeight: number;
-    contourTemporary: Array<fabric.Line>;
-    contourNotationTemporary: Array<fabric.Text>;
+    contourTemporary: Array<Line>;
+    contourNotationTemporary: Array<FabricText>;
     contourFinalized: Array<ContourPoint>;
-    constructor(element: string | HTMLCanvasElement, options?: fabric.ICanvasOptions) {
+    constructor(element: string | HTMLCanvasElement, options?: PartialCanvasOptions) {
         super(element, options);
         this.scaleWidth = 1;
         this.scaleHeight = 1;
-        this.contourTemporary = new Array<fabric.Line>()
-        this.contourNotationTemporary = new Array<fabric.Text>()
+        this.contourTemporary = new Array<Line>()
+        this.contourNotationTemporary = new Array<FabricText>()
         this.contourFinalized = new Array<ContourPoint>()
     }
-    editContour(contour: fabric.Polygon): void {
+    editContour(contour: Polygon): void {
         this.setActiveObject(contour);
         //@ts-ignore
         contour.edit = !contour.edit;
         //@ts-ignore
         if (contour.edit) {
-            let lastControl = (contour?.points?.length as number) - 1;
             contour.cornerStyle = 'circle';
             contour.cornerSize = 15;
             contour.cornerColor = 'rgba(0, 0, 255, 1.0)';
-            contour.controls = contour?.points?.reduce(function (acc: any, point: any, index: any) {
-                acc['p' + index] = new fabric.Control({
-                    positionHandler: polygonPositionHandler,
-                    actionHandler: anchorWrapper(index > 0 ? index - 1 : lastControl, actionHandler),
-                    actionName: 'modifyPolygon',
-                    //@ts-ignore
-                    pointIndex: index
-                });
-                return acc;
-            }, {});
         } else {
             contour.cornerColor = 'rgb(178, 204, 255)';
             contour.cornerStyle = 'rect';
-            contour.controls = fabric.Object.prototype.controls;
+            console.log('Contour controls:', contour.controls);
+            console.log('Contour controls prototype:', FabricObject.prototype.controls);
         }
         //@ts-ignore
         contour.hasBorders = !contour.edit;
@@ -61,78 +63,25 @@ export class ExtendedCanvas extends fabric.Canvas implements FabricCanvasWrap {
     }
 }
 
-// define a function that can keep the polygon in the same position when we change its
-// width/height/top/left.
-const anchorWrapper = function (anchorIndex: any, fn: any) {
-    return function (eventData: any, transform: any, x: any, y: any) {
-        let fabricObject = transform.target;
-        const pt = new fabric.Point((fabricObject.points[anchorIndex].x - fabricObject.pathOffset.x), (fabricObject.points[anchorIndex].y - fabricObject.pathOffset.y))
-        let absolutePoint = fabric.util.transformPoint(pt, fabricObject.calcTransformMatrix());
-        let actionPerformed = fn(eventData, transform, x, y);
-        let newDim = fabricObject._setPositionDimensions({});
-        let polygonBaseSize = getObjectSizeWithStroke(fabricObject);
-        let newX = (fabricObject.points[anchorIndex].x - fabricObject.pathOffset.x) / polygonBaseSize.x;
-        let newY = (fabricObject.points[anchorIndex].y - fabricObject.pathOffset.y) / polygonBaseSize.y;
-        fabricObject.setPositionByOrigin(absolutePoint, newX + 0.5, newY + 0.5);
-        return actionPerformed;
-    }
-}
-
-// define a function that can locate the controls.
-// this function will be used both for drawing and for interaction.
-// this is not an anonymus function since we need parent scope (`this`)
-const polygonPositionHandler = function (this: { positionHandler: (dim: any, finalMatrix: any, fabricObject: any) => fabric.Point; actionHandler: (eventData: any, transform: any, x: any, y: any) => any; actionName: string; pointIndex: number; }, dim: any, finalMatrix: any, fabricObject: any) {
-    let x = (fabricObject.points[this.pointIndex].x - fabricObject.pathOffset.x)
-    let y = (fabricObject.points[this.pointIndex].y - fabricObject.pathOffset.y)
-    const pt = new fabric.Point(x, y)
-    return fabric.util.transformPoint(
-        pt,
-        fabric.util.multiplyTransformMatrices(
-            fabricObject.canvas.viewportTransform,
-            fabricObject.calcTransformMatrix()
-        )
-    )
-}
-
-// define a function that will define what the control does
-// this function will be called on every mouse move after a control has been
-// clicked and is being dragged.
-// The function receive as argument the mouse event, the current trasnform object
-// and the current position in canvas coordinate
-// transform.target is a reference to the current object being transformed,
-const actionHandler = function (eventData: any, transform: any, x: any, y: any) {
-    let polygon = transform.target;
-    let currentControl = polygon.controls[polygon.__corner];
-    let mouseLocalPosition = polygon.toLocalPoint(new fabric.Point(x, y), 'center', 'center')
-    let polygonBaseSize = getObjectSizeWithStroke(polygon);
-    let size = polygon._getTransformedDimensions(0, 0);
-    let finalPointPosition = {
-        x: mouseLocalPosition.x * polygonBaseSize.x / size.x + polygon.pathOffset.x,
-        y: mouseLocalPosition.y * polygonBaseSize.y / size.y + polygon.pathOffset.y
-    };
-    polygon.points[currentControl.pointIndex] = finalPointPosition;
-    return true;
-}
-
 export interface ContourPoint {
     x: number,
     y: number
 }
 export interface ContourWrap {
-    inner: fabric.Polygon,
+    inner: Polygon,
     unid: string,
-    notation: fabric.Text[]
-    current_points?: fabric.Point[] | undefined
+    notation: FabricText[]
+    current_points?: Point[] | undefined
     virtual_line?: CustomLineGroup | undefined
 }
 
-export class CustomPolygon extends fabric.Polygon implements ContourWrap {
-    inner: fabric.Polygon
+export class CustomPolygon extends Polygon implements ContourWrap {
+    inner: Polygon
     unid: string;
-    notation: fabric.Text[];
-    current_points?: fabric.Point[] | undefined
+    notation: FabricText[];
+    current_points?: Point[] | undefined
     virtual_line?: CustomLineGroup | undefined
-    constructor(points: fabric.Point[], options?: fabric.IPolylineOptions) {
+    constructor(points: Point[], options?: Partial<TOptions<FabricObjectProps>>) {
         super(points, options);
         // Initialize additional properties
         this.unid = '';
@@ -149,7 +98,7 @@ export const makeContour = (coordinates: any, color = getRandomRGB()): CustomPol
     let left = findLefTopX(coordinates)
     let top = findLeftTopY(coordinates)
 
-    const shadow = new fabric.Shadow({
+    const shadow = new Shadow({
         color: color,
         affectStroke: true,
         blur: 0
@@ -167,15 +116,21 @@ export const makeContour = (coordinates: any, color = getRandomRGB()): CustomPol
         top: top,
     })
 
-    const denotedVertices = new Array<fabric.Text>()
+    const denotedVertices = new Array<FabricText>()
+    const textShadow = new Shadow({
+        color: 'rgba(255, 255, 255, 0.7)',
+        blur: 10,
+        offsetX: 0,
+        offsetY: 0
+    });
     coordinates.forEach((point: ContourPoint, idx: number) => {
-        const vertexTextObject = new fabric.Text(verticesChars[idx], {
+        const vertexTextObject = new FabricText(verticesChars[idx], {
             left: point.x,
             top: point.y,
             fontSize: 24,
             fontFamily: 'Roboto',
             fill: color,
-            shadow: '0 0 10px rgba(255, 255, 255, 0.7)',
+            shadow: textShadow,
             stroke: 'rgb(0, 0, 0)',
             strokeWidth: 0.9,
             selectable: false
@@ -183,7 +138,7 @@ export const makeContour = (coordinates: any, color = getRandomRGB()): CustomPol
         denotedVertices.push(vertexTextObject)
     })
 
-    contour.current_points = contour.points;
+    contour.current_points = contour.points.map(p => new Point(p.x, p.y));
     contour.unid = '00000000-0000-0000-0000-000000000000'
     contour.notation = denotedVertices
     return contour
@@ -191,7 +146,10 @@ export const makeContour = (coordinates: any, color = getRandomRGB()): CustomPol
 
 export function prepareContour(contourFinalized: any, state: Writable<States>, storage: Writable<Map<string, Zone>>, updateDataStorageFn: (key: string, value: Zone) => void, featureID: string = '', color = getRandomRGB(), init_virtual_lines_events: boolean = true) {
     const contour = makeContour(contourFinalized, color)
-    // http://fabricjs.com/docs/fabric.Object.html#setControlVisible - for custom controls
+    // http://fabricjs.com/docs/FabricObject.html#setControlVisible - for custom controls
+    contour.controls[CUSTOM_CONTROL_TYPES.LINE_CONTROL] = lineControl;
+    contour.controls[CUSTOM_CONTROL_TYPES.CHANGE_DIRECTION_CONTROL] = changeDirectionControl;
+    contour.controls[CUSTOM_CONTROL_TYPES.DELETE_VIRTUAL_LINE_CONTROL] = deleteVirtualLineControl;
     contour.setControlVisible(CUSTOM_CONTROL_TYPES.LINE_CONTROL, true)
     contour.setControlVisible(CUSTOM_CONTROL_TYPES.CHANGE_DIRECTION_CONTROL, false)
     contour.setControlVisible(CUSTOM_CONTROL_TYPES.DELETE_VIRTUAL_LINE_CONTROL, false)
@@ -204,7 +162,7 @@ export function prepareContour(contourFinalized: any, state: Writable<States>, s
         contour.inner.on('virtial_line:removed', customEventRemovedForVirtualLine(storage, updateDataStorageFn))
     }
 
-    contour.inner.on('mouseover', function (options: fabric.IEvent<MouseEvent>) {
+    contour.inner.on('mouseover', function (options: TPointerEventInfo<TPointerEvent>) {
         const targetContour = options.target
         if (!targetContour) {
             console.error('Empty target contour on mouseover. Options:', options)
@@ -217,15 +175,15 @@ export function prepareContour(contourFinalized: any, state: Writable<States>, s
         }
         targetContour.set('fill', 'rgba(0, 0, 0, 0.1)')
         const targetShadowObj = targetContour.shadow?.valueOf()
-        const isShadow = targetShadowObj && targetShadowObj instanceof fabric.Shadow
+        const isShadow = targetShadowObj && targetShadowObj instanceof Shadow
         if (!isShadow) {
             return
         }
-        const targetShadow = targetShadowObj as fabric.Shadow
+        const targetShadow = targetShadowObj as Shadow
         targetShadow.blur = 30
         targetExtendedCanvas.renderAll()
     });
-    contour.inner.on('mouseout', function (options: fabric.IEvent<MouseEvent>) {
+    contour.inner.on('mouseout', function (options: TPointerEventInfo<MouseEvent>) {
         const targetContour = options.target
         if (!targetContour) {
             console.error('Empty target contour on mouseout. Options:', options)
@@ -238,11 +196,11 @@ export function prepareContour(contourFinalized: any, state: Writable<States>, s
         }
         targetContour.set('fill', 'rgba(0, 0, 0, 0)')
         const targetShadowObj = targetContour.shadow?.valueOf()
-        const isShadow = targetShadowObj && targetShadowObj instanceof fabric.Shadow
+        const isShadow = targetShadowObj && targetShadowObj instanceof Shadow
         if (!isShadow) {
             return
         }
-        const targetShadow = targetShadowObj as fabric.Shadow
+        const targetShadow = targetShadowObj as Shadow
         targetShadow.blur = 0
         targetExtendedCanvas.renderAll()
     });
@@ -260,14 +218,14 @@ export function prepareContour(contourFinalized: any, state: Writable<States>, s
 }
 
 function customEventCreatedForVirtualLine(storage: Writable<Map<string, Zone>>, updateDataStorageFn: (key: string, value: Zone) => void) {
-    return function (options: fabric.IEvent<Event>) {
+    return function (options: { target: CustomPolygon }) {
         const targetContour = options.target
         if (!targetContour) {
             console.error('Empty target contour on virtual_line:created. Options:', options)
             return
         }
         if (!(targetContour instanceof CustomPolygon)) {
-            console.error('Unhandled type. Only CustomPolygon on top of fabric.Object has been implemented. Event: virtual_line:created. Options:', options)
+            console.error('Unhandled type. Only CustomPolygon on top of FabricObject has been implemented. Event: virtual_line:created. Options:', options)
             return
         }
         const targetPolygon = targetContour as CustomPolygon
@@ -297,14 +255,14 @@ function customEventModifiedForVirtualLine(storage: Writable<Map<string, Zone>>,
 }
 
 function customEventRemovedForVirtualLine(storage: Writable<Map<string, Zone>>, updateDataStorageFn: (key: string, value: Zone) => void) {
-    return function (options: fabric.IEvent<Event>) {
+    return function (options: { target: CustomPolygon }) {
         const targetContour = options.target
         if (!targetContour) {
             console.error('Empty target contour on virtual_line:removed. Options:', options)
             return
         }
         if (!(targetContour instanceof CustomPolygon)) {
-            console.error('Unhandled type. Only CustomPolygon on top of fabric.Object has been implemented. Event: virtual_line:removed. Options:', options)
+            console.error('Unhandled type. Only CustomPolygon on top of FabricObject has been implemented. Event: virtual_line:removed. Options:', options)
             return
         }
         targetContour.virtual_line = undefined
@@ -319,14 +277,14 @@ function customEventRemovedForVirtualLine(storage: Writable<Map<string, Zone>>, 
 }
 
 function contourMouseDownEventWrapper(state: Writable<States>, storage: Writable<Map<string, Zone>>, updateDataStorageFn: (key: string, value: Zone) => void) {
-    return function (options: fabric.IEvent<MouseEvent>) {
+    return function (options: TPointerEventInfo<TPointerEvent>) {
         const targetContour = options.target
         if (!targetContour) {
             console.error('Empty target contour on mouse:down. Options:', options)
             return
         }
         if (!(targetContour instanceof CustomPolygon)) {
-            console.error('Unhandled type. Only CustomPolygon on top of fabric.Object has been implemented. Event: mouse:down. Options:', options)
+            console.error('Unhandled type. Only CustomPolygon on top of FabricObject has been implemented. Event: mouse:down. Options:', options)
             return
         }
         const targetPolygon = targetContour as CustomPolygon
@@ -341,7 +299,7 @@ function contourMouseDownEventWrapper(state: Writable<States>, storage: Writable
         options.e.stopPropagation();
         // Handle right-click
         // Turn on "Edit" mode
-        if (options.button === 3) {
+        if (options.e instanceof MouseEvent && options.e.button === 2) {
             const stateVal = get(state) // Bad practice, since it subscriber with instant unsubscribe
             if (stateVal != States.EditingZone) {
                 state.set(States.EditingZone);
@@ -370,14 +328,14 @@ function contourMouseDownEventWrapper(state: Writable<States>, storage: Writable
 }
 
 function contourModifiedEventWrapper(storage: Writable<Map<string, Zone>>, updateDataStorageFn: (key: string, value: Zone) => void) {
-    return function (options: fabric.IEvent<Event>) {
+    return function (options: ModifiedEvent<TPointerEvent>) {
         const targetContour = options.target
         if (!targetContour) {
             console.error('Empty target contour on modified. Options:', options)
             return
         }
         if (!(targetContour instanceof CustomPolygon)) {
-            console.error('Unhandled type. Only CustomPolygon on top of fabric.Object has been implemented. Event: modified. Options:', options)
+            console.error('Unhandled type. Only CustomPolygon on top of FabricObject has been implemented. Event: modified. Options:', options)
             return
         }
         const targetPolygon = targetContour as CustomPolygon
@@ -389,21 +347,21 @@ function contourModifiedEventWrapper(storage: Writable<Map<string, Zone>>, updat
         // Recalculate points
         const matrix = targetPolygon.inner.calcTransformMatrix();
         if (!targetPolygon.inner.points) {
-            console.error('No points in fabric.Polygon. Event: modified. Options:', options)
+            console.error('No points in Polygon. Event: modified. Options:', options)
             return
         }
         const transformedPoints = targetPolygon.inner.points.map(function (p) {
-            return new fabric.Point(
+            return new Point(
                 p.x - targetPolygon.inner.pathOffset.x,
                 p.y - targetPolygon.inner.pathOffset.y
             );
         }).map(function (p) {
-            return fabric.util.transformPoint(p, matrix);
+            return util.transformPoint(p, matrix);
         });
         targetPolygon.current_points = transformedPoints;
 
         // Update notation
-        targetPolygon.notation.forEach((vertextNotation: fabric.Text, idx: number) => {
+        targetPolygon.notation.forEach((vertextNotation: FabricText, idx: number) => {
             const vertex = targetPolygon.current_points?.[idx]
             if (!vertex) {
                 console.error(`No vertex at pos #${idx} in target polygon. Event: modified`, 'Options:', options)
@@ -443,7 +401,7 @@ export const drawCanvasPolygons = (extendedCanvas: FabricCanvasWrap, state: Writ
         contour.inner.on('virtial_line:created', customEventCreatedForVirtualLine(storage, updateDataStorageFn))
         contour.inner.on('virtial_line:modified', customEventModifiedForVirtualLine(storage, updateDataStorageFn))
         contour.inner.on('virtial_line:removed', customEventRemovedForVirtualLine(storage, updateDataStorageFn))
-        contour.notation.forEach((vertextNotation: fabric.Text) => {
+        contour.notation.forEach((vertextNotation: FabricText) => {
             extendedCanvas.add(vertextNotation)
         })
         extendedCanvas.renderAll()
