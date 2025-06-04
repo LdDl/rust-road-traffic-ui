@@ -7,11 +7,12 @@ import type {
     TPointerEvent,
     ModifiedEvent
 } from "fabric";
-import { UUIDv4, findLefTopX, findLeftTopY, getObjectSizeWithStroke, getRandomRGB } from './utils'
+import { UUIDv4, findLefTopX, findLeftTopY, getRandomRGB } from './utils'
 import { type Zone } from "./zones";
 import { get, type Writable } from "svelte/store";
 import { States } from "./states";
 import { CustomLineGroup, prepareVirtualLine } from "./custom_line";
+import { anchorWrapper, polygonPositionHandler, actionHandler } from "./custom_control";
 import { CUSTOM_CONTROL_TYPES } from "./custom_control";
 import { lineControl } from '$lib/custom_control_zone.js';
 import { changeDirectionControl, deleteVirtualLineControl } from '$lib/custom_control_line.js';
@@ -48,17 +49,45 @@ export class ExtendedCanvas extends Canvas implements FabricCanvasWrap {
         contour.edit = !contour.edit;
         //@ts-ignore
         if (contour.edit) {
+            // Disable bounding box (selection outline)
+            contour.set('hasBorders', false);
+            contour.setControlsVisibility({
+                bl: false, br: false, mb: false, ml: false, 
+                mr: false, mt: false, tl: false, tr: false, mtr: false
+            });
+            contour.setControlVisible(CUSTOM_CONTROL_TYPES.LINE_CONTROL, false);
+            contour.setControlVisible(CUSTOM_CONTROL_TYPES.CHANGE_DIRECTION_CONTROL, false);
+            contour.setControlVisible(CUSTOM_CONTROL_TYPES.DELETE_VIRTUAL_LINE_CONTROL, false);
+            // Show vertex controls
+            if (contour instanceof CustomPolygon && contour.points) {
+                contour.points.forEach((_, index) => {
+                    const controlKey = `vertex_${index}`;
+                    contour.setControlVisible(controlKey, true);
+                });
+            }
             contour.cornerStyle = 'circle';
             contour.cornerSize = 15;
             contour.cornerColor = 'rgba(0, 0, 255, 1.0)';
         } else {
+            // Re-enable bounding box (selection outline)
+            contour.set('hasBorders', true);
+            contour.setControlsVisibility({
+                bl: true, br: true, mb: true, ml: true, 
+                mr: true, mt: true, tl: true, tr: true, mtr: true
+            });
+            contour.setControlVisible(CUSTOM_CONTROL_TYPES.LINE_CONTROL, true);
+            contour.setControlVisible(CUSTOM_CONTROL_TYPES.CHANGE_DIRECTION_CONTROL, false);
+            contour.setControlVisible(CUSTOM_CONTROL_TYPES.DELETE_VIRTUAL_LINE_CONTROL, false);
+            // Hide vertex controls
+            if (contour instanceof CustomPolygon && contour.points) {
+                contour.points.forEach((_, index) => {
+                    const controlKey = `vertex_${index}`;
+                    contour.setControlVisible(controlKey, false);
+                });
+            }
             contour.cornerColor = 'rgb(178, 204, 255)';
             contour.cornerStyle = 'rect';
-            console.log('Contour controls:', contour.controls);
-            console.log('Contour controls prototype:', FabricObject.prototype.controls);
         }
-        //@ts-ignore
-        contour.hasBorders = !contour.edit;
         this.requestRenderAll();
     }
 }
@@ -153,6 +182,23 @@ export function prepareContour(contourFinalized: any, state: Writable<States>, s
     contour.setControlVisible(CUSTOM_CONTROL_TYPES.LINE_CONTROL, true)
     contour.setControlVisible(CUSTOM_CONTROL_TYPES.CHANGE_DIRECTION_CONTROL, false)
     contour.setControlVisible(CUSTOM_CONTROL_TYPES.DELETE_VIRTUAL_LINE_CONTROL, false)
+
+    // Pre-define vertex controls (hidden by default)
+    if (contour.points) {
+        let lastControl = contour.points.length - 1;
+        contour.points.forEach((point, index) => {
+            const controlKey = `vertex_${index}`;
+            contour.controls[controlKey] = new Control({
+                positionHandler: polygonPositionHandler,
+                actionHandler: anchorWrapper(index > 0 ? index - 1 : lastControl, actionHandler),
+                actionName: 'modifyPolygon',
+                //@ts-ignore
+                pointIndex: index
+            });
+            // Hide vertex controls by default
+            contour.setControlVisible(controlKey, false);
+        });
+    }
 
     contour.inner.on('mousedown', contourMouseDownEventWrapper(state, storage, updateDataStorageFn))
     contour.inner.on('modified', contourModifiedEventWrapper(storage, updateDataStorageFn))

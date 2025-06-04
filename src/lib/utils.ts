@@ -44,13 +44,29 @@ export const findLefTopX = (coordinates: any) => {
     })));
 }
 
+// FabricJS v5
+// export const getObjectSizeWithStroke = (object: any) => {
+//     let stroke = new Point(
+//         object.strokeUniform ? 1 / object.scaleX : 1, 
+//         object.strokeUniform ? 1 / object.scaleY : 1
+//     ).multiply(object.strokeWidth);
+//     return new Point(object.width + stroke.x, object.height + stroke.y);
+// }
+
 export const getObjectSizeWithStroke = (object: any) => {
-    let stroke = new Point(
-        object.strokeUniform ? 1 / object.scaleX : 1, 
-        object.strokeUniform ? 1 / object.scaleY : 1
-    ).multiply(object.strokeWidth);
-    return new Point(object.width + stroke.x, object.height + stroke.y);
-}
+    // For polygons, we need to calculate the actual bounding box
+    let width = object.width;
+    let height = object.height;
+    // If width/height are not set, calculate from bounding rect
+    if (!width || !height || isNaN(width) || isNaN(height)) {
+        const boundingRect = object.getBoundingRect();
+        width = boundingRect.width;
+        height = boundingRect.height;
+    }
+    const strokeWidth = object.strokeWidth || 0;
+    const result = new Point(width + strokeWidth, height + strokeWidth);
+    return result;
+};
 
 export class UUIDv4 {
     // https://dirask.com/posts/JavaScript-UUID-function-in-Vanilla-JS-1X9kgD
