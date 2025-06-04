@@ -86,11 +86,10 @@
       border: 1px solid #e5e7eb;
       border-radius: 0.5rem;
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-      animation: slideDown 0.2s ease;
+      animation: slideDown 0.3s ease;
       z-index: 1002;
-      min-width: 300px;
+      width: 420px;
       max-width: 90vw;
-      width: max-content;
   }
   
   .settings-content {
@@ -118,20 +117,23 @@
   }
   
   .form-wrapper {
-      width: fit-content;
-      min-width: 250px;
+    width: calc(100% - 0rem); /* Slight adjustment to prevent overflow */
+    max-width: 100%;
+    overflow: hidden;
   }
   
-  :global(.settings-panel form) {
-      width: auto !important;
-      max-width: none !important;
+  :global(.settings-panel .api-form),
+  :global(.settings-panel .styles-form) {
+      width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
   }
   
   :global(.settings-panel input),
   :global(.settings-panel select),
   :global(.settings-panel textarea) {
-      /* max-width: 300px; */
       box-sizing: border-box;
+      max-width: 100%;
   }
   
   @keyframes slideDown {
