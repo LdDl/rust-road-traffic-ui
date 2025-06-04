@@ -232,13 +232,30 @@ export function prepareContour(contourFinalized: any, state: Writable<States>, s
     contour.inner.on('mouseout', function (options: TPointerEventInfo<MouseEvent>) {
         const targetContour = options.target
         if (!targetContour) {
-            console.error('Empty target contour on mouseout. Options:', options)
+            console.warn('Empty target contour on mouseout - this can happen during object cleanup:', {
+                event: options.e?.type,
+                hasTarget: !!options.target,
+                scenePoint: options.scenePoint,
+                viewportPoint: options.viewportPoint,
+                canvasObjects: targetContour?.canvas?.getObjects()?.length || 0
+            });
             return
+        }
+        if (!(targetContour instanceof CustomPolygon)) {
+            console.warn('Target contour is not a CustomPolygon on mouseout:', targetContour.constructor.name);
+            return;
         }
         const targetExtendedCanvas: FabricCanvasWrap | undefined = targetContour.canvas as FabricCanvasWrap | undefined
         if (!targetExtendedCanvas) {
-            console.error('Empty target canvas on mouseout. Options:', options)
+            console.warn('Empty target canvas on mouseout - object may have been removed:', {
+                targetContour: !!targetContour,
+                hasCanvas: !!targetContour.canvas
+            });
             return
+        }
+        if (!targetExtendedCanvas.getObjects().includes(targetContour)) {
+            console.warn('Target contour no longer exists in canvas on mouseout');
+            return;
         }
         targetContour.set('fill', 'rgba(0, 0, 0, 0)')
         const targetShadowObj = targetContour.shadow?.valueOf()

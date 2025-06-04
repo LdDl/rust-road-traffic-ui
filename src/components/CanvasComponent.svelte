@@ -62,6 +62,14 @@
     const deleteZoneFromCanvas = (extendedCanvas: FabricCanvasWrap, zoneID: string) => {
         extendedCanvas.getObjects().forEach((object) => {
             if (object instanceof CustomPolygon && object.unid === zoneID) {
+                // FIX: The signature '(eventName: "mouseout"): void' of 'object.off' is deprecated.
+                object.off('mouseout');
+                object.off('mouseover');
+                object.off('mousedown');
+                object.off('modified');
+                object.off('virtial_line:created');
+                object.off('virtial_line:modified');
+                object.off('virtial_line:removed');
                 if (object.virtual_line) {
                     extendedCanvas.remove(object.virtual_line)                    
                 }
