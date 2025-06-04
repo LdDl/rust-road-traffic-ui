@@ -16,7 +16,8 @@
 	import type { ZoneFeature, ZonesCollection } from '$lib/zones';
 	import { saveTOML } from '$lib/rest_api_mutations';
 	import { States, SubscriberState } from '$lib/states';
-
+    import "../style.css";
+    
     const { apiURL } = apiUrlStore
     let initialAPIURL = $apiURL
 
