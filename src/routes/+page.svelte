@@ -21,6 +21,8 @@
     const { apiURL } = apiUrlStore
     let initialAPIURL = $apiURL
 
+    let fabOpen = false;
+
     let stateVariable: States;
     state.subscribe((value) => stateVariable = value)
 
@@ -105,7 +107,6 @@
 
     onMount(() => {
         console.log('Mounted page')
-        initializeMaterialize()
         initSubscribers(SubscriberState.Init)
 
         // Override DeleteClickedZone click event
@@ -167,18 +168,6 @@
             state.set(States.Waiting)
         }
     }
-
-    const initializeMaterialize = () => {
-        const fixedButtons = document.querySelectorAll('.fixed-action-btn')
-        // @ts-ignore
-        const fixedButtonsInstances = M.FloatingActionButton.init(fixedButtons, {
-            direction: 'left',
-            hoverEnabled: false
-        })
-        const collapsibleElem = document.getElementById('collapsible-data')
-        // @ts-ignore
-        const collapsibleInstances = M.Collapsible.init(collapsibleElem, {})
-	}
 
     const resetCurrentCanvasDrawing = (extendedCanvas?: FabricCanvasWrap) => {
         if (!extendedCanvas) {
@@ -242,33 +231,27 @@
 <svelte:window on:keydown={keyPress} />
 
 <div id="main-app">
-    <div class="fixed-action-btn horizontal click-to-toggle spin-close">
-        <!-- svelte-ignore a11y-missing-attribute -->
-        <a class="btn-floating btn-large red">
-            <i class="material-icons">edit</i>
-        </a>
-        <ul>
-            <li>
-                <!-- svelte-ignore a11y-click-events-have-key-events -->
-                <a id="add-btn" class="btn-floating green" on:click={stateAddToCanvas} title="Add zone to the canvas" aria-label="Add zone to the canvas" role="button" tabindex="0"><i class="material-icons">add</i></a>
-            </li>
-            <li>
-                <!-- svelte-ignore a11y-click-events-have-key-events -->
-                <a id="del-btn" class="btn-floating blue" on:click={stateDelFromCanvas} title="Delete zone from the canvas" aria-label="Delete zone from the canvas" role="button" tabindex="0"><i class="material-icons">delete</i></a>
-            </li>
-            <li>
-                <!-- svelte-ignore a11y-click-events-have-key-events -->
-                <a id="add-btn" class="btn-floating orange" on:click={stateAddToMap} title="Add zone to the map" aria-label="Add zone to the map" role="button" tabindex="0"><i class="material-icons">add_location</i></a>
-            </li>
-            <li>
-                <!-- svelte-ignore a11y-click-events-have-key-events -->
-                <a id="del-btn" class="btn-floating blue" on:click={stateDelFromMap} title="Delete zone from the map" aria-label="Delete zone from the map" role="button" tabindex="0"><i class="material-icons">location_off</i></a>
-            </li>
-            <li>
-                <!-- svelte-ignore a11y-click-events-have-key-events -->
-                <a id="save-btn" class="btn-floating grey" on:click={() => saveTOML(initialAPIURL, dataStorageFiltered)} title="Apply and save changes" aria-label="Apply and save changes" role="button" tabindex="0"><i class="material-icons">save</i></a>
-            </li>
-        </ul>
+    <div class="fab-container" class:active={fabOpen}>
+        <button class="fab-main" on:click={() => fabOpen = !fabOpen}>
+            <i class="material-icons">{fabOpen ? 'close' : 'edit'}</i>
+        </button>
+        <div class="fab-menu">
+            <button class="fab-item btn-success" on:click={stateAddToCanvas} title="Add zone to the canvas">
+                <i class="material-icons">add</i>
+            </button>
+            <button class="fab-item btn-info" on:click={stateDelFromCanvas} title="Delete zone from the canvas">
+                <i class="material-icons">delete</i>
+            </button>
+            <button class="fab-item btn-warning" on:click={stateAddToMap} title="Add zone to the map">
+                <i class="material-icons">add_location</i>
+            </button>
+            <button class="fab-item btn-info" on:click={stateDelFromMap} title="Delete zone from the map">
+                <i class="material-icons">location_off</i>
+            </button>
+            <button class="fab-item btn-neutral" on:click={() => saveTOML(initialAPIURL, dataStorageFiltered)} title="Apply and save changes">
+                <i class="material-icons">save</i>
+            </button>
+        </div>
     </div>
     <Switchers klass={canvasFocused || mapFocused ? 'blurred noselect' : ''}/>
     <div id="main_workspace">
