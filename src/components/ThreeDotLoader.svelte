@@ -1,5 +1,5 @@
 <!-- This is just ridiculous. Shame on me -->
-<script setup>
+<script>
     export let msgText = 'Loading'
 </script>
 

@@ -1,7 +1,7 @@
-<script setup lang="ts">
+<script lang="ts">
     import { onMount, onDestroy } from 'svelte'
     import ThreeDotLoader from './ThreeDotLoader.svelte'
-    import { fabric } from "fabric"
+    import { Line, Shadow, FabricText, FabricObject } from 'fabric'
     import { canvasReady, canvasState, apiUrlStore, changeAPI, state } from '../store/state.js'
 	import { ExtendedCanvas, prepareContour, verticesChars, type FabricCanvasWrap, CustomPolygon } from '$lib/custom_canvas.js';
 	import { States } from '$lib/states.js';
@@ -44,6 +44,10 @@
 
     onMount(() => {
         console.log('Mounted canvas component')
+        document.getElementById('fit_canvas')?.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            return false;
+        }, false);
     });
 
     onDestroy(() => {
@@ -58,6 +62,14 @@
     const deleteZoneFromCanvas = (extendedCanvas: FabricCanvasWrap, zoneID: string) => {
         extendedCanvas.getObjects().forEach((object) => {
             if (object instanceof CustomPolygon && object.unid === zoneID) {
+                // FIX: The signature '(eventName: "mouseout"): void' of 'object.off' is deprecated.
+                object.off('mouseout');
+                object.off('mouseover');
+                object.off('mousedown');
+                object.off('modified');
+                object.off('virtial_line:created');
+                object.off('virtial_line:modified');
+                object.off('virtial_line:removed');
                 if (object.virtual_line) {
                     extendedCanvas.remove(object.virtual_line)                    
                 }
@@ -84,9 +96,12 @@
         })
         fbCanvas.scaleWidth = imageElem.clientWidth/imageElem.naturalWidth
         fbCanvas.scaleHeight = imageElem.clientHeight/imageElem.naturalHeight
-        fabric.Object.prototype.controls[CUSTOM_CONTROL_TYPES.LINE_CONTROL] = lineControl
-        fabric.Object.prototype.controls[CUSTOM_CONTROL_TYPES.CHANGE_DIRECTION_CONTROL] = changeDirectionControl
-        fabric.Object.prototype.controls[CUSTOM_CONTROL_TYPES.DELETE_VIRTUAL_LINE_CONTROL] = deleteVirtualLineControl
+        if (!FabricObject.prototype.controls) {
+            FabricObject.prototype.controls = {};
+        }
+        FabricObject.prototype.controls[CUSTOM_CONTROL_TYPES.LINE_CONTROL] = lineControl;
+        FabricObject.prototype.controls[CUSTOM_CONTROL_TYPES.CHANGE_DIRECTION_CONTROL] = changeDirectionControl;
+        FabricObject.prototype.controls[CUSTOM_CONTROL_TYPES.DELETE_VIRTUAL_LINE_CONTROL] = deleteVirtualLineControl;
 
         const fbCanvasParent = document.getElementsByClassName('custom-container-canvas')[0];
         fbCanvasParent.id = "fbcanvas";
@@ -116,19 +131,25 @@
             fbCanvas.selection = false
             const clicked = getClickPoint(fbCanvas, options)
             fbCanvas.contourFinalized.push({ x: clicked.x, y: clicked.y })
-            const points = [clicked.x, clicked.y, clicked.x, clicked.y]
-            const newLine = new fabric.Line(points, {
+            const points = [clicked.x, clicked.y, clicked.x, clicked.y] as [number, number, number, number]
+            const textShadow = new Shadow({
+                color: 'rgba(255, 255, 255, 0.7)',
+                blur: 10,
+                offsetX: 0,
+                offsetY: 0
+            });
+            const newLine = new Line(points, {
                 strokeWidth: 3,
                 selectable: false,
                 stroke: 'purple',
             })
-            const newVertexNotation = new fabric.Text(verticesChars[fbCanvas.contourFinalized.length-1], {
+            const newVertexNotation = new FabricText(verticesChars[fbCanvas.contourFinalized.length-1], {
                 left: clicked.x,
                 top: clicked.y,
                 fontSize: 24,
                 fontFamily: 'Roboto',
                 fill: 'purple',
-                shadow: '0 0 10px rgba(255, 255, 255, 0.7)',
+                shadow: textShadow,
                 stroke: 'rgb(0, 0, 0)',
                 strokeWidth: 0.9,
             })
@@ -151,13 +172,13 @@
             })
 
             const contour = prepareContour(fbCanvas.contourFinalized, state, dataStorage, updateDataStorage)
-
+            const rgbArray = rgba2array(contour.inner.stroke?.toString() || undefined);
             const newContour = {
                 type: 'Feature',
                 id: contour.unid,
                 properties: {
-                    color_rgb: rgba2array(contour.inner.stroke),
-                    color_rgb_str: contour.inner.stroke ? contour.inner.stroke : "rgb(0, 0, 0)",
+                    color_rgb: rgbArray,
+                    color_rgb_str: `rgb(${rgbArray[0]},${rgbArray[1]},${rgbArray[2]})`,
                     //@ts-ignore
                     coordinates: contour.inner.current_points.map((element: { x: number; y: number; }) => {
                         return [
@@ -176,7 +197,7 @@
             }
             updateDataStorage(contour.unid, newContour)
             fbCanvas.add(contour.inner)
-            contour.notation.forEach((vertextNotation: fabric.Text) => {
+            contour.notation.forEach((vertextNotation: FabricText) => {
                 fbCanvas.add(vertextNotation)
             })
             fbCanvas.renderAll()

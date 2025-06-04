@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script lang="ts">
     import { onMount, onDestroy } from 'svelte'
 
     import maplibregl, { Map as MMap, MapMouseEvent, type MapGeoJSONFeature} from 'maplibre-gl'

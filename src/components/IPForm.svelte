@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script lang="ts">
     import { apiUrlStore, changeAPI } from "../store/state"
     import { onMount } from 'svelte'
 
