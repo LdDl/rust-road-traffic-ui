@@ -17,7 +17,7 @@
 		"@sveltejs/adapter-static": "^3.0.8",
 		"@sveltejs/kit": "^2.20.8",
 		"@types/fabric": "^5.3.7",
-		"@types/mapbox__mapbox-gl-draw": "^1.4.8",
+		"@types/mapbox__mapbox-gl-draw": "^1.4.9",
 		"@typescript-eslint/eslint-plugin": "^8.33.0",
 		"@typescript-eslint/parser": "^8.33.1",
 		"eslint": "^9.27.0",
