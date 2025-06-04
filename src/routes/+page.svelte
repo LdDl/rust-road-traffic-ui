@@ -5,6 +5,7 @@
     import CanvasComponent from '../components/CanvasComponent.svelte'
     import Switchers from '../components/Switchers.svelte'
     import ConfigurationStorage from '../components/ConfigurationStorage.svelte';
+    import Toolbar from '../components/Toolbar.svelte';
     import { state, canvasReady, dataReady, canvasState, apiUrlStore, changeAPI } from '../store/state.js'
     import { type DrawCreateEvent, type DrawUpdateEvent } from "@mapbox/mapbox-gl-draw"
     import { dataStorage, addZoneFeature, updateDataStorage, clearDataStorage, resetZoneSpatialInfo } from '../store/data_storage'
@@ -231,7 +232,14 @@
 <svelte:window on:keydown={keyPress} />
 
 <div id="main-app">
-    <div class="fab-container" class:active={fabOpen}>
+    <Toolbar 
+        onAddToCanvas={stateAddToCanvas}
+        onDeleteFromCanvas={stateDelFromCanvas}
+        onAddToMap={stateAddToMap}
+        onDeleteFromMap={stateDelFromMap}
+        onSave={() => saveTOML(initialAPIURL, dataStorageFiltered)}
+    />
+    <!-- <div class="fab-container" class:active={fabOpen}>
         <button class="fab-main" on:click={() => fabOpen = !fabOpen}>
             <i class="material-icons">{fabOpen ? 'close' : 'edit'}</i>
         </button>
@@ -252,7 +260,7 @@
                 <i class="material-icons">save</i>
             </button>
         </div>
-    </div>
+    </div> -->
     <Switchers klass={canvasFocused || mapFocused ? 'blurred noselect' : ''}/>
     <div id="main_workspace">
         <div id="left_workspace">
@@ -345,7 +353,7 @@
     #main_workspace {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        height: 100%
+        height: 100%;
     }
 
     #left_workspace {
