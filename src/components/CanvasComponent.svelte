@@ -1,9 +1,10 @@
 <script lang="ts">
     import { onMount, onDestroy } from 'svelte'
     import ThreeDotLoader from './ThreeDotLoader.svelte'
-    import { Line, Shadow, FabricText, FabricObject } from 'fabric'
+    import { Line, Shadow, FabricText, FabricObject, Point } from 'fabric'
     import { canvasReady, canvasState, apiUrlStore, changeAPI, state } from '../store/state.js'
 	import { ExtendedCanvas, prepareContour, verticesChars, type FabricCanvasWrap, CustomPolygon } from '$lib/custom_canvas.js';
+    import { CustomLineGroup } from '$lib/custom_line.js';
 	import { States } from '$lib/states.js';
 	import { getClickPoint, rgba2array } from '$lib/utils.js';
 	import { dataStorage, deattachCanvasFromSpatial, deleteFromDataStorage, updateDataStorage } from '../store/data_storage.js';
@@ -12,6 +13,7 @@
 	import { lineControl } from '$lib/custom_control_zone.js';
 	import { changeDirectionControl, deleteVirtualLineControl } from '$lib/custom_control_line.js';
 	import { CUSTOM_CONTROL_TYPES } from '$lib/custom_control.js';
+    import { resizeCanvas } from '$lib/custom_canvas_resize.js';
 
     export let klass: string = ''
 
@@ -22,6 +24,8 @@
     state.subscribe((value) => stateVariable = value)
     
     let imgSrcLoaded = writable(false)
+    let resizeObserver: ResizeObserver | undefined;
+    let handleResize: (() => void) | undefined;
 
     const imageLoaded = () => {
         console.log('Image source reloaded')
@@ -55,6 +59,12 @@
         $canvasState?.getObjects().forEach(obj => {
             $canvasState.remove(obj);
         })
+        if (handleResize) {
+            window.removeEventListener('resize', handleResize);
+        }
+        if (resizeObserver) {
+            resizeObserver.disconnect();
+        }
         unsubApiChange()
         canvasState.set(undefined)
     });
@@ -96,6 +106,19 @@
         })
         fbCanvas.scaleWidth = imageElem.clientWidth/imageElem.naturalWidth
         fbCanvas.scaleHeight = imageElem.clientHeight/imageElem.naturalHeight
+
+        handleResize = () => {
+            if ($canvasState) {
+                resizeCanvas($canvasState);
+            }
+        };
+        if (typeof ResizeObserver !== 'undefined') {
+            // Now handleResize is guaranteed to be defined via "!"
+            resizeObserver = new ResizeObserver(() => setTimeout(handleResize!, 10));
+            resizeObserver.observe(imageElem);
+        }
+        window.addEventListener('resize', handleResize);
+
         if (!FabricObject.prototype.controls) {
             FabricObject.prototype.controls = {};
         }
