@@ -22,7 +22,12 @@
     const { apiURL } = apiUrlStore
     let initialAPIURL = $apiURL
 
-    let fabOpen = false;
+    // let fabOpen = false;
+
+    let isDragging = false;
+    let leftPanelWidth = 50;
+    let startX = 0;
+    let startWidth = 0;
 
     let stateVariable: States;
     state.subscribe((value) => stateVariable = value)
@@ -223,6 +228,29 @@
             $draw.changeMode('simple_select');
         }
     }
+
+    const startDrag = (e: MouseEvent) => {
+        isDragging = true;
+        startX = e.clientX;
+        startWidth = leftPanelWidth;
+        document.addEventListener('mousemove', handleDrag);
+        document.addEventListener('mouseup', stopDrag);
+        e.preventDefault();
+    };
+
+    const handleDrag = (e: MouseEvent) => {
+        if (!isDragging) return;
+        const deltaX = e.clientX - startX;
+        const containerWidth = window.innerWidth;
+        const deltaPercent = (deltaX / containerWidth) * 100;
+        leftPanelWidth = Math.max(20, Math.min(80, startWidth + deltaPercent));
+    };
+
+    const stopDrag = () => {
+        isDragging = false;
+        document.removeEventListener('mousemove', handleDrag);
+        document.removeEventListener('mouseup', stopDrag);
+    };
 </script>
 
 <sveltekit:head>
@@ -262,12 +290,28 @@
         </div>
     </div> -->
     <Switchers klass={canvasFocused || mapFocused ? 'blurred noselect' : ''}/>
-    <div id="main_workspace">
+    <div id="main_workspace" style="grid-template-columns: {leftPanelWidth}% 2px {100 - leftPanelWidth}%;">
         <div id="left_workspace">
             <CanvasComponent klass={!canvasFocused && mapFocused ? 'blurred noselect' : ''}/>
             <ConfigurationStorage dataReady={dataReady} data={dataStorageFiltered} klass={!($canvasReady) || (canvasFocused || mapFocused) ? 'blurred noselect' : ''}/>
             <div class="overlay" style="{!canvasFocused && mapFocused ? 'display: block;' : 'display: none;'}">
                 Press ESC to cancel '{cancelActionText !== undefined? cancelActionText : cancelActionUnexpected}' mode
+            </div>
+        </div>
+        <div class="splitter" 
+            class:dragging={isDragging}
+            on:mousedown={startDrag}
+            role="slider"
+            tabindex="0"
+            aria-label="Panel width"
+            aria-valuemin="20"
+            aria-valuemax="80"
+            aria-valuenow={leftPanelWidth}
+            >
+            <div class="splitter-handle">
+                <div></div> <!-- left line -->
+                <div></div> <!-- center line -->
+                <div></div> <!-- right line -->
             </div>
         </div>
         <div id="right_workspace">
@@ -286,8 +330,14 @@
         font-family: 'Roboto';
 	}
 
-    #right_workspace, #left_workspace {
+    :global(body.dragging) {
+        user-select: none;
+        cursor: col-resize !important;
+    }
+
+    #right_workspace {
         position: relative;
+        overflow: hidden;
     }
     
     .overlay {
@@ -352,13 +402,53 @@
 
     #main_workspace {
         display: grid;
-        grid-template-columns: 1fr 1fr;
         height: 100%;
+        overflow: hidden;
     }
 
+    .splitter {
+        width: 2px;
+        background-color: #444;
+        position: relative;
+        z-index: 10;
+    }
+
+    .splitter::before {
+        content: '';
+        position: absolute;
+        left: -7px;
+        top: 0;
+        height: 100%;
+        width: 16px;
+        cursor: col-resize;
+        z-index: 15;
+    }
+
+    .splitter .splitter-handle {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 14px;
+        height: 20px;
+        transform: translate(-50%, -50%);
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        pointer-events: none;
+    }
+
+    .splitter .splitter-handle div {
+        width: 4px;
+        height: 38px;
+        background-color: #888;
+        border: 1px solid #000;
+        border-radius: 1px;
+    }
+
+    
     #left_workspace {
         width: 100%;
-        /* color: #ff00ff; */
         background: #eeeeee;
         display: grid;
         grid-auto-flow: row;
@@ -366,6 +456,7 @@
             "A"
             "B";
         grid-template-rows: 80% 20%;
+        overflow: hidden;
     }
 
     .custom-container-canvas {
