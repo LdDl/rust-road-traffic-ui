@@ -41,17 +41,17 @@
     }
 
     // Custom number input handlers
-    const incrementPort = () => {
+        const incrementPort = () => {
         const currentPort = Number($port) || 0
         if (currentPort < 65535) {
-            port.set(String(currentPort + 1))
+            port.set(currentPort + 1)
         }
     }
 
     const decrementPort = () => {
         const currentPort = Number($port) || 0
         if (currentPort > 1) {
-            port.set(String(currentPort - 1))
+            port.set(currentPort - 1)
         }
     }
     
