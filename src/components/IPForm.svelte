@@ -39,6 +39,21 @@
         if (!isValidPort) return "Invalid port number (1-65535)"
         return "API URL is valid"
     }
+
+    // Custom number input handlers
+    const incrementPort = () => {
+        const currentPort = Number($port) || 0
+        if (currentPort < 65535) {
+            port.set(String(currentPort + 1))
+        }
+    }
+
+    const decrementPort = () => {
+        const currentPort = Number($port) || 0
+        if (currentPort > 1) {
+            port.set(String(currentPort - 1))
+        }
+    }
     
     onMount(() =>{
         console.log(`Mount IP form. Initial address: '${$apiURL}'`)
@@ -71,13 +86,36 @@
         
         <div class="input-group">
             <label for="input_port">Port Number</label>
-            <input 
-                bind:value={$port} 
-                id="input_port" 
-                type="number" 
-                placeholder="8080"
-                class:invalid={!isValidPort && $port.toString().trim() !== ''}
-            >
+            <div class="number-input-wrapper">
+                <input 
+                    bind:value={$port} 
+                    id="input_port" 
+                    type="text"
+                    inputmode="numeric"
+                    pattern="[0-9]*"
+                    placeholder="8080"
+                    class:invalid={!isValidPort && $port.toString().trim() !== ''}
+                    class="number-input"
+                >
+                <div class="number-buttons">
+                    <button 
+                        type="button" 
+                        class="number-btn increment" 
+                        on:click={incrementPort}
+                        tabindex="-1"
+                    >
+                        <i class="material-icons">keyboard_arrow_up</i>
+                    </button>
+                    <button 
+                        type="button" 
+                        class="number-btn decrement" 
+                        on:click={decrementPort}
+                        tabindex="-1"
+                    >
+                        <i class="material-icons">keyboard_arrow_down</i>
+                    </button>
+                </div>
+            </div>
         </div>
         
         <div class="url-preview">
@@ -168,6 +206,66 @@
         box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
     }
 
+    /* Custom number input */
+    .number-input-wrapper {
+        position: relative;
+    }
+
+    .number-input {
+        padding-right: 2.5rem !important;
+    }
+
+    .number-buttons {
+        position: absolute;
+        right: 1px;
+        top: 1px;
+        width: 2rem;
+        height: calc(0.875rem * 1.5 + 0.75rem * 2);
+        display: flex;
+        flex-direction: column;
+        border-radius: 0 0.3rem 0.3rem 0;
+        overflow: hidden;
+    }
+    
+    .number-btn {
+        flex: 1;
+        min-height: 0;
+        padding: 0;
+        border: none;
+        border-left: 1px solid #e2e8f0;
+        background: #f8fafc;
+        cursor: pointer;
+        color: #64748b;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background-color 0.15s;
+    }
+
+    .number-btn:first-child {
+        border-bottom: 0.5px solid #e2e8f0;
+    }
+    
+    .number-btn:hover {
+        background: #e2e8f0;
+        color: #475569;
+    }
+
+    .number-btn:active {
+        background: #cbd5e1;
+    }
+
+    .number-btn i {
+        font-size: 12px;
+    }
+
+    /* Hide default spinners */
+    .number-input::-webkit-outer-spin-button,
+    .number-input::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+
     .url-preview {
         background: #f8fafc;
         border: 1px solid #e2e8f0;
@@ -177,7 +275,6 @@
         font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
         font-size: 0.8rem;
         box-sizing: border-box;
-        position: relative;
     }
 
     .preview-label {
