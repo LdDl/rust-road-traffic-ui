@@ -1,6 +1,5 @@
 <script lang="ts">
     import { onMount, onDestroy } from 'svelte'
-
     import maplibregl, { Map as MMap, MapMouseEvent, type MapGeoJSONFeature} from 'maplibre-gl'
     import type MapboxDraw from "@mapbox/mapbox-gl-draw"
     import 'maplibre-gl/dist/maplibre-gl.css'
@@ -8,18 +7,15 @@
     import { mapStyleStore, changeStyle } from '../store/state'
     import { dataStorage, updateDataStorage, resetZoneSpatialInfo } from '../store/data_storage'
     import { EMPTY_POLYGON_RGB } from '../lib/gl_draw_styles.js'
-	import type { Feature, GeoJsonObject, Polygon } from 'geojson';
+    import { theme } from '../store/theme' // Add theme import
+    import type { Feature, GeoJsonObject, Polygon } from 'geojson';
     
     export let klass: string = ''
 
-    // let map: MMap;
     let mapContainer: HTMLElement;
     const { accepted_uri } = mapStyleStore;
     let initialStylesURI = $accepted_uri
-
-    const radioButton = (color: string): string => {
-        return `<svg xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" width="20" fill="${color}"><path d="M480.276-96Q401-96 331-126q-70-30-122.5-82.5T126-330.958q-30-69.959-30-149.5Q96-560 126-629.5t82.5-122Q261-804 330.958-834q69.959-30 149.5-30Q560-864 629.5-834t122 82.5Q804-699 834-629.276q30 69.725 30 149Q864-401 834-331q-30 70-82.5 122.5T629.276-126q-69.725 30-149 30ZM480-168q130 0 221-91t91-221q0-130-91-221t-221-91q-130 0-221 91t-91 221q0 130 91 221t221 91Zm0 0q-130 0-221-91t-91-221q0-130 91-221t221-91q130 0 221 91t91 221q0 130-91 221t-221 91Z"/></svg>`
-    }
+    let currentTheme = $theme;
 
     const unsubStylesChange = accepted_uri.subscribe(value => {
         if (initialStylesURI !== value) {
@@ -28,10 +24,20 @@
         }
     })
 
+    const unsubThemeChange = theme.subscribe(newTheme => {
+        if ($map) {
+            // Update all existing popup containers with new theme
+            const popupContainers = document.querySelectorAll('.popup-container');
+            popupContainers.forEach(container => {
+                container.setAttribute('data-theme', newTheme);
+            });
+        }
+    });
+
     function svgToDataURL(svg: string): string {
         return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
     }
-    
+
     onMount(() => {
         console.log('Mounted map component')
         const initialState = { lng: 0, lat: 0, zoom: 5 };
@@ -42,7 +48,6 @@
             zoom: initialState.zoom
         }));
 
-        // Fix maplibre-gl canvas size
         $map.on('load', () => {
             $map.resize()
         })
@@ -50,65 +55,149 @@
         $map.on('click', 'gl-draw-polygon-fill-inactive.cold', function (e: MapMouseEvent & {features?: MapGeoJSONFeature[] | undefined; } & Object) {
             const mapFeature = <Feature><GeoJsonObject>$draw.get(e.features?.[0].properties.id);
             if (!mapFeature) {
-                // mapFeature could be undefined if it's not found in the draw storage since some other process removed it
                 return
             }
-            const options = Array.from($dataStorage.values()).map((feature, idx) => {
-                const color = feature.properties.color_rgb_str as string
-                // https://github.com/Dogfalo/materialize/issues/4056
-                const elem = `<option value="${feature.id}" data-icon="${svgToDataURL(radioButton(color))}">${feature.id}</option>`
-                return elem
+            
+            // Create options for the custom dropdown
+            const polygonOptions = Array.from($dataStorage.values()).map((feature) => {
+                const color = feature.properties.color_rgb_str as string;
+                return {
+                    id: feature.id,
+                    color: color,
+                    label: feature.id
+                };
             });
+            
             const clickedFeature = [...$dataStorage].find((f) => f[1].properties.spatial_object_id === mapFeature.id)?.[1]
+            
             const popupContent = `
-                <div id="custom-popup">
-                    <div class="row">
-                        <div class="input-field col s12">
-                            <select id="select-canvas">
-                                <option value="" disabled selected>Pick up polygon</option>
-                                ${options.join('\n')}
-                            </select>
-                            <label>Attach canvas polygons</label>
-                        </div>
+                <div class="popup-container" data-theme="${$theme}">
+                    <div class="popup-header">
+                        <h3 class="popup-title">Zone Configuration</h3>
                     </div>
-                    <div class="row">
-                        <div class="input-field col s12">
-                            <input value="${clickedFeature ? clickedFeature.properties?.road_lane_direction : -1}" id="lane-direction" type="number" class="validate">
-                            <label class="active" for="lane-direction">Direction value</label>
+                    
+                    <div class="popup-content">
+                        <div class="form-control w-full">
+                            <label class="label">
+                                <span class="label-text">Attach canvas polygons</span>
+                            </label>
+                            <div class="custom-select-wrapper">
+                                <div class="custom-select-trigger" id="select-trigger">
+                                    <div class="selected-option">
+                                        <div class="selected-color" id="selected-color" style="display: none;"></div>
+                                        <span class="selected-text" id="selected-text">Pick up polygon</span>
+                                    </div>
+                                    <i class="material-icons dropdown-arrow">expand_more</i>
+                                </div>
+                                <div class="custom-select-dropdown" id="select-dropdown">
+                                    ${polygonOptions.map(option => `
+                                        <div class="custom-option" data-value="${option.id}" data-color="${option.color}">
+                                            <div class="option-color" style="background-color: ${option.color};"></div>
+                                            <span class="option-text">${option.label}</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                                <input type="hidden" id="select-canvas" value="">
+                            </div>
                         </div>
-                    </div>
-                    <div class="row">
-                        <div class="input-field col s12">
-                            <input value="${clickedFeature ? clickedFeature.properties?.road_lane_num : -1}" id="lane-number" type="number" class="validate">
-                            <label class="active" for="lane-number">Lane</label>
+                        
+                        <div class="form-control w-full">
+                            <label class="label">
+                                <span class="label-text">Direction value</span>
+                            </label>
+                            <input 
+                                value="${clickedFeature ? clickedFeature.properties?.road_lane_direction : -1}" 
+                                id="lane-direction" 
+                                type="number" 
+                                class="input input-bordered w-full"
+                            >
                         </div>
-                    </div>
-                    <div class="row">
-                        <div class="col s12">
-                            <button id="attach-canvas-btn" class="btn-small waves-effect waves-light" type="submit" name="action" onclick>Save
-                                <i class="material-icons right">save</i>
+                        
+                        <div class="form-control w-full">
+                            <label class="label">
+                                <span class="label-text">Lane</span>
+                            </label>
+                            <input 
+                                value="${clickedFeature ? clickedFeature.properties?.road_lane_num : -1}" 
+                                id="lane-number" 
+                                type="number" 
+                                class="input input-bordered w-full"
+                            >
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button id="attach-canvas-btn" class="btn btn-primary btn-sm">
+                                <i class="material-icons">save</i>
+                                Save
                             </button>
                         </div>
                     </div>
                 </div>
             `
-            new maplibregl.Popup({ className: "custom-popup" })
+            
+            new maplibregl.Popup({ 
+                className: "themed-popup",
+                closeButton: true,
+                closeOnClick: false
+            })
                 .setLngLat(e.lngLat)
                 .setHTML(popupContent)
                 .addTo($map);
-            const selectElem = <HTMLInputElement>document.getElementById("select-canvas");
-            if (!selectElem) {
-                return
+                
+            // Setup custom dropdown functionality
+            const selectTrigger = document.getElementById("select-trigger");
+            const selectDropdown = document.getElementById("select-dropdown");
+            const selectedColor = document.getElementById("selected-color");
+            const selectedText = document.getElementById("selected-text");
+            const hiddenInput = <HTMLInputElement>document.getElementById("select-canvas");
+            
+            if (!selectTrigger || !selectDropdown || !selectedColor || !selectedText || !hiddenInput) {
+                return;
             }
+
+            // Toggle dropdown
+            selectTrigger.addEventListener('click', () => {
+                selectDropdown.classList.toggle('show');
+            });
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!selectTrigger.contains(e.target as Node) && !selectDropdown.contains(e.target as Node)) {
+                    selectDropdown.classList.remove('show');
+                }
+            });
+
+            // Handle option selection
+            const options = selectDropdown.querySelectorAll('.custom-option');
+            options.forEach(option => {
+                option.addEventListener('click', (e) => {
+                    const value = option.getAttribute('data-value');
+                    const color = option.getAttribute('data-color');
+                    const text = option.querySelector('.option-text')?.textContent;
+                    
+                    if (value && color && text) {
+                        hiddenInput.value = value;
+                        selectedColor.style.backgroundColor = color;
+                        selectedColor.style.display = 'block';
+                        selectedText.textContent = text;
+                        selectDropdown.classList.remove('show');
+                    }
+                });
+            });
+
+            // Set initial value if polygon is already attached
             Array.from($dataStorage.values()).some(element => {
-                // Pick default value if it's possible
                 if (element.properties.spatial_object_id === mapFeature.id) {
-                    selectElem.value = element.id ?? 'No canvas ID';
+                    const value = element.id ?? 'No canvas ID';
+                    const color = element.properties.color_rgb_str;
+                    hiddenInput.value = value;
+                    selectedColor.style.backgroundColor = color;
+                    selectedColor.style.display = 'block';
+                    selectedText.textContent = value;
                     return true;
                 }
-            })
-            // @ts-ignore
-            const selectsInstances = M.FormSelect.init(selectElem, {});
+            });
+            
             const attachBtn = document.getElementById('attach-canvas-btn');
             if (!attachBtn) {
                 console.error("No container 'attach-canvas-btn'")
@@ -117,17 +206,17 @@
             attachBtn.addEventListener('click', (clickEvent) => {
                 const directionElem = <HTMLInputElement>document.getElementById("lane-direction");
                 const laneElem = <HTMLInputElement>document.getElementById("lane-number");
-                // https://github.com/Dogfalo/materialize/issues/6536 - There is a workaround to get correct selected values via `getSelectedValues()` call
-                // So just leave next two code lines just for history:
-                // const selectInstance = M.FormSelect.getInstance(selectElem);
-                // console.log("bug", selectInstance.getSelectedValues())
-                attachSpatialToDataStorage(mapFeature, selectElem.value, {road_lane_direction: directionElem ? parseInt(directionElem.value) : -1, road_lane_num: laneElem ? parseInt(laneElem.value) : -1});
+                attachSpatialToDataStorage(mapFeature, hiddenInput.value, {
+                    road_lane_direction: directionElem ? parseInt(directionElem.value) : -1, 
+                    road_lane_num: laneElem ? parseInt(laneElem.value) : -1
+                });
             });
-        })
+        });
     });
 
     onDestroy(() => {
         unsubStylesChange()
+        unsubThemeChange()
         $map.remove()
     });
 
@@ -151,10 +240,7 @@
         if (features.length === 0) {
             return
         }
-        const featureCollection = {
-            type: "FeatureCollection",
-            features: features
-        };
+        
         let minLng = Infinity, minLat = Infinity, maxLng = -Infinity, maxLat = -Infinity;
         let hasValidCoords = false;
         features.forEach(feature => {
@@ -196,29 +282,26 @@
             return
         }
         const spatialID = mapTargetFeature.id as string
-        // Reset style for previously attached spatial object if possible
         const prevSpatialID = targetFeature.properties.spatial_object_id
         if (prevSpatialID) {
             const prevMapFeature = $draw.get(prevSpatialID)
             if (prevMapFeature) {
-                $draw.add(prevMapFeature) // Just to trigger re-draw
+                $draw.add(prevMapFeature)
                 $draw.setFeatureProperty(prevSpatialID, 'color_rgb_str', EMPTY_POLYGON_RGB);                    
             }
         }
-        // Reset datastore object if current spatial object has been attached to the one
         const prevFeature = [...$dataStorage].find((f) => f[1].id !== targetFeatureID && f[1].properties.spatial_object_id === spatialID)?.[1]
         if (prevFeature) {
             resetZoneSpatialInfo($dataStorage, prevFeature.id)
         }
 
-        // Update datastorage (actual attachment)
         targetFeature.properties.spatial_object_id = spatialID
         targetFeature.properties.road_lane_direction = options.road_lane_direction
         targetFeature.properties.road_lane_num = options.road_lane_num
-        const spatialPolygon = mapTargetFeature.geometry as Polygon // @todo: Do we need type check?
+        const spatialPolygon = mapTargetFeature.geometry as Polygon
         targetFeature.geometry.coordinates = spatialPolygon.coordinates
         updateDataStorage(targetFeatureID, targetFeature)
-        $draw.add(mapTargetFeature) // Just to trigger re-draw
+        $draw.add(mapTargetFeature)
         $draw.setFeatureProperty(spatialID, 'color_rgb_str', targetFeature.properties.color_rgb_str);
     }
 </script>
@@ -234,19 +317,278 @@
         position: relative;
         width: 100%;
         height: 100vh;
-        /* background-color: red; */
     }
+    
     .map {
         position: absolute;
         width: 100%;
         height: 100%;
     }
 
-    /* Maplibre popup overwrite */
-    .maplibregl-popup-content {
-        background-color: rgb(240, 240, 240);
+    /* DaisyUI themed popup styling */
+    .maplibregl-popup.themed-popup .maplibregl-popup-content {
+        background: var(--bg-primary);
+        border: 1px solid var(--border-primary);
+        border-radius: 12px;
+        box-shadow: 0 4px 20px var(--shadow);
+        padding: 0;
+        min-width: 320px;
+        max-width: 380px;
+        transition: background-color 0.3s ease, border-color 0.3s ease;
     }
-    .mapboxgl-popup-anchor-bottom .mapboxgl-popup-tip, .maplibregl-popup-anchor-bottom .maplibregl-popup-tip {
-        border-top-color: rgb(240, 240, 240) ;
+
+    .maplibregl-popup.themed-popup .maplibregl-popup-tip {
+        border-top-color: var(--bg-primary);
+        border-bottom-color: var(--bg-primary);
+        border-left-color: var(--bg-primary);
+        border-right-color: var(--bg-primary);
+        transition: border-color 0.3s ease;
     }
+
+    .maplibregl-popup.themed-popup .maplibregl-popup-close-button {
+        background: var(--bg-secondary);
+        color: var(--text-secondary);
+        border: 1px solid var(--border-primary);
+        border-radius: 6px;
+        width: 28px;
+        height: 28px;
+        top: 12px;
+        right: 12px;
+        font-size: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+        transition: all 0.3s ease;
+    }
+
+    .maplibregl-popup.themed-popup .maplibregl-popup-close-button:hover {
+        background: var(--bg-tertiary);
+        color: var(--text-primary);
+    }
+
+    .popup-container {
+        color: var(--text-primary);
+        font-family: 'Roboto', sans-serif;
+        transition: color 0.3s ease;
+    }
+
+    .popup-header {
+        padding: 20px 20px 16px 20px;
+        border-bottom: 1px solid var(--border-secondary);
+        transition: border-color 0.3s ease;
+    }
+
+    .popup-title {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--text-primary);
+        transition: color 0.3s ease;
+    }
+
+    .popup-content {
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    /* Override DaisyUI colors with theme variables */
+    .popup-container .form-control .label-text {
+        color: var(--text-secondary);
+        font-weight: 500;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        transition: color 0.3s ease;
+    }
+
+    .popup-container .select,
+    .popup-container .input {
+        background: var(--bg-primary);
+        border-color: var(--border-primary);
+        color: var(--text-primary);
+        transition: all 0.3s ease;
+    }
+
+    .popup-container .select:focus,
+    .popup-container .input:focus {
+        border-color: var(--accent-primary);
+        box-shadow: 0 0 0 2px rgba(var(--accent-primary-rgb), 0.1);
+        outline: none;
+    }
+
+    .popup-container .select option {
+        background: var(--bg-primary);
+        color: var(--text-primary);
+    }
+
+    .popup-container .btn-primary {
+        background: var(--accent-primary);
+        border-color: var(--accent-primary);
+        color: white;
+        gap: 6px;
+        transition: all 0.3s ease;
+    }
+
+    .popup-container .btn-primary:hover {
+        background: var(--accent-hover);
+        border-color: var(--accent-hover);
+    }
+
+    .form-actions {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 8px;
+    }
+
+    /* Material Icons in popup */
+    .popup-container .material-icons {
+        font-size: 16px;
+    }
+
+    /* Dark theme specific adjustments */
+    .popup-container[data-theme="dark"] .select,
+    .popup-container[data-theme="dark"] .input {
+        background: var(--bg-secondary);
+    }
+
+    .popup-container[data-theme="dark"] .select option {
+        background: var(--bg-secondary);
+    }
+
+    .custom-select-wrapper {
+        position: relative;
+        width: 100%;
+    }
+
+    .custom-select-trigger {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 16px;
+        background: var(--bg-primary);
+        border: 1px solid var(--border-primary);
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        min-height: 48px;
+    }
+
+    .custom-select-trigger:hover {
+        border-color: var(--border-secondary);
+    }
+
+    .custom-select-trigger:focus-within {
+        border-color: var(--accent-primary);
+        box-shadow: 0 0 0 2px rgba(var(--accent-primary-rgb), 0.1);
+    }
+
+    .selected-option {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex: 1;
+    }
+
+    .selected-color {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        border: 2px solid var(--border-primary);
+        flex-shrink: 0;
+        transition: border-color 0.3s ease;
+    }
+
+    .selected-text {
+        color: var(--text-primary);
+        font-size: 14px;
+        transition: color 0.3s ease;
+    }
+
+    .dropdown-arrow {
+        color: var(--text-secondary);
+        font-size: 20px;
+        transition: all 0.3s ease;
+    }
+
+    .custom-select-trigger:hover .dropdown-arrow {
+        color: var(--text-primary);
+    }
+
+    .custom-select-dropdown {
+        position: absolute;
+        top: calc(100% + 4px);
+        left: 0;
+        right: 0;
+        background: var(--bg-primary);
+        border: 1px solid var(--border-primary);
+        border-radius: 8px;
+        box-shadow: 0 4px 12px var(--shadow);
+        z-index: 1000;
+        max-height: 200px;
+        overflow-y: auto;
+        display: none;
+        transition: all 0.3s ease;
+    }
+
+    .custom-select-dropdown.show {
+        display: block;
+    }
+
+    .custom-option {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 16px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border-bottom: 1px solid var(--border-secondary);
+    }
+
+    .custom-option:last-child {
+        border-bottom: none;
+    }
+
+    .custom-option:hover {
+        background: var(--bg-secondary);
+    }
+
+    .option-color {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        border: 2px solid var(--border-primary);
+        flex-shrink: 0;
+        transition: border-color 0.3s ease;
+    }
+
+    .option-text {
+        color: var(--text-primary);
+        font-size: 14px;
+        font-weight: 500;
+        transition: color 0.3s ease;
+    }
+
+    /* Custom scrollbar for dropdown */
+    .custom-select-dropdown::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .custom-select-dropdown::-webkit-scrollbar-track {
+        background: var(--bg-secondary);
+        transition: background-color 0.3s ease;
+    }
+
+    .custom-select-dropdown::-webkit-scrollbar-thumb {
+        background: var(--text-secondary);
+        border-radius: 3px;
+        transition: background-color 0.3s ease;
+    }
+
+    .custom-select-dropdown::-webkit-scrollbar-thumb:hover {
+        background: var(--text-primary);
+    }
+    
 </style>
