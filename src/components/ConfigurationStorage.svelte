@@ -90,7 +90,7 @@
     #configuration {
         grid-area: B;
         overflow-y: auto;
-        max-height: 185px;
+        height: 100%;
         padding: 8px;
     }
 

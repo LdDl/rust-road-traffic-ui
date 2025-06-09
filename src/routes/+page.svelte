@@ -22,12 +22,15 @@
     const { apiURL } = apiUrlStore
     let initialAPIURL = $apiURL
 
-    // let fabOpen = false;
-
     let isDragging = false;
     let leftPanelWidth = 50;
     let startX = 0;
     let startWidth = 0;
+
+    let isHorizontalDragging = false;
+    let topPanelHeight = 80;
+    let startY = 0;
+    let startHeight = 0;
 
     let stateVariable: States;
     state.subscribe((value) => stateVariable = value)
@@ -229,6 +232,7 @@
         }
     }
 
+    /* Vertical Splitter Logic */
     const startDrag = (e: MouseEvent) => {
         isDragging = true;
         startX = e.clientX;
@@ -251,6 +255,30 @@
         document.removeEventListener('mousemove', handleDrag);
         document.removeEventListener('mouseup', stopDrag);
     };
+
+    /* Horizontal Splitter Logic */
+    const startHorizontalDrag = (e: MouseEvent) => {
+        isHorizontalDragging = true;
+        startY = e.clientY;
+        startHeight = topPanelHeight;
+        document.addEventListener('mousemove', handleHorizontalDrag);
+        document.addEventListener('mouseup', stopHorizontalDrag);
+        e.preventDefault();
+    };
+
+    const handleHorizontalDrag = (e: MouseEvent) => {
+        if (!isHorizontalDragging) return;
+        const deltaY = e.clientY - startY;
+        const containerHeight = window.innerHeight - 60; // Subtract toolbar height
+        const deltaPercent = (deltaY / containerHeight) * 100;
+        topPanelHeight = Math.max(30, Math.min(85, startHeight + deltaPercent));
+    };
+
+    const stopHorizontalDrag = () => {
+        isHorizontalDragging = false;
+        document.removeEventListener('mousemove', handleHorizontalDrag);
+        document.removeEventListener('mouseup', stopHorizontalDrag);
+    };
 </script>
 
 <sveltekit:head>
@@ -269,8 +297,24 @@
     />
     <Switchers klass={canvasFocused || mapFocused ? 'blurred noselect' : ''}/>
     <div id="main_workspace" style="grid-template-columns: {leftPanelWidth}% 2px {100 - leftPanelWidth}%;">
-        <div id="left_workspace">
+        <div id="left_workspace" style="grid-template-rows: {topPanelHeight}% 2px {100 - topPanelHeight}%;">
             <CanvasComponent klass={!canvasFocused && mapFocused ? 'blurred noselect' : ''}/>
+            <div class="horizontal-splitter" 
+                class:dragging={isHorizontalDragging}
+                on:mousedown={startHorizontalDrag}
+                role="slider"
+                tabindex="0"
+                aria-label="Panel height"
+                aria-valuemin="30"
+                aria-valuemax="85"
+                aria-valuenow={topPanelHeight}
+                >
+                <div class="horizontal-splitter-handle">
+                    <div></div> <!-- top line -->
+                    <div></div> <!-- center line -->
+                    <div></div> <!-- bottom line -->
+                </div>
+            </div>
             <ConfigurationStorage dataReady={dataReady} data={dataStorageFiltered} klass={!($canvasReady) || (canvasFocused || mapFocused) ? 'blurred noselect' : ''}/>
             <div class="overlay" style="{!canvasFocused && mapFocused ? 'display: block;' : 'display: none;'}">
                 Press ESC to cancel '{cancelActionText !== undefined? cancelActionText : cancelActionUnexpected}' mode
@@ -306,11 +350,22 @@
 		margin: 0;
         padding: 0;
         font-family: 'Roboto';
+        height: 100vh;
+        overflow: hidden;
 	}
 
+    :global(html) {
+        height: 100%;
+    }
+
+    /* Dragging cursors */
     :global(body.dragging) {
         user-select: none;
         cursor: col-resize !important;
+    }
+    :global(body.horizontal-dragging) {
+        user-select: none;
+        cursor: row-resize !important;
     }
 
     #right_workspace {
@@ -382,8 +437,11 @@
         display: grid;
         height: 100%;
         overflow: hidden;
+        flex: 1;
+        min-height: 0;
     }
 
+    /* Vertical Splitter */
     .splitter {
         width: 2px;
         background-color: #444;
@@ -424,7 +482,48 @@
         border-radius: 1px;
     }
 
-    
+    /* Horizontal Splitter */
+    .horizontal-splitter {
+        height: 2px;
+        background-color: #444;
+        position: relative;
+        z-index: 10;
+        grid-area: splitter;
+    }
+
+    .horizontal-splitter::before {
+        content: '';
+        position: absolute;
+        top: -7px;
+        left: 0;
+        width: 100%;
+        height: 16px;
+        cursor: row-resize;
+        z-index: 15;
+    }
+
+    .horizontal-splitter .horizontal-splitter-handle {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 20px;
+        height: 14px;
+        transform: translate(-50%, -50%);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        align-items: center;
+        pointer-events: none;
+    }
+
+    .horizontal-splitter .horizontal-splitter-handle div {
+        width: 38px;
+        height: 4px;
+        background-color: #888;
+        border: 1px solid #000;
+        border-radius: 1px;
+    }
+
     #left_workspace {
         width: 100%;
         background: #eeeeee;
@@ -432,9 +531,10 @@
         grid-auto-flow: row;
         grid-template-areas: 
             "A"
+            "splitter"
             "B";
-        grid-template-rows: 80% 20%;
         overflow: hidden;
+        min-height: 0;
     }
 
     .custom-container-canvas {
@@ -451,6 +551,13 @@
         cursor: move;
     }
 
+    #main-app {
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+    
     /* #main-app > #main_workspace > *:not(.map-wrap) {
         background: #ffd83c;
         filter: blur(3px);
