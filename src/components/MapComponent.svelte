@@ -136,6 +136,7 @@
     }
     
     export const drawGeoPolygons = (draw: MapboxDraw, dataStorage: Map<string, any>) => {
+        const features: any[] = [];
         dataStorage.forEach((feature: any) => {
             const spatialFeature = {
                 ...feature,
@@ -145,20 +146,41 @@
                 id: feature.properties.spatial_object_id
             }
             draw.add(spatialFeature);
+            features.push(spatialFeature);
         });
-        if (dataStorage.size === 0) {
+        if (features.length === 0) {
             return
         }
-        // @ts-ignore
-        const firstCoordinates = Array.from(dataStorage.values())[0].geometry.coordinates;
-        let llBbox = new maplibregl.LngLatBounds(firstCoordinates[0]);
-        for (const coord of firstCoordinates) {
-            llBbox.extend(coord);
-        }
-        $map.fitBounds(llBbox, {
-            maxZoom: 18,
-            padding: 100
+        const featureCollection = {
+            type: "FeatureCollection",
+            features: features
+        };
+        let minLng = Infinity, minLat = Infinity, maxLng = -Infinity, maxLat = -Infinity;
+        let hasValidCoords = false;
+        features.forEach(feature => {
+            if (feature.geometry && feature.geometry.coordinates) {
+                feature.geometry.coordinates.forEach((ring: number[][]) => {
+                    ring.forEach((coord: number[]) => {
+                        if (coord.length >= 2 && isFinite(coord[0]) && isFinite(coord[1])) {
+                            minLng = Math.min(minLng, coord[0]);
+                            maxLng = Math.max(maxLng, coord[0]);
+                            minLat = Math.min(minLat, coord[1]);
+                            maxLat = Math.max(maxLat, coord[1]);
+                            hasValidCoords = true;
+                        }
+                    });
+                });
+            }
         });
+        if (hasValidCoords && isFinite(minLng) && isFinite(maxLng) && isFinite(minLat) && isFinite(maxLat)) {
+            const bounds = new maplibregl.LngLatBounds([minLng, minLat], [maxLng, maxLat]);
+            $map.fitBounds(bounds, {
+                maxZoom: 18,
+                padding: 100
+            });
+            return
+        }
+        console.warn('No valid coordinates found for fitBounds');
     };
 
     const attachSpatialToDataStorage = (mapTargetFeature: Feature, targetFeatureID: string, options = {road_lane_direction: -1, road_lane_num: -1}) => {
