@@ -267,28 +267,6 @@
         onDeleteFromMap={stateDelFromMap}
         onSave={() => saveTOML(initialAPIURL, dataStorageFiltered)}
     />
-    <!-- <div class="fab-container" class:active={fabOpen}>
-        <button class="fab-main" on:click={() => fabOpen = !fabOpen}>
-            <i class="material-icons">{fabOpen ? 'close' : 'edit'}</i>
-        </button>
-        <div class="fab-menu">
-            <button class="fab-item btn-success" on:click={stateAddToCanvas} title="Add zone to the canvas">
-                <i class="material-icons">add</i>
-            </button>
-            <button class="fab-item btn-info" on:click={stateDelFromCanvas} title="Delete zone from the canvas">
-                <i class="material-icons">delete</i>
-            </button>
-            <button class="fab-item btn-warning" on:click={stateAddToMap} title="Add zone to the map">
-                <i class="material-icons">add_location</i>
-            </button>
-            <button class="fab-item btn-info" on:click={stateDelFromMap} title="Delete zone from the map">
-                <i class="material-icons">location_off</i>
-            </button>
-            <button class="fab-item btn-neutral" on:click={() => saveTOML(initialAPIURL, dataStorageFiltered)} title="Apply and save changes">
-                <i class="material-icons">save</i>
-            </button>
-        </div>
-    </div> -->
     <Switchers klass={canvasFocused || mapFocused ? 'blurred noselect' : ''}/>
     <div id="main_workspace" style="grid-template-columns: {leftPanelWidth}% 2px {100 - leftPanelWidth}%;">
         <div id="left_workspace">

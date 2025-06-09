@@ -4,26 +4,3 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-/* Custom floating action button styles */
-@layer components {
-  .fab-container {
-    @apply fixed bottom-6 right-6 z-50;
-  }
-  
-  .fab-main {
-    @apply btn btn-circle btn-lg btn-error shadow-lg;
-  }
-  
-  .fab-menu {
-    @apply absolute bottom-16 right-0 flex flex-col gap-3 opacity-0 pointer-events-none transition-all duration-300;
-  }
-  
-  .fab-container.active .fab-menu {
-    @apply opacity-100 pointer-events-auto;
-  }
-  
-  .fab-item {
-    @apply btn btn-circle btn-md shadow-lg;
-  }
-}
