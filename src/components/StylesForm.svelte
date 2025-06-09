@@ -74,8 +74,7 @@
     .input-group input:focus {
         outline: none;
         border-color: var(--accent-primary);
-        box-shadow: 0 0 0 3px var(--accent-primary);
-        opacity: 0.1;
+        box-shadow: 0 0 0 3px rgba(var(--accent-primary-rgb), 0.1);
     }
 
     .input-group input::placeholder {
