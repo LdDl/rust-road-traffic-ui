@@ -173,37 +173,45 @@
     .input-group label {
         font-size: 0.75rem;
         font-weight: 500;
-        color: #6b7280;
+        color: var(--text-secondary);
         text-transform: uppercase;
         letter-spacing: 0.05em;
     }
 
     .input-group input {
         padding: 0.75rem;
-        border: 1px solid #d1d5db;
+        border: 1px solid var(--border-primary);
         border-radius: 0.375rem;
         font-size: 0.875rem;
         transition: all 0.2s;
-        background: white;
+        background: var(--bg-primary);
+        color: var(--text-primary);
         width: 100%;
         min-width: 0;
         box-sizing: border-box;
     }
 
+    .input-group input::placeholder {
+        color: var(--text-secondary);
+        opacity: 0.7;
+    }
+
     .input-group input:focus {
         outline: none;
-        border-color: #3b82f6;
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        border-color: var(--accent-primary);
+        box-shadow: 0 0 0 3px var(--accent-primary);
+        opacity: 0.1;
     }
 
     .input-group input.invalid {
-        border-color: #ef4444;
-        background-color: #fef2f2;
+        border-color: var(--danger-primary);
+        background-color: var(--danger-bg, #fef2f2);
     }
 
     .input-group input.invalid:focus {
-        border-color: #ef4444;
-        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+        border-color: var(--danger-primary);
+        box-shadow: 0 0 0 3px var(--danger-primary);
+        opacity: 0.1;
     }
 
     /* Custom number input */
@@ -232,10 +240,10 @@
         min-height: 0;
         padding: 0;
         border: none;
-        border-left: 1px solid #e2e8f0;
-        background: #f8fafc;
+        border-left: 1px solid var(--border-secondary);
+        background: var(--bg-secondary);
         cursor: pointer;
-        color: #64748b;
+        color: var(--text-secondary);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -243,16 +251,16 @@
     }
 
     .number-btn:first-child {
-        border-bottom: 0.5px solid #e2e8f0;
+        border-bottom: 0.5px solid var(--border-secondary);
     }
     
     .number-btn:hover {
-        background: #e2e8f0;
-        color: #475569;
+        background: var(--bg-tertiary);
+        color: var(--text-primary);
     }
 
     .number-btn:active {
-        background: #cbd5e1;
+        background: var(--border-primary);
     }
 
     .number-btn i {
@@ -267,8 +275,8 @@
     }
 
     .url-preview {
-        background: #f8fafc;
-        border: 1px solid #e2e8f0;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-secondary);
         border-radius: 0.375rem;
         padding: 0.75rem;
         margin-bottom: 1rem;
@@ -280,7 +288,7 @@
     .preview-label {
         display: block;
         font-size: 0.7rem;
-        color: #6b7280;
+        color: var(--text-secondary);
         font-weight: 500;
         text-transform: uppercase;
         letter-spacing: 0.05em;
@@ -295,18 +303,18 @@
     }
 
     .preview-url {
-        color: #1e40af;
+        color: var(--accent-primary);
         word-break: break-all;
         flex: 1;
     }
 
     .preview-url.invalid-url {
-        color: #dc2626;
+        color: var(--danger-primary);
     }
 
     .copy-btn {
-        background: #f1f5f9;
-        border: 1px solid #cbd5e1;
+        background: var(--bg-tertiary);
+        border: 1px solid var(--border-primary);
         border-radius: 0.25rem;
         padding: 0.25rem;
         cursor: pointer;
@@ -318,12 +326,12 @@
     }
 
     .copy-btn:hover:not(:disabled) {
-        background: #e2e8f0;
-        border-color: #94a3b8;
+        background: var(--bg-secondary);
+        border-color: var(--border-secondary);
     }
 
     .copy-btn:active:not(:disabled) {
-        background: #cbd5e1;
+        background: var(--border-primary);
     }
 
     .copy-btn:disabled {
@@ -333,7 +341,7 @@
 
     .copy-btn i {
         font-size: 16px;
-        color: #64748b;
+        color: var(--text-secondary);
     }
 
     .status-message-container {
@@ -347,7 +355,7 @@
         display: flex;
         align-items: center;
         gap: 0.25rem;
-        color: #059669;
+        color: var(--success-primary);
         font-size: 0.75rem;
         font-family: inherit;
         animation: fadeInOut 2s ease-in-out;
@@ -363,11 +371,11 @@
     }
 
     .validation-message.valid {
-        color: #059669;
+        color: var(--success-primary);
     }
 
     .validation-message.invalid {
-        color: #dc2626;
+        color: var(--danger-primary);
     }
 
     .validation-message i,
@@ -378,7 +386,7 @@
     .action-btn {
         width: 100%;
         padding: 0.75rem;
-        background: #3b82f6;
+        background: var(--accent-primary);
         color: white;
         border: none;
         border-radius: 0.375rem;
@@ -390,15 +398,15 @@
     }
 
     .action-btn:hover:not(:disabled) {
-        background: #2563eb;
+        background: var(--accent-hover);
     }
 
     .action-btn:active:not(:disabled) {
-        background: #1d4ed8;
+        background: var(--accent-hover);
     }
 
     .action-btn:disabled {
-        background: #9ca3af;
+        background: var(--text-secondary);
         cursor: not-allowed;
     }
 

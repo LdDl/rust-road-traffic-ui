@@ -53,18 +53,19 @@
     .input-group label {
         font-size: 0.75rem;
         font-weight: 500;
-        color: #6b7280;
+        color: var(--text-secondary);
         text-transform: uppercase;
         letter-spacing: 0.05em;
     }
 
     .input-group input {
         padding: 0.75rem;
-        border: 1px solid #d1d5db;
+        border: 1px solid var(--border-primary);
         border-radius: 0.375rem;
         font-size: 0.875rem;
         transition: all 0.2s;
-        background: white;
+        background: var(--bg-primary);
+        color: var(--text-primary);
         width: 100%;
         min-width: 0; /* Allow shrinking */
         box-sizing: border-box;
@@ -72,20 +73,27 @@
 
     .input-group input:focus {
         outline: none;
-        border-color: #3b82f6;
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        border-color: var(--accent-primary);
+        box-shadow: 0 0 0 3px var(--accent-primary);
+        opacity: 0.1;
+    }
+
+    .input-group input::placeholder {
+        color: var(--text-secondary);
+        opacity: 0.7;
     }
 
     .input-hint {
         font-size: 0.75rem;
-        color: #9ca3af;
+        color: var(--text-secondary);
         font-style: italic;
+        opacity: 0.8;
     }
 
     .action-btn {
         width: 100%;
         padding: 0.75rem;
-        background: #10b981;
+        background: var(--success-primary);
         color: white;
         border: none;
         border-radius: 0.375rem;
@@ -97,10 +105,17 @@
     }
 
     .action-btn:hover {
-        background: #059669;
+        background: var(--success-hover);
     }
 
     .action-btn:active {
-        background: #047857;
+        background: var(--success-hover);
+        transform: translateY(1px);
+    }
+
+    .action-btn:disabled {
+        background: var(--text-secondary);
+        opacity: 0.5;
+        cursor: not-allowed;
     }
 </style>

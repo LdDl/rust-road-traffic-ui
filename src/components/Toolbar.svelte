@@ -93,13 +93,13 @@
         right: 0;
         top: 50%;
         transform: translateY(-50%);
-        background: white;
+        background: var(--bg-primary); /* Changed from white */
         border-radius: 0.5rem 0 0 0.5rem;
-        box-shadow: -2px 0 12px rgba(0, 0, 0, 0.15);
+        box-shadow: -2px 0 12px var(--shadow); /* Changed from rgba(0, 0, 0, 0.15) */
         z-index: 1000;
         transition: all 0.3s ease;
         width: 200px;
-        border: 1px solid #e5e7eb;
+        border: 1px solid var(--border-primary); /* Changed from #e5e7eb */
         border-right: none;
     }
     
@@ -113,27 +113,29 @@
         left: -12px;
         width: 24px;
         height: 24px;
-        background: white;
-        border: 1px solid #e5e7eb;
+        background: var(--bg-primary); /* Changed from white */
+        border: 1px solid var(--border-primary); /* Changed from #e5e7eb */
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
         cursor: pointer;
         font-size: 16px;
-        color: #6b7280;
-        box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
+        color: var(--text-secondary); /* Changed from #6b7280 */
+        box-shadow: -2px 0 8px var(--shadow); /* Changed from rgba(0, 0, 0, 0.1) */
+        transition: all 0.2s; /* Added transition */
     }
     
     .toolbar-toggle:hover {
-        background: #f9fafb;
+        background: var(--bg-secondary); /* Changed from #f9fafb */
+        color: var(--text-primary); /* Added for better hover state */
     }
     
     .toolbar-content {
         padding: 1rem;
         display: flex;
         flex-direction: column;
-        gap: 0.75rem; /* Reduced gap */
+        gap: 0.75rem;
     }
     
     .toolbar-group {
@@ -144,7 +146,7 @@
     
     .group-header {
         position: relative;
-        height: 1.25rem; /* Fixed height for both states */
+        height: 1.25rem;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -154,7 +156,7 @@
     .group-label {
         font-size: 0.75rem;
         font-weight: 600;
-        color: #6b7280;
+        color: var(--text-secondary); /* Changed from #6b7280 */
         text-transform: uppercase;
         letter-spacing: 0.05em;
         white-space: nowrap;
@@ -168,7 +170,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        color: #9ca3af;
+        color: var(--text-secondary); /* Changed from #9ca3af */
         font-size: 1rem;
         opacity: 0;
         transition: opacity 0.3s ease;
@@ -186,7 +188,7 @@
     
     .toolbar-separator {
         height: 1px;
-        background: linear-gradient(to right, transparent, #e5e7eb, transparent);
+        background: linear-gradient(to right, transparent, var(--border-primary), transparent); /* Changed from #e5e7eb */
         margin: 0.25rem 0;
     }
     
@@ -199,9 +201,10 @@
         align-items: center;
         gap: 0.5rem;
         padding: 0.75rem;
-        border: 1px solid #d1d5db;
+        border: 1px solid var(--border-primary);
         border-radius: 0.375rem;
-        background: white;
+        background: var(--bg-primary);
+        color: var(--text-primary);
         cursor: pointer;
         transition: all 0.2s;
         font-size: 0.875rem;
@@ -209,25 +212,40 @@
     }
     
     .tool-btn:hover {
-        background: #f9fafb;
-        border-color: #9ca3af;
+        background: var(--bg-secondary);
+        border-color: var(--border-secondary);
     }
     
     .tool-btn.active {
-        background: #3b82f6;
+        background: var(--accent-primary);
         color: white;
-        border-color: #3b82f6;
+        border-color: var(--accent-primary);
+    }
+    
+    .tool-btn.active:hover {
+        background: var(--accent-hover);
+        border-color: var(--accent-hover);
     }
     
     .tool-btn.danger.active {
-        background: #ef4444;
-        border-color: #ef4444;
+        background: var(--danger-primary);
+        border-color: var(--danger-primary);
+    }
+    
+    .tool-btn.danger.active:hover {
+        background: var(--danger-hover);
+        border-color: var(--danger-hover);
     }
     
     .tool-btn.success {
-        background: #10b981;
+        background: var(--success-hover);
         color: white;
-        border-color: #10b981;
+        border-color: var(--success-hover);
+    }
+    
+    .tool-btn.success:hover {
+        background: var(--success-hover);
+        border-color: var(--success-hover);
     }
     
     .collapsed .tool-btn {

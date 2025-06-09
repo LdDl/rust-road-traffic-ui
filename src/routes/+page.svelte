@@ -352,6 +352,9 @@
         font-family: 'Roboto';
         height: 100vh;
         overflow: hidden;
+        background-color: var(--bg-primary);
+        color: var(--text-primary);
+        transition: background-color 0.3s ease, color 0.3s ease;
 	}
 
     :global(html) {
@@ -380,57 +383,17 @@
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
-        background-color: rgba(128, 128, 128, 0.8);
+        background-color: var(--bg-secondary);
+        color: var(--text-primary);
         padding: 0.66665rem;
         border-radius: 5px;
         pointer-events: none;
-    }
-
-    .fixed-action-btn.spin-close .btn-large {
-        position: relative;
-    }
-    .fixed-action-btn.spin-close .btn-large i {
-        opacity: 1;
-        transition: transform 0.3s, opacity 0.3s;
-    }
-    .fixed-action-btn.spin-close .btn-large:before {
-        transition: transform 0.3s, opacity 0.3s;
-        content: ' ';
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        width: 1.64rem;
-        height: 2px;
-        background: white;
-        margin-top: -2px;
-        margin-left: -0.82rem;
-        transform: rotate(0);
-        opacity: 0;
-    }
-    .fixed-action-btn.spin-close .btn-large:after {
-        transition: transform 0.3s, opacity 0.3s;
-        content: ' ' ;
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        width: 1.64rem;
-        height: 2px;
-        background: white;
-        margin-top: -2px;
-        margin-left: -0.82rem;
-        transform: rotate(0);
-        opacity: 0;
-    }
-    .fixed-action-btn.spin-close.active .btn-large i {
-        opacity: 0;
-    }
-    .fixed-action-btn.spin-close.active .btn-large:before {
-        opacity: 1;
-        transform: rotate(135deg);
-    }
-    .fixed-action-btn.spin-close.active .btn-large:after {
-        opacity: 1;
-        transform: rotate(405deg);
+        border: 1px solid var(--border-primary);
+        box-shadow: 0 4px 12px var(--shadow);
+        backdrop-filter: blur(10px);
+        opacity: 0.95;
+        font-weight: 500;
+        font-size: 0.875rem;
     }
 
     #main_workspace {
@@ -444,9 +407,10 @@
     /* Vertical Splitter */
     .splitter {
         width: 2px;
-        background-color: #444;
+        background-color: var(--splitter-bg);
         position: relative;
         z-index: 10;
+        transition: background-color 0.3s ease;
     }
 
     .splitter::before {
@@ -477,18 +441,25 @@
     .splitter .splitter-handle div {
         width: 4px;
         height: 38px;
-        background-color: #888;
-        border: 1px solid #000;
+        background-color: var(--splitter-handle);
+        border: 1px solid var(--border-primary);
         border-radius: 1px;
+        transition: background-color 0.3s ease, border-color 0.3s ease;
+    }
+
+    .splitter:hover .splitter-handle div {
+        background-color: var(--text-primary);
+        border-color: var(--text-secondary);
     }
 
     /* Horizontal Splitter */
     .horizontal-splitter {
         height: 2px;
-        background-color: #444;
+        background-color: var(--splitter-bg);
         position: relative;
         z-index: 10;
         grid-area: splitter;
+        transition: background-color 0.3s ease;
     }
 
     .horizontal-splitter::before {
@@ -519,14 +490,32 @@
     .horizontal-splitter .horizontal-splitter-handle div {
         width: 38px;
         height: 4px;
-        background-color: #888;
-        border: 1px solid #000;
+        background-color: var(--splitter-handle);
+        border: 1px solid var(--border-primary);
         border-radius: 1px;
+        transition: background-color 0.3s ease, border-color 0.3s ease;
+    }
+
+    .horizontal-splitter:hover .horizontal-splitter-handle div {
+        background-color: var(--text-primary);
+        border-color: var(--text-secondary);
+    }
+    
+    /* Dragging states for splitters */
+    .splitter.dragging,
+    .horizontal-splitter.dragging {
+        background-color: var(--accent-primary);
+    }
+
+    .splitter.dragging .splitter-handle div,
+    .horizontal-splitter.dragging .horizontal-splitter-handle div {
+        background-color: var(--accent-primary);
+        border-color: var(--accent-hover);
     }
 
     #left_workspace {
         width: 100%;
-        background: #eeeeee;
+        background: var(--bg-secondary);
         display: grid;
         grid-auto-flow: row;
         grid-template-areas: 
@@ -556,6 +545,7 @@
         display: flex;
         flex-direction: column;
         overflow: hidden;
+        background: var(--bg-primary);
     }
     
     /* #main-app > #main_workspace > *:not(.map-wrap) {
@@ -567,6 +557,7 @@
         /* background: #ffd83c; */
         filter: blur(3px);
         cursor: not-allowed !important;
+        transition: filter 0.3s ease;
     }
     .blurred div{
         pointer-events: none;

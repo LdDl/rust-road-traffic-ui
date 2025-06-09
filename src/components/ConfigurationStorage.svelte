@@ -92,20 +92,45 @@
         overflow-y: auto;
         height: 100%;
         padding: 8px;
+        background: var(--bg-primary);
+        color: var(--text-primary);
+    }
+
+    /* Custom scrollbar with theme support */
+    #configuration::-webkit-scrollbar {
+        background-color: var(--bg-primary);
+        width: 8px;
+    }
+    
+    #configuration::-webkit-scrollbar-track {
+        background-color: var(--bg-secondary);
+    }
+    
+    #configuration::-webkit-scrollbar-thumb {
+        background-color: var(--text-secondary);
+        border-radius: 4px;
+        opacity: 0.7;
+    }
+    
+    #configuration::-webkit-scrollbar-thumb:hover {
+        background-color: var(--text-primary);
+        opacity: 0.9;
     }
 
     .zone-card {
         margin-bottom: 8px;
-        border: 1px solid #ddd;
+        border: 1px solid var(--border-primary);
         border-radius: 4px;
         overflow: hidden;
+        background: var(--bg-primary);
+        box-shadow: 0 1px 3px var(--shadow);
     }
 
     .zone-header {
         width: 100%;
         padding: 10px;
-        background: #f8f9fa;
-        color: #333;
+        background: var(--bg-secondary);
+        color: var(--text-primary);
         border: none;
         border-radius: 0;
         cursor: pointer;
@@ -114,10 +139,11 @@
         align-items: center;
         font-size: 14px;
         font-weight: 500;
+        transition: background-color 0.2s;
     }
 
     .zone-header:hover {
-        background: #e9ecef;
+        background: var(--bg-tertiary);
     }
 
     .zone-header-main {
@@ -129,22 +155,26 @@
 
     .zone-title {
         font-weight: 600;
+        color: var(--text-primary);
     }
 
     .zone-status {
         font-size: 12px;
-        color: #666;
+        color: var(--text-secondary);
         font-style: italic;
     }
 
     .expand-arrow {
         margin-left: auto;
         font-family: monospace;
+        color: var(--text-secondary);
+        transition: color 0.2s;
     }
 
     .zone-content {
         padding: 10px;
-        background: white;
+        background: var(--bg-primary);
+        border-top: 1px solid var(--border-secondary);
     }
 
     .color-display {
@@ -156,7 +186,7 @@
     .color-swatch {
         width: 32px;
         height: 16px;
-        border: 1px solid #000;
+        border: 1px solid var(--border-primary);
         border-radius: 2px;
     }
 
@@ -168,17 +198,22 @@
     td {
         padding: 4px 8px;
         vertical-align: top;
+        border-bottom: 1px solid var(--border-secondary);
+    }
+
+    tr:last-child td {
+        border-bottom: none;
     }
 
     td:first-child {
         font-weight: 500;
-        color: #555;
+        color: var(--text-secondary);
         width: 40%;
     }
 
     td:last-child {
         font-family: monospace;
-        color: #333;
+        color: var(--text-primary);
         word-break: break-all;
     }
 </style>

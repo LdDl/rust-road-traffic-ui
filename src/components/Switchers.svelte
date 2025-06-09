@@ -1,6 +1,7 @@
 <script lang="ts">
   import IPForm from './IPForm.svelte'
   import StylesForm from './StylesForm.svelte'
+  import { theme, toggleTheme } from '../store/theme'
 
   export let klass: string = ''
   
@@ -8,30 +9,52 @@
 </script>
 
 <div class="switcher-container {klass}">
-  <button class="settings-toggle" on:click={() => showSettings = !showSettings}>
-      <i class="material-icons">settings</i>
-      <span>Settings</span>
-      <i class="material-icons expand-icon" class:rotated={showSettings}>expand_more</i>
-  </button>
+    <button class="settings-toggle" on:click={() => showSettings = !showSettings}>
+        <i class="material-icons">settings</i>
+        <span>Settings</span>
+        <i class="material-icons expand-icon" class:rotated={showSettings}>expand_more</i>
+    </button>
   
-  {#if showSettings}
-      <div class="settings-panel">
-          <div class="settings-content">
-              <div class="form-section">
-                  <h4>API Connection</h4>
-                  <div class="form-wrapper">
-                      <IPForm />
-                  </div>
-              </div>
-              <div class="form-section">
-                  <h4>Visual Styles</h4>
-                  <div class="form-wrapper">
-                      <StylesForm />
-                  </div>
-              </div>
-          </div>
-      </div>
-  {/if}
+    {#if showSettings}
+        <div class="settings-panel">
+            <div class="settings-content">
+                <div class="form-section">
+                    <h4>Theme</h4>
+                    <div class="theme-selector">
+                        <button 
+                            class="theme-option" 
+                            class:active={$theme === 'light'}
+                            on:click={() => theme.set('light')}
+                        >
+                            <i class="material-icons">light_mode</i>
+                            <span>Light</span>
+                        </button>
+                        <button 
+                            class="theme-option" 
+                            class:active={$theme === 'dark'}
+                            on:click={() => theme.set('dark')}
+                        >
+                            <i class="material-icons">dark_mode</i>
+                            <span>Dark</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="form-section">
+                    <h4>API Connection</h4>
+                    <div class="form-wrapper">
+                        <IPForm />
+                    </div>
+                </div>
+                <div class="form-section">
+                    <h4>Visual Styles</h4>
+                    <div class="form-wrapper">
+                        <StylesForm />
+                    </div>
+                </div>
+            </div>
+        </div>
+    {/if}
 </div>
 
 <style>
@@ -41,6 +64,39 @@
       right: 1rem;
       z-index: 1001;
       transition: right 0.3s ease;
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+  }
+  
+  .theme-selector {
+      display: flex;
+      gap: 0.5rem;
+  }
+
+  .theme-option {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 0.75rem;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-primary);
+      border-radius: 0.375rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+  }
+
+  .theme-option:hover {
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+  }
+
+  .theme-option.active {
+      background: var(--accent-primary);
+      color: white;
+      border-color: var(--accent-primary);
   }
   
   :global(.toolbar-expanded) .switcher-container {
@@ -52,26 +108,27 @@
       align-items: center;
       gap: 0.5rem;
       padding: 0.75rem 1rem;
-      background: white;
-      border: 1px solid #e5e7eb;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-primary);
       border-radius: 0.5rem;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 2px 8px var(--shadow);
       cursor: pointer;
       transition: all 0.2s;
       font-size: 0.875rem;
       font-weight: 500;
-      color: #374151;
+      color: var(--text-primary);
   }
   
   .settings-toggle:hover {
-      background: #f9fafb;
-      border-color: #d1d5db;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      background: var(--bg-secondary);
+      border-color: var(--border-secondary);
+      box-shadow: 0 4px 12px var(--shadow);
   }
   
   .expand-icon {
       transition: transform 0.2s;
       font-size: 1rem;
+      color: var(--text-secondary);
   }
   
   .expand-icon.rotated {
@@ -82,10 +139,10 @@
       position: absolute;
       top: calc(100% + 0.5rem);
       right: 0;
-      background: white;
-      border: 1px solid #e5e7eb;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-primary);
       border-radius: 0.5rem;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+      box-shadow: 0 4px 20px var(--shadow);
       animation: slideDown 0.3s ease;
       z-index: 1002;
       width: 420px;
@@ -109,11 +166,11 @@
       margin: 0;
       font-size: 0.875rem;
       font-weight: 600;
-      color: #374151;
+      color: var(--text-primary);
       text-transform: uppercase;
       letter-spacing: 0.05em;
       padding-bottom: 0.5rem;
-      border-bottom: 1px solid #e5e7eb;
+      border-bottom: 1px solid var(--border-secondary);
   }
   
   .form-wrapper {
