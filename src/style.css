@@ -1,0 +1,60 @@
+@import "tailwindcss";
+@plugin "daisyui";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Theme CSS Custom Properties */
+/* Light theme colors */
+:root {
+    --bg-primary: #ffffff;
+    --bg-secondary: #f8f9fa;
+    --bg-tertiary: #e9ecef;
+    --text-primary: #212529;
+    --text-secondary: #6c757d;
+    --border-primary: #dee2e6;
+    --border-secondary: #e9ecef;
+    --accent-primary: #007bff;
+    --accent-primary-rgb: 0, 123, 255;
+    --accent-hover: #0056b3;
+    --shadow: rgba(0, 0, 0, 0.1);
+    --splitter-bg: #444444;
+    --splitter-handle: #888888;
+    --success-primary: #10b981;
+    --success-hover: #059669;
+    --danger-primary: #ef4444;
+    --danger-primary-rgb: 239, 68, 68;
+    --danger-hover: #dc2626;
+    --danger-bg: #fef2f2;
+}
+
+/* Dark theme colors */
+:root.dark {
+    --bg-primary: #1a1a1a;
+    --bg-secondary: #2d2d2d;
+    --bg-tertiary: #404040;
+    --text-primary: #ffffff;
+    --text-secondary: #b3b3b3;
+    --border-primary: #404040;
+    --border-secondary: #2d2d2d;
+    --accent-primary: #4dabf7;
+    --accent-primary-rgb: 77, 171, 247;
+    --accent-hover: #339af0;
+    --shadow: rgba(0, 0, 0, 0.3);
+    --splitter-bg: #666666;
+    --splitter-handle: #aaaaaa;
+    --success-primary: #34d399;
+    --success-hover: #10b981;
+    --danger-primary: #f87171;
+    --danger-primary-rgb: 248, 113, 113;
+    --danger-hover: #ef4444;
+    --danger-bg: #2d1b1b;
+}
+
+/* Apply theme colors globally */
+:global(body) {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    transition: background-color 0.3s ease, color 0.3s ease;
+}

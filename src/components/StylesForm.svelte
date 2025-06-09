@@ -1,64 +1,120 @@
 <script lang="ts">
-	import { mapStyleStore } from '../store/state'
-	import { onMount } from 'svelte';
+    import { mapStyleStore } from '../store/state'
+    import { onMount } from 'svelte';
 
-	const { uri } = mapStyleStore;
+    const { uri } = mapStyleStore;
 
     let initialStylesURI = $uri
 
-	const changeStyles = () => {
-		if (initialStylesURI !== $uri) {
+    const changeStyles = () => {
+        if (initialStylesURI !== $uri) {
             initialStylesURI = $uri
             mapStyleStore.accepted_uri.update(() => initialStylesURI);
         }
-	};
+    };
 
-	onMount(() => {
-		console.log(`Mount styles form. Initial styles URL: '${$uri}'`)
-	});
+    onMount(() => {
+        console.log(`Mount styles form. Initial styles URL: '${$uri}'`)
+    });
 </script>
 
-<div class="styles-switch-container">
-	<form autocomplete="off">
-		<div class="styles-switch-form">
-			<div class="styles-switch-part row">
-				<div class="input-field">
-					<input bind:value={$uri} id="input_protocol" type="text" class="validate">
-					<label class="active" for="input_style_url">URI for Maptiler styles JSON</label>
-				</div>
-			</div>
-		</div>
-	</form>
-	<button
-		class="btn waves-effect waves-light btn-small red"
-		type="submit"
-		name="action"
-		on:click={changeStyles}>Switch</button
-	>
+<div class="styles-form">
+    <form autocomplete="off">
+        <div class="input-group">
+            <label for="input_style_url">Map Style URL</label>
+            <input 
+                bind:value={$uri} 
+                id="input_style_url" 
+                type="url" 
+                placeholder="https://api.maptiler.com/maps/..."
+            >
+            <div class="input-hint">
+                MapTiler style JSON URL for map appearance
+            </div>
+        </div>
+        <button type="button" class="action-btn" on:click={changeStyles}>
+            Apply Style
+        </button>
+    </form>
 </div>
 
 <style>
-	.styles-switch-container {
-		/* position: absolute; */
-		display: flex;
-		flex-direction: column;
-		right: 0;
-		border: 2px solid black;
-		width: 34rem;
-	}
+    .styles-form {
+        width: 100%;
+    }
 
-	.styles-switch-form {
-		background-color: rgb(240, 240, 240);
-		font-family: 'Roboto';
-		font-size: 1.5rem;
-		display: flex;
-		flex-direction: row;
-	}
+    .input-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
 
-	.styles-switch-part {
-		padding: 5px;
-		margin: 2px;
-		border: 2px solid black;
-		width: 100%;
-	}
+    .input-group label {
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .input-group input {
+        padding: 0.75rem;
+        border: 1px solid var(--border-primary);
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        transition: all 0.2s;
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        width: 100%;
+        min-width: 0; /* Allow shrinking */
+        box-sizing: border-box;
+    }
+
+    .input-group input:focus {
+        outline: none;
+        border-color: var(--accent-primary);
+        box-shadow: 0 0 0 3px rgba(var(--accent-primary-rgb), 0.1);
+    }
+
+    .input-group input::placeholder {
+        color: var(--text-secondary);
+        opacity: 0.7;
+    }
+
+    .input-hint {
+        font-size: 0.75rem;
+        color: var(--text-secondary);
+        font-style: italic;
+        opacity: 0.8;
+    }
+
+    .action-btn {
+        width: 100%;
+        padding: 0.75rem;
+        background: var(--success-primary);
+        color: white;
+        border: none;
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        box-sizing: border-box;
+    }
+
+    .action-btn:hover {
+        background: var(--success-hover);
+    }
+
+    .action-btn:active {
+        background: var(--success-hover);
+        transform: translateY(1px);
+    }
+
+    .action-btn:disabled {
+        background: var(--text-secondary);
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
 </style>

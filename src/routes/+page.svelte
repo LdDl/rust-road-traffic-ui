@@ -5,6 +5,7 @@
     import CanvasComponent from '../components/CanvasComponent.svelte'
     import Switchers from '../components/Switchers.svelte'
     import ConfigurationStorage from '../components/ConfigurationStorage.svelte';
+    import Toolbar from '../components/Toolbar.svelte';
     import { state, canvasReady, dataReady, canvasState, apiUrlStore, changeAPI } from '../store/state.js'
     import { type DrawCreateEvent, type DrawUpdateEvent } from "@mapbox/mapbox-gl-draw"
     import { dataStorage, addZoneFeature, updateDataStorage, clearDataStorage, resetZoneSpatialInfo } from '../store/data_storage'
@@ -16,9 +17,20 @@
 	import type { ZoneFeature, ZonesCollection } from '$lib/zones';
 	import { saveTOML } from '$lib/rest_api_mutations';
 	import { States, SubscriberState } from '$lib/states';
-
+    import "../style.css";
+    
     const { apiURL } = apiUrlStore
     let initialAPIURL = $apiURL
+
+    let isDragging = false;
+    let leftPanelWidth = 50;
+    let startX = 0;
+    let startWidth = 0;
+
+    let isHorizontalDragging = false;
+    let topPanelHeight = 80;
+    let startY = 0;
+    let startHeight = 0;
 
     let stateVariable: States;
     state.subscribe((value) => stateVariable = value)
@@ -104,7 +116,6 @@
 
     onMount(() => {
         console.log('Mounted page')
-        initializeMaterialize()
         initSubscribers(SubscriberState.Init)
 
         // Override DeleteClickedZone click event
@@ -167,18 +178,6 @@
         }
     }
 
-    const initializeMaterialize = () => {
-        const fixedButtons = document.querySelectorAll('.fixed-action-btn')
-        // @ts-ignore
-        const fixedButtonsInstances = M.FloatingActionButton.init(fixedButtons, {
-            direction: 'left',
-            hoverEnabled: false
-        })
-        const collapsibleElem = document.getElementById('collapsible-data')
-        // @ts-ignore
-        const collapsibleInstances = M.Collapsible.init(collapsibleElem, {})
-	}
-
     const resetCurrentCanvasDrawing = (extendedCanvas?: FabricCanvasWrap) => {
         if (!extendedCanvas) {
             console.warn('No canvas provided to reset current drawing')
@@ -232,6 +231,54 @@
             $draw.changeMode('simple_select');
         }
     }
+
+    /* Vertical Splitter Logic */
+    const startDrag = (e: MouseEvent) => {
+        isDragging = true;
+        startX = e.clientX;
+        startWidth = leftPanelWidth;
+        document.addEventListener('mousemove', handleDrag);
+        document.addEventListener('mouseup', stopDrag);
+        e.preventDefault();
+    };
+
+    const handleDrag = (e: MouseEvent) => {
+        if (!isDragging) return;
+        const deltaX = e.clientX - startX;
+        const containerWidth = window.innerWidth;
+        const deltaPercent = (deltaX / containerWidth) * 100;
+        leftPanelWidth = Math.max(20, Math.min(80, startWidth + deltaPercent));
+    };
+
+    const stopDrag = () => {
+        isDragging = false;
+        document.removeEventListener('mousemove', handleDrag);
+        document.removeEventListener('mouseup', stopDrag);
+    };
+
+    /* Horizontal Splitter Logic */
+    const startHorizontalDrag = (e: MouseEvent) => {
+        isHorizontalDragging = true;
+        startY = e.clientY;
+        startHeight = topPanelHeight;
+        document.addEventListener('mousemove', handleHorizontalDrag);
+        document.addEventListener('mouseup', stopHorizontalDrag);
+        e.preventDefault();
+    };
+
+    const handleHorizontalDrag = (e: MouseEvent) => {
+        if (!isHorizontalDragging) return;
+        const deltaY = e.clientY - startY;
+        const containerHeight = window.innerHeight - 60; // Subtract toolbar height
+        const deltaPercent = (deltaY / containerHeight) * 100;
+        topPanelHeight = Math.max(30, Math.min(85, startHeight + deltaPercent));
+    };
+
+    const stopHorizontalDrag = () => {
+        isHorizontalDragging = false;
+        document.removeEventListener('mousemove', handleHorizontalDrag);
+        document.removeEventListener('mouseup', stopHorizontalDrag);
+    };
 </script>
 
 <sveltekit:head>
@@ -241,41 +288,52 @@
 <svelte:window on:keydown={keyPress} />
 
 <div id="main-app">
-    <div class="fixed-action-btn horizontal click-to-toggle spin-close">
-        <!-- svelte-ignore a11y-missing-attribute -->
-        <a class="btn-floating btn-large red">
-            <i class="material-icons">edit</i>
-        </a>
-        <ul>
-            <li>
-                <!-- svelte-ignore a11y-click-events-have-key-events -->
-                <a id="add-btn" class="btn-floating green" on:click={stateAddToCanvas} title="Add zone to the canvas" aria-label="Add zone to the canvas" role="button" tabindex="0"><i class="material-icons">add</i></a>
-            </li>
-            <li>
-                <!-- svelte-ignore a11y-click-events-have-key-events -->
-                <a id="del-btn" class="btn-floating blue" on:click={stateDelFromCanvas} title="Delete zone from the canvas" aria-label="Delete zone from the canvas" role="button" tabindex="0"><i class="material-icons">delete</i></a>
-            </li>
-            <li>
-                <!-- svelte-ignore a11y-click-events-have-key-events -->
-                <a id="add-btn" class="btn-floating orange" on:click={stateAddToMap} title="Add zone to the map" aria-label="Add zone to the map" role="button" tabindex="0"><i class="material-icons">add_location</i></a>
-            </li>
-            <li>
-                <!-- svelte-ignore a11y-click-events-have-key-events -->
-                <a id="del-btn" class="btn-floating blue" on:click={stateDelFromMap} title="Delete zone from the map" aria-label="Delete zone from the map" role="button" tabindex="0"><i class="material-icons">location_off</i></a>
-            </li>
-            <li>
-                <!-- svelte-ignore a11y-click-events-have-key-events -->
-                <a id="save-btn" class="btn-floating grey" on:click={() => saveTOML(initialAPIURL, dataStorageFiltered)} title="Apply and save changes" aria-label="Apply and save changes" role="button" tabindex="0"><i class="material-icons">save</i></a>
-            </li>
-        </ul>
-    </div>
+    <Toolbar 
+        onAddToCanvas={stateAddToCanvas}
+        onDeleteFromCanvas={stateDelFromCanvas}
+        onAddToMap={stateAddToMap}
+        onDeleteFromMap={stateDelFromMap}
+        onSave={() => saveTOML(initialAPIURL, dataStorageFiltered)}
+    />
     <Switchers klass={canvasFocused || mapFocused ? 'blurred noselect' : ''}/>
-    <div id="main_workspace">
-        <div id="left_workspace">
+    <div id="main_workspace" style="grid-template-columns: {leftPanelWidth}% 2px {100 - leftPanelWidth}%;">
+        <div id="left_workspace" style="grid-template-rows: {topPanelHeight}% 2px {100 - topPanelHeight}%;">
             <CanvasComponent klass={!canvasFocused && mapFocused ? 'blurred noselect' : ''}/>
+            <div class="horizontal-splitter" 
+                class:dragging={isHorizontalDragging}
+                on:mousedown={startHorizontalDrag}
+                role="slider"
+                tabindex="0"
+                aria-label="Panel height"
+                aria-valuemin="30"
+                aria-valuemax="85"
+                aria-valuenow={topPanelHeight}
+                >
+                <div class="horizontal-splitter-handle">
+                    <div></div> <!-- top line -->
+                    <div></div> <!-- center line -->
+                    <div></div> <!-- bottom line -->
+                </div>
+            </div>
             <ConfigurationStorage dataReady={dataReady} data={dataStorageFiltered} klass={!($canvasReady) || (canvasFocused || mapFocused) ? 'blurred noselect' : ''}/>
             <div class="overlay" style="{!canvasFocused && mapFocused ? 'display: block;' : 'display: none;'}">
                 Press ESC to cancel '{cancelActionText !== undefined? cancelActionText : cancelActionUnexpected}' mode
+            </div>
+        </div>
+        <div class="splitter" 
+            class:dragging={isDragging}
+            on:mousedown={startDrag}
+            role="slider"
+            tabindex="0"
+            aria-label="Panel width"
+            aria-valuemin="20"
+            aria-valuemax="80"
+            aria-valuenow={leftPanelWidth}
+            >
+            <div class="splitter-handle">
+                <div></div> <!-- left line -->
+                <div></div> <!-- center line -->
+                <div></div> <!-- right line -->
             </div>
         </div>
         <div id="right_workspace">
@@ -292,10 +350,30 @@
 		margin: 0;
         padding: 0;
         font-family: 'Roboto';
+        height: 100vh;
+        overflow: hidden;
+        background-color: var(--bg-primary);
+        color: var(--text-primary);
+        transition: background-color 0.3s ease, color 0.3s ease;
 	}
 
-    #right_workspace, #left_workspace {
+    :global(html) {
+        height: 100%;
+    }
+
+    /* Dragging cursors */
+    :global(body.dragging) {
+        user-select: none;
+        cursor: col-resize !important;
+    }
+    :global(body.horizontal-dragging) {
+        user-select: none;
+        cursor: row-resize !important;
+    }
+
+    #right_workspace {
         position: relative;
+        overflow: hidden;
     }
     
     .overlay {
@@ -305,75 +383,147 @@
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
-        background-color: rgba(128, 128, 128, 0.8);
+        background-color: var(--bg-secondary);
+        color: var(--text-primary);
         padding: 0.66665rem;
         border-radius: 5px;
         pointer-events: none;
-    }
-
-    .fixed-action-btn.spin-close .btn-large {
-        position: relative;
-    }
-    .fixed-action-btn.spin-close .btn-large i {
-        opacity: 1;
-        transition: transform 0.3s, opacity 0.3s;
-    }
-    .fixed-action-btn.spin-close .btn-large:before {
-        transition: transform 0.3s, opacity 0.3s;
-        content: ' ';
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        width: 1.64rem;
-        height: 2px;
-        background: white;
-        margin-top: -2px;
-        margin-left: -0.82rem;
-        transform: rotate(0);
-        opacity: 0;
-    }
-    .fixed-action-btn.spin-close .btn-large:after {
-        transition: transform 0.3s, opacity 0.3s;
-        content: ' ' ;
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        width: 1.64rem;
-        height: 2px;
-        background: white;
-        margin-top: -2px;
-        margin-left: -0.82rem;
-        transform: rotate(0);
-        opacity: 0;
-    }
-    .fixed-action-btn.spin-close.active .btn-large i {
-        opacity: 0;
-    }
-    .fixed-action-btn.spin-close.active .btn-large:before {
-        opacity: 1;
-        transform: rotate(135deg);
-    }
-    .fixed-action-btn.spin-close.active .btn-large:after {
-        opacity: 1;
-        transform: rotate(405deg);
+        border: 1px solid var(--border-primary);
+        box-shadow: 0 4px 12px var(--shadow);
+        backdrop-filter: blur(10px);
+        opacity: 0.95;
+        font-weight: 500;
+        font-size: 0.875rem;
     }
 
     #main_workspace {
         display: grid;
-        grid-template-columns: 1fr 1fr;
-        height: 100%
+        height: 100%;
+        overflow: hidden;
+        flex: 1;
+        min-height: 0;
+    }
+
+    /* Vertical Splitter */
+    .splitter {
+        width: 2px;
+        background-color: var(--splitter-bg);
+        position: relative;
+        z-index: 10;
+        transition: background-color 0.3s ease;
+    }
+
+    .splitter::before {
+        content: '';
+        position: absolute;
+        left: -7px;
+        top: 0;
+        height: 100%;
+        width: 16px;
+        cursor: col-resize;
+        z-index: 15;
+    }
+
+    .splitter .splitter-handle {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 14px;
+        height: 20px;
+        transform: translate(-50%, -50%);
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        pointer-events: none;
+    }
+
+    .splitter .splitter-handle div {
+        width: 4px;
+        height: 38px;
+        background-color: var(--splitter-handle);
+        border: 1px solid var(--border-primary);
+        border-radius: 1px;
+        transition: background-color 0.3s ease, border-color 0.3s ease;
+    }
+
+    .splitter:hover .splitter-handle div {
+        background-color: var(--text-primary);
+        border-color: var(--text-secondary);
+    }
+
+    /* Horizontal Splitter */
+    .horizontal-splitter {
+        height: 2px;
+        background-color: var(--splitter-bg);
+        position: relative;
+        z-index: 10;
+        grid-area: splitter;
+        transition: background-color 0.3s ease;
+    }
+
+    .horizontal-splitter::before {
+        content: '';
+        position: absolute;
+        top: -7px;
+        left: 0;
+        width: 100%;
+        height: 16px;
+        cursor: row-resize;
+        z-index: 15;
+    }
+
+    .horizontal-splitter .horizontal-splitter-handle {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 20px;
+        height: 14px;
+        transform: translate(-50%, -50%);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        align-items: center;
+        pointer-events: none;
+    }
+
+    .horizontal-splitter .horizontal-splitter-handle div {
+        width: 38px;
+        height: 4px;
+        background-color: var(--splitter-handle);
+        border: 1px solid var(--border-primary);
+        border-radius: 1px;
+        transition: background-color 0.3s ease, border-color 0.3s ease;
+    }
+
+    .horizontal-splitter:hover .horizontal-splitter-handle div {
+        background-color: var(--text-primary);
+        border-color: var(--text-secondary);
+    }
+    
+    /* Dragging states for splitters */
+    .splitter.dragging,
+    .horizontal-splitter.dragging {
+        background-color: var(--accent-primary);
+    }
+
+    .splitter.dragging .splitter-handle div,
+    .horizontal-splitter.dragging .horizontal-splitter-handle div {
+        background-color: var(--accent-primary);
+        border-color: var(--accent-hover);
     }
 
     #left_workspace {
         width: 100%;
-        /* color: #ff00ff; */
-        background: #eeeeee;
+        background: var(--bg-secondary);
         display: grid;
         grid-auto-flow: row;
         grid-template-areas: 
             "A"
+            "splitter"
             "B";
-        grid-template-rows: 80% 20%;
+        overflow: hidden;
+        min-height: 0;
     }
 
     .custom-container-canvas {
@@ -390,6 +540,14 @@
         cursor: move;
     }
 
+    #main-app {
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        background: var(--bg-primary);
+    }
+    
     /* #main-app > #main_workspace > *:not(.map-wrap) {
         background: #ffd83c;
         filter: blur(3px);
@@ -399,6 +557,7 @@
         /* background: #ffd83c; */
         filter: blur(3px);
         cursor: not-allowed !important;
+        transition: filter 0.3s ease;
     }
     .blurred div{
         pointer-events: none;
