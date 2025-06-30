@@ -35,7 +35,7 @@
 	"dependencies": {
 		"@fontsource/roboto": "^5.2.6",
 		"@mapbox/mapbox-gl-draw": "^1.5.0",
-		"@tailwindcss/vite": "^4.1.10",
+		"@tailwindcss/vite": "^4.1.11",
 		"axios": "^1.10.0",
 		"daisyui": "^5.0.43",
 		"eslint-plugin-svelte": "^3.9.3",
