@@ -39,7 +39,7 @@
 		"axios": "^1.10.0",
 		"daisyui": "^5.0.46",
 		"eslint-plugin-svelte": "^3.11.0",
-		"fabric": "^6.7.0",
+		"fabric": "^6.7.1",
 		"geojson": "^0.5.0",
 		"maplibre-gl": "^5.6.1",
 		"material-icons": "^1.13.14",
