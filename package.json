@@ -18,7 +18,7 @@
 		"@sveltejs/kit": "^2.26.1",
 		"@types/fabric": "^5.3.7",
 		"@types/mapbox__mapbox-gl-draw": "^1.4.9",
-		"@typescript-eslint/eslint-plugin": "^8.36.0",
+		"@typescript-eslint/eslint-plugin": "^8.39.0",
 		"@typescript-eslint/parser": "^8.35.1",
 		"eslint": "^9.31.0",
 		"eslint-config-prettier": "^10.1.8",
