@@ -24,7 +24,7 @@
 		"eslint-config-prettier": "^10.1.8",
 		"prettier": "^3.6.2",
 		"prettier-plugin-svelte": "^3.3.3",
-		"svelte": "^5.38.6",
+		"svelte": "^5.38.7",
 		"svelte-check": "^4.3.1",
 		"svelte-preprocess": "^6.0.3",
 		"tslib": "^2.8.1",
