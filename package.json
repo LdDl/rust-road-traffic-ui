@@ -41,7 +41,7 @@
 		"eslint-plugin-svelte": "^3.11.0",
 		"fabric": "^6.7.1",
 		"geojson": "^0.5.0",
-		"maplibre-gl": "^5.7.0",
+		"maplibre-gl": "^5.7.1",
 		"material-icons": "^1.13.14",
 		"materialize-css": "^1.0.0",
 		"tailwindcss": "^4.1.12"
