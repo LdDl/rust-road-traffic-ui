@@ -33,7 +33,7 @@
 	},
 	"type": "module",
 	"dependencies": {
-		"@fontsource/roboto": "^5.2.6",
+		"@fontsource/roboto": "^5.2.8",
 		"@mapbox/mapbox-gl-draw": "^1.5.0",
 		"@tailwindcss/vite": "^4.1.13",
 		"axios": "^1.12.2",
