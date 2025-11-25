@@ -34,7 +34,7 @@
 	"type": "module",
 	"dependencies": {
 		"@fontsource/roboto": "^5.2.8",
-		"@mapbox/mapbox-gl-draw": "^1.5.0",
+		"@mapbox/mapbox-gl-draw": "^1.5.1",
 		"@tailwindcss/vite": "^4.1.17",
 		"axios": "^1.13.2",
 		"daisyui": "^5.5.5",
