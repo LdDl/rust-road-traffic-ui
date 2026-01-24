@@ -53,7 +53,7 @@ export const polygonPositionHandler = function (this: any, dim: Point, finalMatr
 
 export const actionHandler = function (eventData: TPointerEvent, transform: any, x: number, y: number) {
     let polygon = transform.target;
-    let currentControl = polygon.controls[polygon.__corner];
+    let currentControl = polygon.controls[transform.corner];
 
     // Use util.transformPoint instead of toLocalPoint
     const pt = new Point(x, y)

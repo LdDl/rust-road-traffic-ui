@@ -99,10 +99,7 @@
         canvasElem.width = imageElem.clientWidth
         canvasElem.height = imageElem.clientHeight
         const fbCanvas = new ExtendedCanvas('fit_canvas', {
-            containerClass: 'custom-container-canvas',
-            fireRightClick: true,  
-            fireMiddleClick: true, 
-            stopContextMenu: true
+            containerClass: 'custom-container-canvas'
         })
         fbCanvas.scaleWidth = imageElem.clientWidth/imageElem.naturalWidth
         fbCanvas.scaleHeight = imageElem.clientHeight/imageElem.naturalHeight
@@ -118,6 +115,11 @@
             resizeObserver.observe(imageElem);
         }
         window.addEventListener('resize', handleResize);
+
+        // FabricJS 7 changed default origin from left/top to center/center
+        // Restore old behavior for backward compatibility
+        FabricObject.ownDefaults.originX = 'left';
+        FabricObject.ownDefaults.originY = 'top';
 
         if (!FabricObject.prototype.controls) {
             FabricObject.prototype.controls = {};
