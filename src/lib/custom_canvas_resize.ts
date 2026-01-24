@@ -50,10 +50,11 @@ export function resizeCanvas(canvasState: FabricCanvasWrap): void {
 
     // Update canvas
     canvasState.discardActiveObject();
-    canvasState.setWidth(canvasState.getWidth() * scaleX);
-    canvasState.setHeight(canvasState.getHeight() * scaleY);
+    canvasState.setDimensions({
+        width: canvasState.getWidth() * scaleX,
+        height: canvasState.getHeight() * scaleY
+    });
     canvasState.scaleWidth = newWidth / imageElem.naturalWidth;
     canvasState.scaleHeight = newHeight / imageElem.naturalHeight;
     canvasState.renderAll();
-    canvasState.calcOffset();
 }
