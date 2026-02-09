@@ -37,7 +37,7 @@
 		"@fontsource/roboto": "^5.2.9",
 		"@mapbox/mapbox-gl-draw": "^1.5.1",
 		"@tailwindcss/vite": "^4.1.18",
-		"axios": "^1.13.3",
+		"axios": "^1.13.5",
 		"daisyui": "^5.5.16",
 		"eslint-plugin-svelte": "^3.14.0",
 		"fabric": "^7.1.0",
