@@ -39,7 +39,7 @@
 		"@tailwindcss/vite": "^4.1.18",
 		"axios": "^1.13.5",
 		"daisyui": "^5.5.18",
-		"eslint-plugin-svelte": "^3.14.0",
+		"eslint-plugin-svelte": "^3.15.0",
 		"fabric": "^7.1.0",
 		"geojson": "^0.5.0",
 		"maplibre-gl": "^5.17.0",
