@@ -45,6 +45,6 @@
 		"maplibre-gl": "^5.17.0",
 		"material-icons": "^1.13.14",
 		"materialize-css": "^1.0.0",
-		"tailwindcss": "^4.1.18"
+		"tailwindcss": "^4.2.1"
 	}
 }
