@@ -57,7 +57,7 @@ const lineControlHandler = (eventData: TPointerEvent, transformData: Transform, 
     prepareVirtualLine(targetContour, false, {
         geometry: [[L1.x, L1.y], [L2.x, L2.y]],
         color_rgb: rgba2array(targetContour.stroke?.toString() || undefined),
-        direction: DirectionType.LeftRightTopBottom
+        direction: DirectionType.Inbound
     })
 
     return true

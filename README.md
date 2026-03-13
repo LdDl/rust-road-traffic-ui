@@ -12,7 +12,7 @@ It's just simple UI for toy utility for monitoring road traffic from video - htt
 
 W.I.P.
 
-<video src='https://github.com/user-attachments/assets/49fcc355-c05f-4847-961f-13a4abb1b0a6' width="720px"></video>
+<video src='https://github.com/user-attachments/assets/871b3d60-9f98-4ef1-9079-22a9d257049b' width="720px"></video>
 
 Current state of UI: pretty ugly code since I'm not familiar with Svelte enough.
 

@@ -1,4 +1,4 @@
-import { Line, Group, Point, IText, FabricText, util, Shadow, } from "fabric";
+import { Line, Group, Point, IText, FabricText, util, Shadow, Polygon } from "fabric";
 import type { FabricObject } from "fabric";
 import type {
     TOptions,
@@ -21,7 +21,7 @@ interface LineWrapOne {
     calcCurrentPoints(): [Point, Point],
 }
 
-class CustomLineOne extends Line implements LineWrapOne {
+export class CustomLineOne extends Line implements LineWrapOne {
     constructor(points: [number, number, number, number], options?: Partial<TOptions<FabricObjectProps>>) {
         super(points, options);
     }
@@ -57,11 +57,107 @@ export class CustomLineGroup extends Group implements GroupWrap {
         const finalOptions = options || {};
         super(objects, finalOptions);
         this.segment_object_idx = 0
-        this.direction = DirectionType.LeftRightTopBottom
+        this.direction = DirectionType.Inbound
         this.current_points = [[0, 0], [0, 0]]
         this.color_rgb = [0, 0, 0]
         this.type = TYPE_VIRTUAL_LINE_GROUP
     }
+}
+
+interface DirectionArrowParams {
+    L1: Point;
+    L2: Point;
+    direction: DirectionType;
+    color: string;
+    shadow?: Shadow;
+}
+
+export function createDirectionArrow(params: DirectionArrowParams): Group {
+    const { L1, L2, direction, color, shadow } = params;
+
+    // Calculate midpoint
+    const midX = (L1.x + L2.x) / 2.0;
+    const midY = (L1.y + L2.y) / 2.0;
+
+    // Calculate line vector
+    const dx = L2.x - L1.x;
+    const dy = L2.y - L1.y;
+
+    // Calculate perpendicular vector based on direction
+    const arrowLength = 30;
+    let perpX: number, perpY: number;
+
+    if (direction === DirectionType.Inbound) {
+        // Clockwise rotation: (dy, -dx)
+        // Arrow points to target side (inbound crossing direction)
+        perpX = dy;
+        perpY = -dx;
+    } else { // DirectionType.Outbound
+        // Counterclockwise rotation: (-dy, dx)
+        // Arrow points to target side (outbound crossing direction)
+        perpX = -dy;
+        perpY = dx;
+    }
+
+    // Normalize perpendicular vector
+    const perpMag = Math.sqrt(perpX * perpX + perpY * perpY);
+    const normPerpX = (perpX / perpMag) * arrowLength;
+    const normPerpY = (perpY / perpMag) * arrowLength;
+
+    // Arrow endpoint
+    const arrowEndX = midX + normPerpX;
+    const arrowEndY = midY + normPerpY;
+
+    // Create arrow shaft
+    const shaft = new Line([midX, midY, arrowEndX, arrowEndY], {
+        stroke: color,
+        strokeWidth: 2.5,
+        strokeUniform: true,
+        objectCaching: false,
+        selectable: false,
+        evented: false
+    });
+
+    // Create arrowhead
+    // Height of triangle
+    const headLength = 12;
+
+    // Calculate arrowhead points (triangle pointing away from midpoint)
+    const angle = Math.atan2(normPerpY, normPerpX);
+    const tipX = arrowEndX;
+    const tipY = arrowEndY;
+
+    // Base points at ~153 degrees angle from tip
+    const baseAngle1 = angle + Math.PI * 0.85;
+    const baseAngle2 = angle - Math.PI * 0.85;
+
+    const base1X = tipX + headLength * Math.cos(baseAngle1);
+    const base1Y = tipY + headLength * Math.sin(baseAngle1);
+    const base2X = tipX + headLength * Math.cos(baseAngle2);
+    const base2Y = tipY + headLength * Math.sin(baseAngle2);
+
+    const arrowhead = new Polygon([
+        { x: tipX, y: tipY },
+        { x: base1X, y: base1Y },
+        { x: base2X, y: base2Y }
+    ], {
+        fill: color,
+        stroke: color,
+        strokeWidth: 1,
+        strokeUniform: true,
+        objectCaching: false,
+        selectable: false,
+        evented: false
+    });
+
+    // Group shaft and head
+    const arrowGroup = new Group([shaft, arrowhead], {
+        objectCaching: false,
+        selectable: false,
+        evented: false
+    });
+
+    return arrowGroup;
 }
 
 export function prepareVirtualLine(targetContour: CustomPolygon, givenByAPI: boolean, props: VirtualLineProps) {
@@ -98,53 +194,20 @@ export function prepareVirtualLine(targetContour: CustomPolygon, givenByAPI: boo
         shadow: shadow
     })
 
-    /* Arrow part */
-    const textArrowsProps = {
-        fontWeight: 'bold',
-        fontSize: 42
-    }
-    const midPoint = new Point((L1Canvas.x + L2Canvas.x) / 2.0, (L1Canvas.y + L2Canvas.y) / 2.0)
+    /* Direction arrow indicator - perpendicular to line */
     const textShadow = new Shadow({
         color: 'rgba(255, 255, 255, 0.7)',
         blur: 10,
         offsetX: 0,
         offsetY: 0
     });
-    // IText is used here just in case
-    const directionText = new IText(DirectionType.toString(props.direction), {
-        left: midPoint.x - 20,
-        top: midPoint.y,
-        fontSize: 18,
-        fontFamily: 'Roboto',
-        fill: targetContour.stroke,
-        shadow: textShadow,
-        stroke: 'rgb(0, 0, 0)',
-        strokeWidth: 0.9,
-        objectCaching: false,
-        // https://www.tutorialspoint.com/how-to-set-the-style-of-individual-characters-in-itext-using-fabricjs
-        // http://fabricjs.com/docs/IText.html
-        // Object containing character styles - top-level properties -> line numbers, 2nd-level properties - character numbers
-        styles: {
-            0: {
-                0: textArrowsProps,
-                1: textArrowsProps
-            }
-        }
+    const directionArrow = createDirectionArrow({
+        L1: L1Canvas,
+        L2: L2Canvas,
+        direction: props.direction,
+        color: targetContour.stroke || 'rgb(255, 0, 0)',
+        shadow: shadow
     });
-    /* Do we need full Arrow class implementation in future? */
-    // const dist = 30
-    // const perpendicularDist = dist + 10
-    // const [p1, p2] = perpendicularToVectorByMidpoint(L1Canvas, L2Canvas, perpendicularDist)
-    // const arrow = new Line([p1.x, p1.y, p2.x, p2.y], {
-    //     stroke: targetContour.stroke,
-    //     strokeWidth: 5,
-    //     strokeDashArray: [5],
-    //     strokeUniform: true,
-    //     objectCaching: false,
-    //     shadow: shadow,
-    //     selectable: false
-    // })
-    /* */
     /* Denote line vertices */
     const L1Text = new FabricText("L1", {
         left: L1Canvas.x - 5,
@@ -170,7 +233,7 @@ export function prepareVirtualLine(targetContour: CustomPolygon, givenByAPI: boo
     });
     /* */
 
-    const virtLineGroup = new CustomLineGroup([segment, directionText, L1Text, L2Text], {
+    const virtLineGroup = new CustomLineGroup([segment, directionArrow, L1Text, L2Text], {
         strokeUniform: true,
         objectCaching: false, // For real-time rendering updates
         isAlreadyGrouped: true
@@ -228,6 +291,12 @@ export function prepareVirtualLine(targetContour: CustomPolygon, givenByAPI: boo
             iTextObject.set('scaleX', scaleX)
             iTextObject.set('scaleY', scaleY)
         })
+        // Keep arrow at constant visual size
+        const arrowObject = targetGroupObject.getObjects()[1];
+        if (arrowObject && arrowObject.isType('Group')) {
+            arrowObject.set('scaleX', scaleX);
+            arrowObject.set('scaleY', scaleY);
+        }
     })
 
     virtLineGroup.on('rotating', function(options: BasicTransformEvent<TPointerEvent>) {
@@ -254,6 +323,7 @@ export function prepareVirtualLine(targetContour: CustomPolygon, givenByAPI: boo
         iTextObjects.forEach((iTextObject) => {
             iTextObject.rotate(angle)
         })
+        // Arrow rotates naturally with the group (no counter-rotation needed)
     })
 
     virtLineGroup.on('modified', (options: ModifiedEvent<TPointerEvent>) => {

@@ -1,9 +1,9 @@
-import { Control, util, FabricObject } from "fabric";
+import { Control, util, FabricObject, Point } from "fabric";
 import type {
     Transform,
     TPointerEvent
 } from "fabric";
-import { CustomLineGroup } from "./custom_line";
+import { CustomLineGroup, CustomLineOne, createDirectionArrow } from "./custom_line";
 import { DirectionType } from "./zones";
 
 // http://fabricjs.com/custom-control-render
@@ -26,14 +26,38 @@ const changeDirectionControlHandler = (eventData: TPointerEvent, transformData: 
         console.error('Empty parent contour. Event: change_direction_control. Transform data:', transformData)
         return false
     }
-    targetObject.direction = targetObject.direction === DirectionType.LeftRightTopBottom ? DirectionType.RightLeftBottomTop : DirectionType.LeftRightTopBottom
-    // Source group has 4 objects: [segment, directionText, L1Text, L2Text]
-    const directionTextObject = targetObject.getObjects()[1];
-    if (!directionTextObject.isType('IText')) {
-        console.error('Unhandled object. Should be fabric.IText at position #1 Event: change_direction_control. Transform data:', transformData)
+    targetObject.direction = targetObject.direction === DirectionType.Inbound ? DirectionType.Outbound : DirectionType.Inbound
+
+    // Source group has 4 objects: [segment, directionArrow, L1Text, L2Text]
+    const segmentObject = targetObject.getObjects()[0];
+    if (!(segmentObject instanceof CustomLineOne)) {
+        console.error('Unhandled object. Should be CustomLineOne at position #0. Event: change_direction_control. Transform data:', transformData)
         return false
     }
-    directionTextObject.set('text', DirectionType.toString(targetObject.direction))
+
+    const directionArrowGroup = targetObject.getObjects()[1];
+    if (!directionArrowGroup.isType('Group')) {
+        console.error('Unhandled object. Should be fabric.Group at position #1. Event: change_direction_control. Transform data:', transformData)
+        return false
+    }
+
+    // Get line endpoints from segment
+    const segmentPoints = segmentObject.calcCurrentPoints();
+    const L1 = new Point(segmentPoints[0].x, segmentPoints[0].y);
+    const L2 = new Point(segmentPoints[1].x, segmentPoints[1].y);
+
+    // Recreate arrow with new direction
+    const newArrow = createDirectionArrow({
+        L1: L1,
+        L2: L2,
+        direction: targetObject.direction,
+        color: segmentObject.stroke || 'rgb(255, 0, 0)',
+        shadow: segmentObject.shadow
+    });
+
+    // Replace old arrow in group
+    targetObject.remove(directionArrowGroup);
+    targetObject.insertAt(1, newArrow);
     targetObject.parentContour.fire('virtial_line:modified', { target: targetObject.parentContour });
     targetObject.canvas?.renderAll() // Force call of render
     return true
