@@ -26,7 +26,7 @@ const changeDirectionControlHandler = (eventData: TPointerEvent, transformData: 
         console.error('Empty parent contour. Event: change_direction_control. Transform data:', transformData)
         return false
     }
-    targetObject.direction = targetObject.direction === DirectionType.LeftRightTopBottom ? DirectionType.RightLeftBottomTop : DirectionType.LeftRightTopBottom
+    targetObject.direction = targetObject.direction === DirectionType.Inbound ? DirectionType.Outbound : DirectionType.Inbound
 
     // Source group has 4 objects: [segment, directionArrow, L1Text, L2Text]
     const segmentObject = targetObject.getObjects()[0];

@@ -57,7 +57,7 @@ export class CustomLineGroup extends Group implements GroupWrap {
         const finalOptions = options || {};
         super(objects, finalOptions);
         this.segment_object_idx = 0
-        this.direction = DirectionType.LeftRightTopBottom
+        this.direction = DirectionType.Inbound
         this.current_points = [[0, 0], [0, 0]]
         this.color_rgb = [0, 0, 0]
         this.type = TYPE_VIRTUAL_LINE_GROUP
@@ -87,14 +87,16 @@ export function createDirectionArrow(params: DirectionArrowParams): Group {
     const arrowLength = 30;
     let perpX: number, perpY: number;
 
-    if (direction === DirectionType.LeftRightTopBottom) {
-        // Counterclockwise rotation: (-dy, dx)
-        perpX = -dy;
-        perpY = dx;
-    } else {
+    if (direction === DirectionType.Inbound) {
         // Clockwise rotation: (dy, -dx)
+        // Arrow points to target side (inbound crossing direction)
         perpX = dy;
         perpY = -dx;
+    } else { // DirectionType.Outbound
+        // Counterclockwise rotation: (-dy, dx)
+        // Arrow points to target side (outbound crossing direction)
+        perpX = -dy;
+        perpY = dx;
     }
 
     // Normalize perpendicular vector
