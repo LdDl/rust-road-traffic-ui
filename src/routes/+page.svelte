@@ -17,7 +17,7 @@
 	import type { ZoneFeature, ZonesCollection } from '$lib/zones';
 	import { saveTOML } from '$lib/rest_api_mutations';
 	import { States, SubscriberState } from '$lib/states';
-	import { updateVertexLabels, clearAllVertexLabels } from '$lib/vertex_labels';
+	import { bindVertexLabels, unbindVertexLabels, clearAllVertexLabels } from '$lib/vertex_labels';
     import "../style.css";
     
     const { apiURL } = apiUrlStore
@@ -45,10 +45,6 @@
     $: mapFocused = (stateVariable === States.AddingZoneMap || stateVariable === States.DeletingZoneMap)
     $: dataStorageAll = [...$dataStorage].filter((element) => element[1].id)
     $: dataStorageLinked = dataStorageAll.filter((element) => element[1].properties.spatial_object_id)
-    // Update vertex labels A/B/C/D on map whenever dataStorage changes
-    $: if ($map && $dataStorage) {
-        updateVertexLabels($map, $dataStorage);
-    }
 
     const cancelActionTexts: Map<States, string> = new Map([
         [States.AddingZoneCanvas, 'Adding zone to the canvas'],
@@ -156,6 +152,7 @@
         }
         
         mapComponent.attachDraw($draw)
+        bindVertexLabels($map, $draw)
         $map.on("draw.create", function(e: DrawCreateEvent) {
             e.features[0].properties = {
                 color_rgb_str: EMPTY_POLYGON_RGB,
@@ -182,6 +179,7 @@
         console.log('Destroyed')
         canvasReady.set(false)
         dataReady.set(false)
+        unbindVertexLabels()
         unsubscribeCanvas()
         unsubscribeGeoData()
         unsubApiChange()
