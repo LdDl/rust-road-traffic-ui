@@ -28,6 +28,9 @@
                                 </g>
                             </svg>
                             <span class="zone-title">Zone {element.id}</span>
+                            {#if !element.properties.spatial_object_id}
+                                <span class="zone-badge not-linked">Not linked</span>
+                            {/if}
                             <span class="zone-status">{element.properties.virtual_line ? '• Has virtual line' : '• No virtual line'}</span>
                         </div>
                         <span class="expand-arrow">{expandedZones[k] ? '▼' : '▶'}</span>
@@ -156,6 +159,22 @@
     .zone-title {
         font-weight: 600;
         color: var(--text-primary);
+    }
+
+    .zone-badge {
+        font-size: 10px;
+        font-weight: 600;
+        padding: 1px 6px;
+        border-radius: 3px;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        flex-shrink: 0;
+    }
+
+    .zone-badge.not-linked {
+        background: var(--warning-bg, #fef3c7);
+        color: var(--warning-text, #92400e);
+        border: 1px solid var(--warning-border, #fcd34d);
     }
 
     .zone-status {

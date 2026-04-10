@@ -42,9 +42,8 @@
     let unsubscribeGeoData: Unsubscriber
     $: canvasFocused = (stateVariable === States.AddingZoneCanvas || stateVariable === States.DeletingZoneCanvas)
     $: mapFocused = (stateVariable === States.AddingZoneMap || stateVariable === States.DeletingZoneMap)
-    $: dataStorageFiltered = [...$dataStorage].filter((element)=> {
-        return (element[1].id && element[1].properties.spatial_object_id)
-    })
+    $: dataStorageAll = [...$dataStorage].filter((element) => element[1].id)
+    $: dataStorageLinked = dataStorageAll.filter((element) => element[1].properties.spatial_object_id)
 
     const cancelActionTexts: Map<States, string> = new Map([
         [States.AddingZoneCanvas, 'Adding zone to the canvas'],
@@ -305,7 +304,7 @@
         onDeleteFromCanvas={stateDelFromCanvas}
         onAddToMap={stateAddToMap}
         onDeleteFromMap={stateDelFromMap}
-        onSave={() => saveTOML(initialAPIURL, dataStorageFiltered)}
+        onSave={() => saveTOML(initialAPIURL, dataStorageLinked)}
     />
     <Switchers klass={canvasFocused || mapFocused ? 'blurred noselect' : ''}/>
     <div id="main_workspace" style="grid-template-columns: {leftPanelWidth}% 2px {100 - leftPanelWidth}%;">
@@ -327,7 +326,7 @@
                     <div></div> <!-- bottom line -->
                 </div>
             </div>
-            <ConfigurationStorage dataReady={dataReady} data={dataStorageFiltered} klass={!($canvasReady) || (canvasFocused || mapFocused) ? 'blurred noselect' : ''}/>
+            <ConfigurationStorage dataReady={dataReady} data={dataStorageAll} klass={!($canvasReady) || (canvasFocused || mapFocused) ? 'blurred noselect' : ''}/>
             <div class="overlay" style="{!canvasFocused && mapFocused ? 'display: block;' : 'display: none;'}">
                 Press ESC to cancel '{cancelActionText !== undefined? cancelActionText : cancelActionUnexpected}' mode
             </div>
