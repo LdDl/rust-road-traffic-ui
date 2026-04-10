@@ -306,11 +306,11 @@
         display: none;
     }
 
-    /* Compact mode (mobile/tablet <=1024px) - positioned above tab bar */
+    /* Compact mode (mobile/tablet <=1024px) - centered in work area (below tab bar ~50px) */
     .toolbar-side.compact {
-        top: auto;
-        bottom: 60px;
-        transform: none;
+        top: calc(50% + 25px);
+        bottom: auto;
+        transform: translateY(-50%);
     }
 
     .compact .toolbar-separator {
