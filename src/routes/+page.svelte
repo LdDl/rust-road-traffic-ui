@@ -529,11 +529,12 @@
     }
 
     #left_workspace {
+        position: relative;
         width: 100%;
         background: var(--bg-secondary);
         display: grid;
         grid-auto-flow: row;
-        grid-template-areas: 
+        grid-template-areas:
             "A"
             "splitter"
             "B";
