@@ -90,62 +90,85 @@
             });
             
             const clickedFeature = [...$dataStorage].find((f) => f[1].properties.spatial_object_id === mapFeature.id)?.[1]
-            
+
+            // Get current polygon vertex coordinates
+            const polyGeom = mapFeature.geometry as Polygon;
+            const ring = polyGeom?.coordinates?.[0] || [];
+            const vertexLabels = ['A', 'B', 'C', 'D'];
+            const vertices = vertexLabels.map((label, i) => {
+                const coord = ring[i];
+                return {
+                    label,
+                    lng: coord && isFinite(coord[0]) ? coord[0] : '',
+                    lat: coord && isFinite(coord[1]) ? coord[1] : '',
+                };
+            });
+
             const popupContent = `
                 <div class="popup-container" data-theme="${$theme}">
-                    <div class="popup-header">
-                        <h3 class="popup-title">Zone Configuration</h3>
-                    </div>
-                    
-                    <div class="popup-content">
-                        <div class="form-control w-full">
-                            <label class="label">
-                                <span class="label-text">Attach canvas polygons</span>
-                            </label>
-                            <div class="custom-select-wrapper">
-                                <div class="custom-select-trigger" id="select-trigger">
-                                    <div class="selected-option">
-                                        <div class="selected-color" id="selected-color" style="display: none;"></div>
-                                        <span class="selected-text" id="selected-text">Pick up polygon</span>
-                                    </div>
-                                    <i class="material-icons dropdown-arrow">expand_more</i>
-                                </div>
-                                <div class="custom-select-dropdown" id="select-dropdown">
-                                    ${polygonOptions.map(option => `
-                                        <div class="custom-option" data-value="${option.id}" data-color="${option.color}">
-                                            <div class="option-color" style="background-color: ${option.color};"></div>
-                                            <span class="option-text">${option.label}</span>
+                    <div class="popup-main" id="popup-main">
+                        <div class="popup-header">
+                            <h3 class="popup-title">Zone Configuration</h3>
+                            <button class="popup-close-btn" id="popup-close-btn" type="button">
+                                <i class="material-icons">close</i>
+                            </button>
+                        </div>
+
+                        <div class="popup-content">
+                            <div class="form-control w-full">
+                                <label class="label">
+                                    <span class="label-text">Attach canvas polygons</span>
+                                </label>
+                                <div class="custom-select-wrapper">
+                                    <div class="custom-select-trigger" id="select-trigger">
+                                        <div class="selected-option">
+                                            <div class="selected-color" id="selected-color" style="display: none;"></div>
+                                            <span class="selected-text" id="selected-text">Pick up polygon</span>
                                         </div>
-                                    `).join('')}
+                                        <i class="material-icons dropdown-arrow">expand_more</i>
+                                    </div>
+                                    <div class="custom-select-dropdown" id="select-dropdown">
+                                        ${polygonOptions.map(option => `
+                                            <div class="custom-option" data-value="${option.id}" data-color="${option.color}">
+                                                <div class="option-color" style="background-color: ${option.color};"></div>
+                                                <span class="option-text">${option.label}</span>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                    <input type="hidden" id="select-canvas" value="">
                                 </div>
-                                <input type="hidden" id="select-canvas" value="">
                             </div>
+
+                            <div class="form-control w-full">
+                                <label class="label">
+                                    <span class="label-text">Direction value</span>
+                                </label>
+                                <input
+                                    value="${clickedFeature ? clickedFeature.properties?.road_lane_direction : -1}"
+                                    id="lane-direction"
+                                    type="number"
+                                    class="input input-bordered w-full"
+                                >
+                            </div>
+
+                            <div class="form-control w-full">
+                                <label class="label">
+                                    <span class="label-text">Lane</span>
+                                </label>
+                                <input
+                                    value="${clickedFeature ? clickedFeature.properties?.road_lane_num : -1}"
+                                    id="lane-number"
+                                    type="number"
+                                    class="input input-bordered w-full"
+                                >
+                            </div>
+
+                            <button id="toggle-coords-btn" class="toggle-coords-btn" type="button">
+                                <i class="material-icons" id="toggle-coords-icon">chevron_right</i>
+                                Edit coordinates
+                            </button>
                         </div>
-                        
-                        <div class="form-control w-full">
-                            <label class="label">
-                                <span class="label-text">Direction value</span>
-                            </label>
-                            <input 
-                                value="${clickedFeature ? clickedFeature.properties?.road_lane_direction : -1}" 
-                                id="lane-direction" 
-                                type="number" 
-                                class="input input-bordered w-full"
-                            >
-                        </div>
-                        
-                        <div class="form-control w-full">
-                            <label class="label">
-                                <span class="label-text">Lane</span>
-                            </label>
-                            <input 
-                                value="${clickedFeature ? clickedFeature.properties?.road_lane_num : -1}" 
-                                id="lane-number" 
-                                type="number" 
-                                class="input input-bordered w-full"
-                            >
-                        </div>
-                        
+
                         <div class="form-actions">
                             <button id="attach-canvas-btn" class="btn btn-primary btn-sm">
                                 <i class="material-icons">save</i>
@@ -153,18 +176,48 @@
                             </button>
                         </div>
                     </div>
+
+                    <div class="coords-side-panel" id="coords-slide">
+                        <div class="coords-side-header">
+                            <span class="coords-side-title">Coordinates</span>
+                        </div>
+                        <div class="coords-side-body">
+                            <div class="coords-col-headers">
+                                <span class="coords-spacer"></span>
+                                <span class="coords-col-label">Longitude</span>
+                                <span class="coords-col-label">Latitude</span>
+                            </div>
+                            ${vertices.map((v, i) => `
+                                <div class="coords-row">
+                                    <span class="coords-point-label">${v.label}</span>
+                                    <input type="number" step="any" placeholder="0.000000" value="${v.lng}" id="coord-lng-${i}" class="coords-input">
+                                    <input type="number" step="any" placeholder="0.000000" value="${v.lat}" id="coord-lat-${i}" class="coords-input">
+                                </div>
+                            `).join('')}
+                            <button id="save-coords-btn" class="save-coords-btn" type="button">
+                                Save coordinates
+                            </button>
+                        </div>
+                    </div>
                 </div>
             `
             
-            new maplibregl.Popup({ 
+            const popup = new maplibregl.Popup({
                 className: "themed-popup",
-                closeButton: true,
-                closeOnClick: false
+                closeButton: false,
+                closeOnClick: false,
+                maxWidth: 'none'
             })
                 .setLngLat(e.lngLat)
                 .setHTML(popupContent)
                 .addTo($map);
                 
+            // Close button
+            const popupCloseBtn = document.getElementById('popup-close-btn');
+            if (popupCloseBtn) {
+                popupCloseBtn.addEventListener('click', () => popup.remove());
+            }
+
             // Setup custom dropdown functionality
             const selectTrigger = document.getElementById("select-trigger");
             const selectDropdown = document.getElementById("select-dropdown");
@@ -210,7 +263,7 @@
             Array.from($dataStorage.values()).some(element => {
                 if (element.properties.spatial_object_id === mapFeature.id) {
                     const value = element.id ?? 'No canvas ID';
-                    const color = element.properties.color_rgb_str;
+                    const color = element.properties.color_rgb_str ?? '#666';
                     hiddenInput.value = value;
                     selectedColor.style.backgroundColor = color;
                     selectedColor.style.display = 'block';
@@ -219,6 +272,49 @@
                 }
             });
             
+            // Toggle coordinates slide
+            const toggleBtn = document.getElementById('toggle-coords-btn');
+            const coordsSlide = document.getElementById('coords-slide');
+            const toggleIcon = document.getElementById('toggle-coords-icon');
+            const popupMain = document.getElementById('popup-main');
+            if (toggleBtn && coordsSlide && toggleIcon && popupMain) {
+                toggleBtn.addEventListener('click', () => {
+                    const isOpen = coordsSlide.classList.toggle('open');
+                    toggleIcon.textContent = isOpen ? 'chevron_left' : 'chevron_right';
+                    popupMain.classList.toggle('side-open', isOpen);
+                });
+            }
+
+            // Save coordinates
+            const saveCoordsBtn = document.getElementById('save-coords-btn');
+            if (saveCoordsBtn) {
+                saveCoordsBtn.addEventListener('click', () => {
+                    const coords: number[][] = [];
+                    for (let i = 0; i < 4; i++) {
+                        const lngEl = <HTMLInputElement>document.getElementById(`coord-lng-${i}`);
+                        const latEl = <HTMLInputElement>document.getElementById(`coord-lat-${i}`);
+                        if (!lngEl || !latEl) return;
+                        const lng = parseFloat(lngEl.value);
+                        const lat = parseFloat(latEl.value);
+                        if (!isFinite(lng) || !isFinite(lat)) return;
+                        coords.push([lng, lat]);
+                    }
+                    coords.push([...coords[0]]); // close ring
+                    // Update draw feature geometry
+                    const updated = $draw.get(mapFeature.id as string);
+                    if (updated && updated.geometry.type === 'Polygon') {
+                        updated.geometry.coordinates = [coords];
+                        $draw.add(updated);
+                    }
+                    // Update dataStorage if linked
+                    const linked = [...$dataStorage].find((f) => f[1].properties.spatial_object_id === mapFeature.id)?.[1];
+                    if (linked) {
+                        linked.geometry.coordinates = [coords];
+                        updateDataStorage(linked.id, linked);
+                    }
+                });
+            }
+
             const attachBtn = document.getElementById('attach-canvas-btn');
             if (!attachBtn) {
                 console.error("No container 'attach-canvas-btn'")
@@ -228,7 +324,7 @@
                 const directionElem = <HTMLInputElement>document.getElementById("lane-direction");
                 const laneElem = <HTMLInputElement>document.getElementById("lane-number");
                 attachSpatialToDataStorage(mapFeature, hiddenInput.value, {
-                    road_lane_direction: directionElem ? parseInt(directionElem.value) : -1, 
+                    road_lane_direction: directionElem ? parseInt(directionElem.value) : -1,
                     road_lane_num: laneElem ? parseInt(laneElem.value) : -1
                 });
             });
@@ -350,14 +446,12 @@
 
     /* DaisyUI themed popup styling */
     .maplibregl-popup.themed-popup .maplibregl-popup-content {
-        background: var(--bg-primary);
-        border: 1px solid var(--border-primary);
-        border-radius: 12px;
-        box-shadow: 0 4px 20px var(--shadow);
+        background: transparent;
+        border: none;
+        border-radius: 0;
+        box-shadow: none;
         padding: 0;
-        min-width: 320px;
-        max-width: 380px;
-        transition: background-color 0.3s ease, border-color 0.3s ease;
+        overflow: visible;
     }
 
     .maplibregl-popup.themed-popup .maplibregl-popup-tip {
@@ -369,45 +463,77 @@
     }
 
     .maplibregl-popup.themed-popup .maplibregl-popup-close-button {
-        background: var(--bg-secondary);
-        color: var(--text-secondary);
-        border: 1px solid var(--border-primary);
-        border-radius: 6px;
-        width: 28px;
-        height: 28px;
-        top: 12px;
-        right: 12px;
-        font-size: 18px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: all 0.2s;
-        transition: all 0.3s ease;
+        display: none;
     }
 
-    .maplibregl-popup.themed-popup .maplibregl-popup-close-button:hover {
-        background: var(--bg-tertiary);
-        color: var(--text-primary);
+    .maplibregl-popup.themed-popup {
+        overflow: visible;
+        max-width: none !important;
     }
 
     .popup-container {
+        display: flex;
+        align-items: flex-start;
         color: var(--text-primary);
         font-family: 'Roboto', sans-serif;
         transition: color 0.3s ease;
     }
 
+    .popup-main {
+        min-width: 320px;
+        max-width: 380px;
+        background: var(--bg-primary);
+        border: 1px solid var(--border-primary);
+        border-radius: 12px;
+        box-shadow: 0 4px 20px var(--shadow);
+        flex-shrink: 0;
+        position: relative;
+        transition: border-radius 0.3s ease, background-color 0.3s ease, border-color 0.3s ease;
+    }
+
+    .popup-main.side-open {
+        border-radius: 12px 0 0 12px;
+        border-right: none;
+    }
+
     .popup-header {
-        padding: 20px 20px 16px 20px;
+        padding: 16px 20px;
         border-bottom: 1px solid var(--border-secondary);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
         transition: border-color 0.3s ease;
     }
 
     .popup-title {
         margin: 0;
-        font-size: 18px;
+        font-size: 16px;
         font-weight: 600;
         color: var(--text-primary);
-        transition: color 0.3s ease;
+    }
+
+    .popup-close-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        padding: 0;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-primary);
+        border-radius: 6px;
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .popup-close-btn:hover {
+        background: var(--bg-tertiary);
+        color: var(--text-primary);
+    }
+
+    .popup-close-btn i {
+        font-size: 18px;
     }
 
     .popup-content {
@@ -460,10 +586,178 @@
         border-color: var(--accent-hover);
     }
 
+    /* Coordinates slide toggle */
+    .toggle-coords-btn {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        width: 100%;
+        padding: 8px 12px;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-primary);
+        border-radius: 8px;
+        color: var(--text-secondary);
+        font-size: 13px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .toggle-coords-btn:hover {
+        color: var(--accent-primary);
+        border-color: var(--accent-primary);
+    }
+
+    .toggle-coords-btn i {
+        font-size: 18px;
+        transition: transform 0.2s;
+    }
+
+    .coords-side-panel {
+        width: 0;
+        overflow: hidden;
+        background: #1a1a1a;
+        border-top: 1px solid var(--border-primary);
+        border-right: 1px solid var(--border-primary);
+        border-bottom: 1px solid var(--border-primary);
+        border-left: none;
+        border-radius: 0 12px 12px 0;
+        flex-shrink: 0;
+        transition: width 0.3s ease;
+    }
+
+    .coords-side-panel.open {
+        width: 250px;
+    }
+
+    .coords-side-header {
+        padding: 16px 16px;
+        min-height: 28px;
+        display: flex;
+        align-items: center;
+        border-bottom: 1px solid var(--border-secondary);
+        box-sizing: content-box;
+    }
+
+    .coords-side-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    .coords-side-body {
+        padding: 10px 12px 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .coords-col-headers {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        padding: 0 4px 2px;
+    }
+
+    .coords-spacer {
+        width: 22px;
+        flex-shrink: 0;
+    }
+
+    .coords-col-label {
+        flex: 1;
+        font-size: 10px;
+        color: var(--text-secondary);
+        font-weight: 500;
+    }
+
+    .coords-row {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        padding: 4px;
+        border-radius: 6px;
+        transition: background-color 0.15s;
+    }
+
+    .coords-row:hover {
+        background: var(--bg-secondary);
+    }
+
+    .coords-point-label {
+        width: 22px;
+        height: 22px;
+        line-height: 22px;
+        text-align: center;
+        font-size: 11px;
+        font-weight: 700;
+        border-radius: 4px;
+        background: var(--bg-tertiary);
+        color: var(--text-primary);
+        flex-shrink: 0;
+        transition: background-color 0.15s, color 0.15s;
+    }
+
+    .coords-row:hover .coords-point-label {
+        background: var(--accent-primary);
+        color: white;
+    }
+
+    .coords-side-panel input.coords-input {
+        flex: 1;
+        min-width: 0;
+        padding: 4px 6px !important;
+        border: 1px solid var(--border-primary) !important;
+        border-radius: 4px !important;
+        font-size: 11px !important;
+        line-height: 1.3 !important;
+        font-family: monospace !important;
+        background: var(--bg-primary) !important;
+        color: var(--text-primary) !important;
+        box-sizing: border-box;
+        height: auto !important;
+        min-height: 0 !important;
+        transition: border-color 0.15s, box-shadow 0.15s;
+    }
+
+    .coords-side-panel input.coords-input:focus {
+        outline: none !important;
+        border-color: var(--accent-primary) !important;
+        box-shadow: 0 0 0 2px rgba(var(--accent-primary-rgb), 0.15) !important;
+    }
+
+    /* Hide number spinners in popup */
+    .coords-side-panel input.coords-input::-webkit-inner-spin-button,
+    .coords-side-panel input.coords-input::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+    .coords-side-panel input.coords-input {
+        -moz-appearance: textfield;
+        appearance: textfield;
+    }
+
+    .save-coords-btn {
+        width: 100%;
+        padding: 7px;
+        margin-top: 6px;
+        background: var(--accent-primary);
+        color: white;
+        border: none;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+
+    .save-coords-btn:hover {
+        background: var(--accent-hover);
+    }
+
     .form-actions {
         display: flex;
         justify-content: flex-end;
-        margin-top: 8px;
+        padding: 0 20px 16px;
     }
 
     /* Material Icons in popup */
