@@ -704,7 +704,8 @@
         }
 
         #left_workspace .canvas-panel {
-            display: block;
+            display: flex;
+            flex-direction: column;
             flex: 1;
             min-height: 0;
         }

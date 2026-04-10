@@ -115,7 +115,7 @@
       padding: 0.375rem 0.625rem;
       background: var(--bg-secondary);
       border: 1px solid var(--border-primary);
-      border-radius: 0.375rem;
+      border-radius: var(--radius-sm);
       cursor: pointer;
       transition: all 0.2s;
       color: var(--text-secondary);
@@ -140,7 +140,7 @@
       padding: 0.75rem 1rem;
       background: var(--bg-primary);
       border: 1px solid var(--border-primary);
-      border-radius: 0.5rem;
+      border-radius: var(--radius-md);
       box-shadow: 0 2px 8px var(--shadow);
       cursor: pointer;
       transition: all 0.2s;
@@ -176,7 +176,7 @@
       animation: slideDown 0.3s ease;
       z-index: 1002;
       width: 380px;
-      max-width: 90vw;
+      max-width: calc(100vw - 2rem);
   }
 
   .settings-content {
@@ -236,7 +236,7 @@
       padding: 0.4rem 0.625rem;
       background: transparent;
       border: 1px solid var(--border-primary);
-      border-radius: 0.375rem;
+      border-radius: var(--radius-sm);
       color: var(--text-secondary);
       font-size: 0.8rem;
       cursor: pointer;

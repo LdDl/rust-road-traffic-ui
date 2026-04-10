@@ -6,12 +6,28 @@
     export let onDeleteFromCanvas: () => void;
     export let onAddToMap: () => void;
     export let onDeleteFromMap: () => void;
-    export let onSave: () => void;
-    
+    export let onSave: () => void | Promise<void>;
+
     let stateVariable: States;
     state.subscribe((value) => stateVariable = value);
-    
+
     let collapsed = true;
+    let saving = false;
+    let saveResult: 'success' | 'error' | null = null;
+
+    const handleSave = async () => {
+        saving = true;
+        saveResult = null;
+        try {
+            await onSave();
+            saveResult = 'success';
+        } catch {
+            saveResult = 'error';
+        } finally {
+            saving = false;
+            setTimeout(() => { saveResult = null; }, 2000);
+        }
+    };
 </script>
 
 <div class="toolbar-side" class:collapsed>
@@ -79,9 +95,18 @@
         <div class="toolbar-separator"></div>
         
         <div class="toolbar-group">
-            <button class="tool-btn success" on:click={onSave} title="Save all changes">
-                <i class="material-icons">save</i>
-                {#if !collapsed}<span>Save</span>{/if}
+            <button
+                class="tool-btn success"
+                class:save-ok={saveResult === 'success'}
+                class:save-err={saveResult === 'error'}
+                on:click={handleSave}
+                disabled={saving}
+                title="Save all changes"
+            >
+                <i class="material-icons">
+                    {#if saving}hourglass_empty{:else if saveResult === 'success'}check{:else if saveResult === 'error'}error_outline{:else}save{/if}
+                </i>
+                {#if !collapsed}<span>{saving ? 'Saving...' : saveResult === 'success' ? 'Saved!' : saveResult === 'error' ? 'Error' : 'Save'}</span>{/if}
             </button>
         </div>
     </div>
@@ -94,7 +119,7 @@
         top: 50%;
         transform: translateY(-50%);
         background: var(--bg-primary); /* Changed from white */
-        border-radius: 0.5rem 0 0 0.5rem;
+        border-radius: var(--radius-md) 0 0 var(--radius-md);
         box-shadow: -2px 0 12px var(--shadow); /* Changed from rgba(0, 0, 0, 0.15) */
         z-index: 1000;
         transition: all 0.3s ease;
@@ -113,17 +138,24 @@
         left: -12px;
         width: 24px;
         height: 24px;
-        background: var(--bg-primary); /* Changed from white */
-        border: 1px solid var(--border-primary); /* Changed from #e5e7eb */
+        background: var(--bg-primary);
+        border: 1px solid var(--border-primary);
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
         cursor: pointer;
         font-size: 16px;
-        color: var(--text-secondary); /* Changed from #6b7280 */
-        box-shadow: -2px 0 8px var(--shadow); /* Changed from rgba(0, 0, 0, 0.1) */
-        transition: all 0.2s; /* Added transition */
+        color: var(--text-secondary);
+        box-shadow: -2px 0 8px var(--shadow);
+        transition: background-color 0.2s, color 0.2s;
+    }
+
+    /* Expand touch target to 44px without changing visual size */
+    .toolbar-toggle::after {
+        content: '';
+        position: absolute;
+        inset: -10px;
     }
     
     .toolbar-toggle:hover {
@@ -202,7 +234,7 @@
         gap: 0.5rem;
         padding: 0.75rem;
         border: 1px solid var(--border-primary);
-        border-radius: 0.375rem;
+        border-radius: var(--radius-sm);
         background: var(--bg-primary);
         color: var(--text-primary);
         cursor: pointer;
@@ -243,11 +275,26 @@
         border-color: var(--success-primary);
     }
 
-    .tool-btn.success:hover {
+    .tool-btn.success:hover:not(:disabled) {
         background: var(--success-hover);
         border-color: var(--success-hover);
     }
-    
+
+    .tool-btn.success:disabled {
+        opacity: 0.7;
+        cursor: wait;
+    }
+
+    .tool-btn.save-ok {
+        background: var(--success-primary) !important;
+        border-color: var(--success-primary) !important;
+    }
+
+    .tool-btn.save-err {
+        background: var(--danger-primary) !important;
+        border-color: var(--danger-primary) !important;
+    }
+
     .collapsed .tool-btn {
         justify-content: center;
     }

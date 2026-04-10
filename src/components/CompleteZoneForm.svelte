@@ -167,7 +167,7 @@
         align-items: center;
         gap: 8px;
         padding: 4px;
-        border-radius: 6px;
+        border-radius: var(--radius-sm);
         transition: background-color 0.15s;
     }
 
@@ -199,7 +199,7 @@
         min-width: 0;
         padding: 8px 10px;
         border: 1px solid var(--border-primary);
-        border-radius: 6px;
+        border-radius: var(--radius-sm);
         font-size: 13px;
         font-family: monospace;
         background: var(--bg-primary);
@@ -254,11 +254,11 @@
     /* Save button */
     .save-btn {
         width: 100%;
-        padding: 10px 16px;
+        padding: 8px 14px;
         background: var(--success-primary);
         color: white;
         border: none;
-        border-radius: 6px;
+        border-radius: var(--radius-sm);
         font-size: 14px;
         font-weight: 600;
         cursor: pointer;

@@ -181,7 +181,7 @@
     .input-group input {
         padding: 0.5rem 0.625rem;
         border: 1px solid var(--border-primary);
-        border-radius: 0.375rem;
+        border-radius: var(--radius-sm);
         font-size: 0.8rem;
         transition: all 0.2s;
         background: var(--bg-primary);
@@ -275,7 +275,7 @@
     .url-preview {
         background: var(--bg-secondary);
         border: 1px solid var(--border-secondary);
-        border-radius: 0.375rem;
+        border-radius: var(--radius-sm);
         padding: 0.5rem 0.625rem;
         margin-bottom: 0.5rem;
         font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
@@ -387,7 +387,7 @@
         background: var(--accent-primary);
         color: white;
         border: none;
-        border-radius: 0.375rem;
+        border-radius: var(--radius-sm);
         font-size: 0.8rem;
         font-weight: 500;
         cursor: pointer;

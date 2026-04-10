@@ -119,7 +119,7 @@
                 <div class="popup-container" data-theme="${$resolvedTheme}">
                     <div class="popup-main" id="popup-main">
                         <div class="popup-header">
-                            <h3 class="popup-title">Zone Configuration</h3>
+                            <h3 class="popup-title">Zone configuration</h3>
                             <button class="popup-close-btn" id="popup-close-btn" type="button">
                                 <i class="material-icons">close</i>
                             </button>
@@ -158,7 +158,7 @@
                                     value="${clickedFeature ? clickedFeature.properties?.road_lane_direction : -1}"
                                     id="lane-direction"
                                     type="number"
-                                    class="input input-bordered w-full"
+                                    class="popup-input"
                                 >
                             </div>
 
@@ -170,7 +170,7 @@
                                     value="${clickedFeature ? clickedFeature.properties?.road_lane_num : -1}"
                                     id="lane-number"
                                     type="number"
-                                    class="input input-bordered w-full"
+                                    class="popup-input"
                                 >
                             </div>
 
@@ -181,7 +181,7 @@
                         </div>
 
                         <div class="form-actions">
-                            <button id="attach-canvas-btn" class="btn btn-primary btn-sm">
+                            <button id="attach-canvas-btn" class="popup-save-btn">
                                 <i class="material-icons">save</i>
                                 Save
                             </button>
@@ -446,7 +446,7 @@
     .map-wrap {
         position: relative;
         width: 100%;
-        height: 100vh;
+        height: 100%;
     }
     
     .map {
@@ -532,10 +532,10 @@
         padding: 0;
         background: var(--bg-secondary);
         border: 1px solid var(--border-primary);
-        border-radius: 6px;
+        border-radius: var(--radius-sm);
         color: var(--text-secondary);
         cursor: pointer;
-        transition: all 0.2s;
+        transition: background-color 0.2s, color 0.2s;
     }
 
     .popup-close-btn:hover {
@@ -554,47 +554,60 @@
         gap: 16px;
     }
 
-    /* Override DaisyUI colors with theme variables */
+    /* Popup form labels */
     .popup-container .form-control .label-text {
         color: var(--text-secondary);
         font-weight: 500;
         font-size: 12px;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        transition: color 0.3s ease;
     }
 
-    .popup-container .select,
-    .popup-container .input {
+    /* Compact popup inputs (replaces DaisyUI input classes) */
+    .popup-input {
+        width: 100%;
+        padding: 8px 10px;
+        border: 1px solid var(--border-primary);
+        border-radius: var(--radius-sm);
+        font-size: 13px;
         background: var(--bg-primary);
-        border-color: var(--border-primary);
         color: var(--text-primary);
-        transition: all 0.3s ease;
+        box-sizing: border-box;
+        transition: border-color 0.15s, box-shadow 0.15s;
     }
 
-    .popup-container .select:focus,
-    .popup-container .input:focus {
-        border-color: var(--accent-primary);
-        box-shadow: 0 0 0 2px rgba(var(--accent-primary-rgb), 0.1);
+    .popup-input:focus {
         outline: none;
-    }
-
-    .popup-container .select option {
-        background: var(--bg-primary);
-        color: var(--text-primary);
-    }
-
-    .popup-container .btn-primary {
-        background: var(--accent-primary);
         border-color: var(--accent-primary);
-        color: white;
-        gap: 6px;
-        transition: all 0.3s ease;
+        box-shadow: 0 0 0 2px rgba(var(--accent-primary-rgb), 0.15);
     }
 
-    .popup-container .btn-primary:hover {
+    /* Hide number spinners in popup inputs */
+    .popup-input::-webkit-inner-spin-button,
+    .popup-input::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+    .popup-input {
+        -moz-appearance: textfield;
+        appearance: textfield;
+    }
+
+    .popup-save-btn {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 14px;
+        background: var(--accent-primary);
+        border: none;
+        border-radius: var(--radius-sm);
+        color: white;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+
+    .popup-save-btn:hover {
         background: var(--accent-hover);
-        border-color: var(--accent-hover);
     }
 
     /* Coordinates slide toggle */
@@ -606,7 +619,7 @@
         padding: 8px 12px;
         background: var(--bg-secondary);
         border: 1px solid var(--border-primary);
-        border-radius: 8px;
+        border-radius: var(--radius-sm);
         color: var(--text-secondary);
         font-size: 13px;
         cursor: pointer;
@@ -686,7 +699,7 @@
         gap: 6px;
         align-items: center;
         padding: 4px;
-        border-radius: 6px;
+        border-radius: var(--radius-sm);
         transition: background-color 0.15s;
     }
 
@@ -776,13 +789,8 @@
         font-size: 16px;
     }
 
-    /* Dark theme specific adjustments */
-    .popup-container[data-theme="dark"] .select,
-    .popup-container[data-theme="dark"] .input {
-        background: var(--bg-secondary);
-    }
-
-    .popup-container[data-theme="dark"] .select option {
+    /* Dark theme: slightly lighter input backgrounds */
+    .popup-container[data-theme="dark"] .popup-input {
         background: var(--bg-secondary);
     }
 
@@ -795,13 +803,13 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 12px 16px;
+        padding: 8px 10px;
         background: var(--bg-primary);
         border: 1px solid var(--border-primary);
-        border-radius: 8px;
+        border-radius: var(--radius-sm);
         cursor: pointer;
-        transition: all 0.3s ease;
-        min-height: 48px;
+        transition: border-color 0.15s;
+        min-height: 36px;
     }
 
     .custom-select-trigger:hover {
@@ -852,9 +860,9 @@
         right: 0;
         background: var(--bg-primary);
         border: 1px solid var(--border-primary);
-        border-radius: 8px;
+        border-radius: var(--radius-sm);
         box-shadow: 0 4px 12px var(--shadow);
-        z-index: 1000;
+        z-index: 10;
         max-height: 200px;
         overflow-y: auto;
         display: none;

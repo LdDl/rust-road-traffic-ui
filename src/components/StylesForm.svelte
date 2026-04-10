@@ -129,7 +129,7 @@
     .input-group input {
         padding: 0.5rem 0.625rem;
         border: 1px solid var(--border-primary);
-        border-radius: 0.375rem;
+        border-radius: var(--radius-sm);
         font-size: 0.8rem;
         transition: all 0.2s;
         background: var(--bg-primary);
@@ -168,7 +168,7 @@
         background: var(--success-primary);
         color: white;
         border: none;
-        border-radius: 0.375rem;
+        border-radius: var(--radius-sm);
         font-size: 0.8rem;
         font-weight: 500;
         cursor: pointer;

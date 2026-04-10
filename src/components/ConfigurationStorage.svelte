@@ -107,6 +107,12 @@
 <div id="configuration" class={klass}>
     <div id="configuration-content">
         {#if $dataReady === true}
+            {#if data.length === 0}
+                <div class="empty-state">
+                    <i class="material-icons">info_outline</i>
+                    <span>No zones configured yet. Use the toolbar to add zones.</span>
+                </div>
+            {/if}
             {#each data as [k, element]}
                 <div class="zone-card">
                     <button class="zone-header" on:click={() => toggleZone(k)}>
@@ -178,6 +184,11 @@
                     {/if}
                 </div>
             {/each}
+        {:else}
+            <div class="empty-state">
+                <i class="material-icons">hourglass_empty</i>
+                <span>Loading zones...</span>
+            </div>
         {/if}
     </div>
 </div>
@@ -207,6 +218,20 @@
 {/if}
 
 <style scoped>
+    .empty-state {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 16px;
+        color: var(--text-secondary);
+        font-size: 13px;
+    }
+
+    .empty-state i {
+        font-size: 20px;
+        opacity: 0.6;
+    }
+
     #configuration {
         grid-area: B;
         overflow-y: auto;
@@ -435,7 +460,7 @@
         padding: 0;
         background: var(--bg-secondary);
         border: 1px solid var(--border-primary);
-        border-radius: 6px;
+        border-radius: var(--radius-sm);
         color: var(--text-secondary);
         cursor: pointer;
         transition: all 0.2s;
