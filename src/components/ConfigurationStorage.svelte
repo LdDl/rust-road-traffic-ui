@@ -1,18 +1,105 @@
 <script lang="ts">
     import { type Writable } from 'svelte/store'
     import { DirectionType, type Zone } from '$lib/zones';
+    import { map, draw } from '../store/map';
+    import { updateDataStorage } from '../store/data_storage';
+    import { EMPTY_POLYGON_RGB } from '../lib/gl_draw_styles.js';
+    import CompleteZoneForm from './CompleteZoneForm.svelte';
+    import maplibregl from 'maplibre-gl';
 
     export let klass: string = ''
     export let dataReady: Writable<boolean>
     export let data: [string, Zone][]
 
     let expandedZones: { [key: string]: boolean } = {};
+    let modalZone: Zone | null = null;
+    let highlightMarkers: maplibregl.Marker[] = [];
 
     const toggleZone = (key: string) => {
         expandedZones[key] = !expandedZones[key];
         expandedZones = expandedZones;
     };
+
+    function openEditModal(zone: Zone) {
+        modalZone = zone;
+    }
+
+    function closeModal() {
+        highlightMarkers.forEach(m => m.remove());
+        highlightMarkers = [];
+        modalZone = null;
+    }
+
+    function handleHighlight(zone: Zone, e: CustomEvent<{ pointIndex: number | null }>) {
+        highlightMarkers.forEach(m => m.remove());
+        highlightMarkers = [];
+
+        const idx = e.detail.pointIndex;
+        if (idx === null || !$map) return;
+
+        const ring = zone.geometry?.coordinates?.[0];
+        if (!ring || !ring[idx]) return;
+
+        const [lng, lat] = ring[idx];
+        if (!isFinite(lng) || !isFinite(lat)) return;
+
+        const el = document.createElement('div');
+        el.style.cssText = `
+            width: 14px; height: 14px;
+            border-radius: 50%;
+            border: 2px solid ${zone.properties.color_rgb_str || '#ff0000'};
+            background: rgba(255,255,255,0.8);
+            pointer-events: none;
+        `;
+
+        const marker = new maplibregl.Marker({ element: el })
+            .setLngLat([lng, lat])
+            .addTo($map);
+        highlightMarkers = [marker];
+    }
+
+    function handleSave(zone: Zone, e: CustomEvent<{ coordinates: number[][][], road_lane_direction: number, road_lane_num: number }>) {
+        const { coordinates, road_lane_direction, road_lane_num } = e.detail;
+
+        zone.properties.road_lane_direction = road_lane_direction;
+        zone.properties.road_lane_num = road_lane_num;
+        zone.geometry.coordinates = coordinates;
+
+        const spatialId = zone.properties.spatial_object_id || `spatial-${zone.id}`;
+        zone.properties.spatial_object_id = spatialId;
+
+        const geoFeature = {
+            type: 'Feature' as const,
+            id: spatialId,
+            properties: {
+                color_rgb_str: zone.properties.color_rgb_str || EMPTY_POLYGON_RGB,
+            },
+            geometry: {
+                type: 'Polygon' as const,
+                coordinates: coordinates,
+            }
+        };
+
+        $draw.add(geoFeature);
+        $draw.setFeatureProperty(spatialId, 'color_rgb_str', zone.properties.color_rgb_str || EMPTY_POLYGON_RGB);
+        updateDataStorage(zone.id, zone);
+        closeModal();
+    }
+
+    function handleBackdropClick(e: MouseEvent) {
+        if ((e.target as HTMLElement).classList.contains('modal-backdrop')) {
+            closeModal();
+        }
+    }
+
+    function handleKeydown(e: KeyboardEvent) {
+        if (e.key === 'Escape' && modalZone) {
+            closeModal();
+        }
+    }
 </script>
+
+<svelte:window on:keydown={handleKeydown} />
 
 <div id="configuration" class={klass}>
     <div id="configuration-content">
@@ -35,7 +122,6 @@
                         </div>
                         <span class="expand-arrow">{expandedZones[k] ? '▼' : '▶'}</span>
                     </button>
-                    
                     {#if expandedZones[k]}
                         <div class="zone-content">
                             <table class="table table-sm">
@@ -50,7 +136,7 @@
                                     </tr>
                                     <tr>
                                         <td>Spatial object ID</td>
-                                        <td>{element.properties.spatial_object_id}</td>
+                                        <td>{element.properties.spatial_object_id ?? '-'}</td>
                                     </tr>
                                     <tr>
                                         <td>Color</td>
@@ -81,6 +167,10 @@
                                     {/if}
                                 </tbody>
                             </table>
+                            <button class="edit-btn" on:click={() => openEditModal(element)}>
+                                <i class="material-icons">edit</i>
+                                Edit
+                            </button>
                         </div>
                     {/if}
                 </div>
@@ -88,6 +178,30 @@
         {/if}
     </div>
 </div>
+
+{#if modalZone}
+    <!-- svelte-ignore a11y_no_static_element_interactions a11y_click_events_have_key_events -->
+    <div class="modal-backdrop" on:click={handleBackdropClick}>
+        <div class="modal-panel">
+            <div class="modal-header">
+                <div class="modal-title-row">
+                    <div class="color-swatch modal-swatch" style="background-color: {modalZone.properties.color_rgb_str};"></div>
+                    <h3>Zone {modalZone.id}</h3>
+                </div>
+                <button class="modal-close" on:click={closeModal}>
+                    <i class="material-icons">close</i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <CompleteZoneForm
+                    zone={modalZone}
+                    on:save={(e) => handleSave(modalZone!, e)}
+                    on:highlight={(e) => handleHighlight(modalZone!, e)}
+                />
+            </div>
+        </div>
+    </div>
+{/if}
 
 <style scoped>
     #configuration {
@@ -104,17 +218,17 @@
         background-color: var(--bg-primary);
         width: 8px;
     }
-    
+
     #configuration::-webkit-scrollbar-track {
         background-color: var(--bg-secondary);
     }
-    
+
     #configuration::-webkit-scrollbar-thumb {
         background-color: var(--text-secondary);
         border-radius: 4px;
         opacity: 0.7;
     }
-    
+
     #configuration::-webkit-scrollbar-thumb:hover {
         background-color: var(--text-primary);
         opacity: 0.9;
@@ -234,5 +348,106 @@
         font-family: monospace;
         color: var(--text-primary);
         word-break: break-all;
+    }
+
+    .edit-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        margin-top: 8px;
+        padding: 4px 10px;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-primary);
+        border-radius: 3px;
+        color: var(--text-secondary);
+        font-size: 11px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .edit-btn:hover {
+        color: var(--accent-primary);
+        border-color: var(--accent-primary);
+    }
+
+    .edit-btn i {
+        font-size: 14px;
+    }
+
+    /* Modal */
+    .modal-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 2000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .modal-panel {
+        background: var(--bg-primary);
+        border: 1px solid var(--border-primary);
+        border-radius: 8px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        width: 420px;
+        max-width: 90vw;
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+
+    .modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border-secondary);
+    }
+
+    .modal-title-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .modal-title-row h3 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    .modal-swatch {
+        width: 20px;
+        height: 20px;
+        border-radius: 4px;
+    }
+
+    .modal-close {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        padding: 0;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-primary);
+        border-radius: 6px;
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .modal-close:hover {
+        background: var(--bg-tertiary);
+        color: var(--text-primary);
+    }
+
+    .modal-close i {
+        font-size: 18px;
+    }
+
+    .modal-body {
+        padding: 16px 20px 20px;
     }
 </style>
