@@ -33,8 +33,8 @@
     let startY = 0;
     let startHeight = 0;
 
-    // Mobile tab switching
-    let mobileTab: 'canvas' | 'map' | 'zones' = 'canvas';
+    // Mobile tab switching: "view" = canvas+map together, "zones" = zone list
+    let mobileTab: 'view' | 'zones' = 'view';
 
     let stateVariable: States;
     state.subscribe((value) => stateVariable = value)
@@ -323,13 +323,9 @@
     <Switchers klass={canvasFocused || mapFocused ? 'blurred noselect' : ''}/>
     <!-- Mobile tab bar (visible < 768px) -->
     <div class="mobile-tab-bar">
-        <button class="mobile-tab" class:active={mobileTab === 'canvas'} on:click={() => mobileTab = 'canvas'}>
-            <i class="material-icons">grid_on</i>
-            <span>Canvas</span>
-        </button>
-        <button class="mobile-tab" class:active={mobileTab === 'map'} on:click={() => mobileTab = 'map'}>
-            <i class="material-icons">map</i>
-            <span>Map</span>
+        <button class="mobile-tab" class:active={mobileTab === 'view'} on:click={() => mobileTab = 'view'}>
+            <i class="material-icons">dashboard</i>
+            <span>View</span>
         </button>
         <button class="mobile-tab" class:active={mobileTab === 'zones'} on:click={() => mobileTab = 'zones'}>
             <i class="material-icons">list</i>
@@ -337,7 +333,7 @@
         </button>
     </div>
     <div id="main_workspace" style="grid-template-columns: {leftPanelWidth}% 2px {100 - leftPanelWidth}%;">
-        <div id="left_workspace" class="mobile-panel" class:mobile-hidden={mobileTab !== 'canvas' && mobileTab !== 'zones'} style="grid-template-rows: {topPanelHeight}% 2px {100 - topPanelHeight}%;">
+        <div id="left_workspace" style="grid-template-rows: {topPanelHeight}% 2px {100 - topPanelHeight}%;">
             <div class="canvas-panel" class:mobile-hidden={mobileTab === 'zones'}>
                 <CanvasComponent klass={!canvasFocused && mapFocused ? 'blurred noselect' : ''}/>
             </div>
@@ -357,7 +353,7 @@
                     <div></div> <!-- bottom line -->
                 </div>
             </div>
-            <div class="zones-panel" class:mobile-hidden={mobileTab === 'canvas'}>
+            <div class="zones-panel" class:mobile-hidden={mobileTab === 'view'}>
                 <ConfigurationStorage dataReady={dataReady} data={dataStorageAll} klass={!($canvasReady) || (canvasFocused || mapFocused) ? 'blurred noselect' : ''}/>
             </div>
             <div class="overlay" style="{!canvasFocused && mapFocused ? 'display: block;' : 'display: none;'}">
@@ -381,7 +377,7 @@
                 <div></div> <!-- right line -->
             </div>
         </div>
-        <div id="right_workspace" class="mobile-panel" class:mobile-hidden={mobileTab !== 'map'}>
+        <div id="right_workspace" class:mobile-hidden={mobileTab === 'zones'}>
             <MapComponent bind:this={mapComponent} klass={!($canvasReady) || (canvasFocused && !mapFocused) ? 'blurred noselect' : ''}/>
             <div class="overlay" style="{canvasFocused && !mapFocused ? 'display: block;' : 'display: none;'}">
                 <span>Press ESC to cancel '{cancelActionText !== undefined? cancelActionText : cancelActionUnexpected}' mode</span>
@@ -644,7 +640,7 @@
     }
 
     /* Responsive: tablet/phone (<768px) */
-    @media (max-width: 768px) {
+    @media (max-width: 1024px) {
         .mobile-tab-bar {
             display: flex;
             background: var(--bg-primary);
@@ -684,6 +680,7 @@
             background: var(--bg-secondary);
         }
 
+        /* Portrait: canvas on top, map on bottom (column) */
         #main_workspace {
             display: flex !important;
             flex-direction: column;
@@ -698,7 +695,7 @@
             display: none !important;
         }
 
-        /* Full-size panels on mobile */
+        /* Left workspace: holds canvas OR zones depending on tab */
         #left_workspace {
             display: flex !important;
             flex-direction: column;
@@ -719,21 +716,24 @@
             overflow-y: auto;
         }
 
+        /* Right workspace: map, flex: 1 to share space with left */
         #right_workspace {
             flex: 1;
             min-height: 0;
         }
 
-        /* Tab switching: hide inactive panels */
-        .mobile-hidden {
+        /* Tab switching - ID-qualified selectors to beat #id specificity */
+        #right_workspace.mobile-hidden,
+        #left_workspace .canvas-panel.mobile-hidden,
+        #left_workspace .zones-panel.mobile-hidden {
             display: none !important;
         }
 
-        /* Toolbar: collapse into smaller floating button */
+        /* Toolbar: collapse into icon-only floating panel */
         :global(.toolbar-side) {
             width: 48px !important;
             top: auto !important;
-            bottom: 80px !important;
+            bottom: 60px !important;
             transform: none !important;
         }
 
@@ -771,6 +771,24 @@
 
         :global(.settings-toggle span) {
             display: none;
+        }
+    }
+
+    /* Landscape phone: canvas left, map right (row) */
+    @media (max-width: 1024px) and (orientation: landscape) {
+        #main_workspace {
+            flex-direction: row !important;
+        }
+
+        /* In landscape row layout, left_workspace should not stretch full width */
+        #left_workspace {
+            flex: 1;
+            min-width: 0;
+        }
+
+        #right_workspace {
+            flex: 1;
+            min-width: 0;
         }
     }
 </style>

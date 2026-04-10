@@ -263,7 +263,9 @@
     #mjpeg {
         position: relative;
         grid-area: A;
+        height: 100%;
         background-color: var(--loading-bg);
+        overflow: hidden;
     }
     #fit_img {
         height: 100%;

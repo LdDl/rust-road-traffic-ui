@@ -110,9 +110,9 @@
     .toolbar-toggle {
         position: absolute;
         top: 1rem;
-        left: -22px;
-        width: 44px;
-        height: 44px;
+        left: -12px;
+        width: 24px;
+        height: 24px;
         background: var(--bg-primary); /* Changed from white */
         border: 1px solid var(--border-primary); /* Changed from #e5e7eb */
         border-radius: 50%;
