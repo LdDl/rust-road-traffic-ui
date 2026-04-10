@@ -99,32 +99,32 @@
 <style>
   .switcher-container {
       position: fixed;
-      top: 1rem;
-      right: 1rem;
+      top: var(--space-lg);
+      right: var(--space-lg);
       z-index: 1001;
       transition: right 0.3s ease;
       display: flex;
-      gap: 0.5rem;
+      gap: var(--space-sm);
       align-items: center;
   }
-  
+
   .theme-selector {
       display: flex;
-      gap: 0.5rem;
+      gap: var(--space-sm);
   }
 
   .theme-option {
       display: flex;
       align-items: center;
-      gap: 0.375rem;
-      padding: 0.375rem 0.625rem;
+      gap: 6px;
+      padding: 6px 10px;
       background: var(--bg-secondary);
       border: 1px solid var(--border-primary);
       border-radius: var(--radius-sm);
       cursor: pointer;
-      transition: all 0.2s;
+      transition: background-color 0.2s, color 0.2s, border-color 0.2s;
       color: var(--text-secondary);
-      font-size: 0.8rem;
+      font-size: var(--text-base);
   }
 
   .theme-option:hover {
@@ -137,115 +137,105 @@
       color: white;
       border-color: var(--accent-primary);
   }
-  
+
   .settings-toggle {
       display: flex;
       align-items: center;
-      gap: 0.5rem;
-      padding: 0.75rem 1rem;
+      gap: var(--space-sm);
+      padding: var(--space-md) var(--space-lg);
       background: var(--bg-primary);
       border: 1px solid var(--border-primary);
       border-radius: var(--radius-md);
-      box-shadow: 0 2px 8px var(--shadow);
+      box-shadow: 0 2px var(--space-sm) var(--shadow);
       cursor: pointer;
-      transition: all 0.2s;
-      font-size: 0.875rem;
+      transition: background-color 0.2s, border-color 0.2s, box-shadow 0.2s;
+      font-size: var(--text-md);
       font-weight: 500;
       color: var(--text-primary);
   }
-  
+
   .settings-toggle:hover {
       background: var(--bg-secondary);
       border-color: var(--border-secondary);
-      box-shadow: 0 4px 12px var(--shadow);
+      box-shadow: 0 var(--space-xs) var(--space-md) var(--shadow);
   }
-  
+
   .expand-icon {
       transition: transform 0.2s;
-      font-size: 1rem;
+      font-size: var(--text-lg);
       color: var(--text-secondary);
   }
-  
+
   .expand-icon.rotated {
       transform: rotate(180deg);
   }
-  
-  .settings-panel {
-      position: absolute;
-      top: calc(100% + 0.5rem);
-      right: 0;
-      background: var(--bg-primary);
-      border: 1px solid var(--border-primary);
-      border-radius: var(--radius-md);
-      box-shadow: 0 4px 20px var(--shadow);
-      animation: slideDown 0.3s ease;
-      z-index: 1002;
+
+  /* Dropdown panel — fixed width on desktop, full-width when force-open */
+  .switcher-container:not(.force-open) .settings-panel {
       width: 380px;
       max-width: calc(100vw - 2rem);
   }
 
+  .settings-panel {
+      position: absolute;
+      top: calc(100% + var(--space-sm));
+      right: 0;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-primary);
+      border-radius: var(--radius-md);
+      box-shadow: 0 var(--space-xs) var(--space-xl) var(--shadow);
+      animation: slideDown 0.3s ease;
+      z-index: 1002;
+  }
+
   .settings-content {
-      padding: 1rem;
+      padding: var(--space-lg);
       display: flex;
       flex-direction: column;
-      gap: 0.75rem;
+      gap: var(--space-md);
   }
 
   .form-section {
       display: flex;
       flex-direction: column;
-      gap: 0.5rem;
+      gap: var(--space-sm);
   }
 
   .form-section h4 {
       margin: 0;
-      font-size: 0.75rem;
+      font-size: var(--text-sm);
       font-weight: 600;
       color: var(--text-primary);
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      padding-bottom: 0.375rem;
+      padding-bottom: 6px;
       border-bottom: 1px solid var(--border-secondary);
   }
-  
+
   .form-wrapper {
     width: 100%;
     max-width: 100%;
     overflow: visible;
   }
-  
-  :global(.settings-panel .api-form),
-  :global(.settings-panel .styles-form) {
-      width: 100%;
-      max-width: 100%;
-      box-sizing: border-box;
-  }
-  
-  :global(.settings-panel input),
-  :global(.settings-panel select),
-  :global(.settings-panel textarea) {
-      box-sizing: border-box;
-      max-width: 100%;
-  }
-  
+
   .reset-section {
-      padding-top: 0.5rem;
+      padding-top: var(--space-sm);
       border-top: 1px solid var(--border-secondary);
   }
 
   .reset-all-btn {
       display: flex;
       align-items: center;
-      gap: 0.375rem;
+      gap: 6px;
       width: 100%;
-      padding: 0.4rem 0.625rem;
+      padding: var(--space-xs) 10px;
       background: transparent;
       border: 1px solid var(--border-primary);
       border-radius: var(--radius-sm);
       color: var(--text-secondary);
-      font-size: 0.8rem;
+      font-size: var(--text-base);
       cursor: pointer;
-      transition: all 0.2s;
+      transition: background-color 0.2s, color 0.2s, border-color 0.2s;
   }
 
   .reset-all-btn:hover {
@@ -255,7 +245,7 @@
   }
 
   .reset-all-btn i {
-      font-size: 18px;
+      font-size: var(--icon-md);
   }
 
   @keyframes slideDown {
@@ -281,8 +271,8 @@
 
   .force-open .settings-panel {
       position: static;
-      width: 100% !important;
-      max-width: 100% !important;
+      width: 100%;
+      max-width: 100%;
       border: none;
       border-radius: 0;
       box-shadow: none;

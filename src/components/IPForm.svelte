@@ -166,12 +166,12 @@
     .input-group {
         display: flex;
         flex-direction: column;
-        gap: 0.25rem;
-        margin-bottom: 0.5rem;
+        gap: var(--space-xs);
+        margin-bottom: var(--space-sm);
     }
 
     .input-group label {
-        font-size: 0.75rem;
+        font-size: var(--text-sm);
         font-weight: 500;
         color: var(--text-secondary);
         text-transform: uppercase;
@@ -179,11 +179,11 @@
     }
 
     .input-group input {
-        padding: 0.5rem 0.625rem;
+        padding: var(--space-sm) 10px;
         border: 1px solid var(--border-primary);
         border-radius: var(--radius-sm);
-        font-size: 0.8rem;
-        transition: all 0.2s;
+        font-size: var(--text-base);
+        transition: border-color 0.2s, box-shadow 0.2s;
         background: var(--bg-primary);
         color: var(--text-primary);
         width: 100%;
@@ -217,8 +217,8 @@
         position: relative;
     }
 
-    .number-input {
-        padding-right: 2.5rem !important;
+    .number-input-wrapper .number-input {
+        padding-right: 2.5rem;
     }
 
     .number-buttons {
@@ -226,13 +226,13 @@
         right: 1px;
         top: 1px;
         width: 1.75rem;
-        height: calc(0.8rem * 1.5 + 0.5rem * 2);
+        height: calc(100% - 2px);
         display: flex;
         flex-direction: column;
-        border-radius: 0 0.3rem 0.3rem 0;
+        border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
         overflow: hidden;
     }
-    
+
     .number-btn {
         flex: 1;
         min-height: 0;
@@ -251,7 +251,7 @@
     .number-btn:first-child {
         border-bottom: 0.5px solid var(--border-secondary);
     }
-    
+
     .number-btn:hover {
         background: var(--bg-tertiary);
         color: var(--text-primary);
@@ -262,7 +262,7 @@
     }
 
     .number-btn i {
-        font-size: 12px;
+        font-size: var(--icon-xs);
     }
 
     /* Hide default spinners */
@@ -276,28 +276,28 @@
         background: var(--bg-secondary);
         border: 1px solid var(--border-secondary);
         border-radius: var(--radius-sm);
-        padding: 0.5rem 0.625rem;
-        margin-bottom: 0.5rem;
+        padding: var(--space-sm) 10px;
+        margin-bottom: var(--space-sm);
         font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-        font-size: 0.8rem;
+        font-size: var(--text-base);
         box-sizing: border-box;
     }
 
     .preview-label {
         display: block;
-        font-size: 0.7rem;
+        font-size: var(--text-2xs);
         color: var(--text-secondary);
         font-weight: 500;
         text-transform: uppercase;
         letter-spacing: 0.05em;
-        margin-bottom: 0.5rem;
+        margin-bottom: var(--space-sm);
         font-family: inherit;
     }
 
     .url-container {
         display: flex;
         align-items: center;
-        gap: 0.5rem;
+        gap: var(--space-sm);
     }
 
     .preview-url {
@@ -313,13 +313,13 @@
     .copy-btn {
         background: var(--bg-tertiary);
         border: 1px solid var(--border-primary);
-        border-radius: 0.25rem;
-        padding: 0.25rem;
+        border-radius: var(--radius-sm);
+        padding: var(--space-xs);
         cursor: pointer;
         display: flex;
         align-items: center;
         justify-content: center;
-        transition: all 0.2s;
+        transition: background-color 0.2s, border-color 0.2s;
         flex-shrink: 0;
     }
 
@@ -338,7 +338,7 @@
     }
 
     .copy-btn i {
-        font-size: 16px;
+        font-size: var(--icon-lg);
         color: var(--text-secondary);
     }
 
@@ -346,15 +346,15 @@
         height: 1.5rem;
         display: flex;
         align-items: center;
-        margin-top: 0.5rem;
+        margin-top: var(--space-sm);
     }
 
     .copy-message {
         display: flex;
         align-items: center;
-        gap: 0.25rem;
+        gap: var(--space-xs);
         color: var(--success-primary);
-        font-size: 0.75rem;
+        font-size: var(--text-sm);
         font-family: inherit;
         animation: fadeInOut 2s ease-in-out;
     }
@@ -362,8 +362,8 @@
     .validation-message {
         display: flex;
         align-items: center;
-        gap: 0.25rem;
-        font-size: 0.75rem;
+        gap: var(--space-xs);
+        font-size: var(--text-sm);
         font-family: inherit;
         transition: color 0.2s;
     }
@@ -378,20 +378,20 @@
 
     .validation-message i,
     .copy-message i {
-        font-size: 14px;
+        font-size: var(--icon-sm);
     }
-    
+
     .action-btn {
         width: 100%;
-        padding: 0.4rem 0.5rem;
+        padding: var(--space-xs) var(--space-sm);
         background: var(--accent-primary);
         color: white;
         border: none;
         border-radius: var(--radius-sm);
-        font-size: 0.8rem;
+        font-size: var(--text-base);
         font-weight: 500;
         cursor: pointer;
-        transition: all 0.2s;
+        transition: background-color 0.2s;
         box-sizing: border-box;
     }
 

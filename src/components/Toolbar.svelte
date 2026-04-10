@@ -118,26 +118,26 @@
         right: 0;
         top: 50%;
         transform: translateY(-50%);
-        background: var(--bg-primary); /* Changed from white */
+        background: var(--bg-primary);
         border-radius: var(--radius-md) 0 0 var(--radius-md);
-        box-shadow: -2px 0 12px var(--shadow); /* Changed from rgba(0, 0, 0, 0.15) */
+        box-shadow: -2px 0 var(--space-md) var(--shadow);
         z-index: 1000;
-        transition: all 0.3s ease;
+        transition: width 0.3s ease;
         width: 200px;
-        border: 1px solid var(--border-primary); /* Changed from #e5e7eb */
+        border: 1px solid var(--border-primary);
         border-right: none;
     }
-    
+
     .toolbar-side.collapsed {
         width: 60px;
     }
-    
+
     .toolbar-toggle {
         position: absolute;
-        top: 1rem;
+        top: var(--space-lg);
         left: -12px;
-        width: 24px;
-        height: 24px;
+        width: var(--space-2xl);
+        height: var(--space-2xl);
         background: var(--bg-primary);
         border: 1px solid var(--border-primary);
         border-radius: 50%;
@@ -145,9 +145,9 @@
         align-items: center;
         justify-content: center;
         cursor: pointer;
-        font-size: 16px;
+        font-size: var(--icon-lg);
         color: var(--text-secondary);
-        box-shadow: -2px 0 8px var(--shadow);
+        box-shadow: -2px 0 var(--space-sm) var(--shadow);
         transition: background-color 0.2s, color 0.2s;
     }
 
@@ -157,38 +157,38 @@
         position: absolute;
         inset: -10px;
     }
-    
+
     .toolbar-toggle:hover {
-        background: var(--bg-secondary); /* Changed from #f9fafb */
-        color: var(--text-primary); /* Added for better hover state */
+        background: var(--bg-secondary);
+        color: var(--text-primary);
     }
-    
+
     .toolbar-content {
-        padding: 1rem;
+        padding: var(--space-lg);
         display: flex;
         flex-direction: column;
-        gap: 0.75rem;
+        gap: var(--space-md);
     }
-    
+
     .toolbar-group {
         display: flex;
         flex-direction: column;
-        gap: 0.5rem;
+        gap: var(--space-sm);
     }
-    
+
     .group-header {
         position: relative;
-        height: 1.25rem;
+        height: var(--space-xl);
         display: flex;
         align-items: center;
         justify-content: center;
-        margin-bottom: 0.25rem;
+        margin-bottom: var(--space-xs);
     }
-    
+
     .group-label {
-        font-size: 0.75rem;
+        font-size: var(--text-sm);
         font-weight: 600;
-        color: var(--text-secondary); /* Changed from #6b7280 */
+        color: var(--text-secondary);
         text-transform: uppercase;
         letter-spacing: 0.05em;
         white-space: nowrap;
@@ -197,78 +197,78 @@
         width: 100%;
         text-align: center;
     }
-    
+
     .group-icon {
         display: flex;
         align-items: center;
         justify-content: center;
-        color: var(--text-secondary); /* Changed from #9ca3af */
-        font-size: 1rem;
+        color: var(--text-secondary);
+        font-size: var(--text-lg);
         opacity: 0;
         transition: opacity 0.3s ease;
         position: absolute;
         width: 100%;
     }
-    
+
     .collapsed .group-label {
         opacity: 0;
     }
-    
+
     .collapsed .group-icon {
         opacity: 1;
     }
-    
+
     .toolbar-separator {
         height: 1px;
-        background: linear-gradient(to right, transparent, var(--border-primary), transparent); /* Changed from #e5e7eb */
-        margin: 0.25rem 0;
+        background: linear-gradient(to right, transparent, var(--border-primary), transparent);
+        margin: var(--space-xs) 0;
     }
-    
+
     .collapsed .toolbar-separator {
-        margin: 0.25rem 0.75rem;
+        margin: var(--space-xs) var(--space-md);
     }
-    
+
     .tool-btn {
         display: flex;
         align-items: center;
-        gap: 0.5rem;
-        padding: 0.75rem;
+        gap: var(--space-sm);
+        padding: var(--space-md);
         border: 1px solid var(--border-primary);
         border-radius: var(--radius-sm);
         background: var(--bg-primary);
         color: var(--text-primary);
         cursor: pointer;
-        transition: all 0.2s;
-        font-size: 0.875rem;
+        transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+        font-size: var(--text-md);
         white-space: nowrap;
     }
-    
+
     .tool-btn:hover {
         background: var(--bg-secondary);
         border-color: var(--border-secondary);
     }
-    
+
     .tool-btn.active {
         background: var(--accent-primary);
         color: white;
         border-color: var(--accent-primary);
     }
-    
+
     .tool-btn.active:hover {
         background: var(--accent-hover);
         border-color: var(--accent-hover);
     }
-    
+
     .tool-btn.danger.active {
         background: var(--danger-primary);
         border-color: var(--danger-primary);
     }
-    
+
     .tool-btn.danger.active:hover {
         background: var(--danger-hover);
         border-color: var(--danger-hover);
     }
-    
+
     .tool-btn.success {
         background: var(--success-primary);
         color: white;
@@ -285,14 +285,15 @@
         cursor: wait;
     }
 
+    /* save-ok/save-err override .success via higher specificity (2 classes) */
     .tool-btn.save-ok {
-        background: var(--success-primary) !important;
-        border-color: var(--success-primary) !important;
+        background: var(--success-primary);
+        border-color: var(--success-primary);
     }
 
     .tool-btn.save-err {
-        background: var(--danger-primary) !important;
-        border-color: var(--danger-primary) !important;
+        background: var(--danger-primary);
+        border-color: var(--danger-primary);
     }
 
     .collapsed .tool-btn {

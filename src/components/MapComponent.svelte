@@ -508,7 +508,7 @@
     }
 
     .popup-header {
-        padding: 16px 20px;
+        padding: var(--space-lg) var(--space-xl);
         border-bottom: 1px solid var(--border-secondary);
         display: flex;
         align-items: center;
@@ -518,7 +518,7 @@
 
     .popup-title {
         margin: 0;
-        font-size: 16px;
+        font-size: var(--text-lg);
         font-weight: 600;
         color: var(--text-primary);
     }
@@ -544,30 +544,30 @@
     }
 
     .popup-close-btn i {
-        font-size: 18px;
+        font-size: var(--icon-md);
     }
 
     .popup-content {
-        padding: 20px;
+        padding: var(--space-xl);
         display: flex;
         flex-direction: column;
-        gap: 16px;
+        gap: var(--space-lg);
     }
 
     /* Popup form labels */
     .popup-container .form-control .label-text {
         color: var(--text-secondary);
         font-weight: 500;
-        font-size: 12px;
+        font-size: var(--text-sm);
     }
 
     /* Compact popup inputs (replaces DaisyUI input classes) */
     .popup-input {
         width: 100%;
-        padding: 8px 10px;
+        padding: var(--space-sm) 10px;
         border: 1px solid var(--border-primary);
         border-radius: var(--radius-sm);
-        font-size: 13px;
+        font-size: var(--text-base);
         background: var(--bg-primary);
         color: var(--text-primary);
         box-sizing: border-box;
@@ -595,12 +595,12 @@
         display: flex;
         align-items: center;
         gap: 6px;
-        padding: 8px 14px;
+        padding: var(--space-sm) var(--space-md);
         background: var(--accent-primary);
         border: none;
         border-radius: var(--radius-sm);
         color: white;
-        font-size: 13px;
+        font-size: var(--text-base);
         font-weight: 500;
         cursor: pointer;
         transition: background-color 0.2s;
@@ -614,16 +614,16 @@
     .toggle-coords-btn {
         display: flex;
         align-items: center;
-        gap: 4px;
+        gap: var(--space-xs);
         width: 100%;
-        padding: 8px 12px;
+        padding: var(--space-sm) var(--space-md);
         background: var(--bg-secondary);
         border: 1px solid var(--border-primary);
         border-radius: var(--radius-sm);
         color: var(--text-secondary);
-        font-size: 13px;
+        font-size: var(--text-base);
         cursor: pointer;
-        transition: all 0.2s;
+        transition: color 0.2s, border-color 0.2s;
     }
 
     .toggle-coords-btn:hover {
@@ -632,7 +632,7 @@
     }
 
     .toggle-coords-btn i {
-        font-size: 18px;
+        font-size: var(--icon-md);
         transition: transform 0.2s;
     }
 
@@ -654,7 +654,7 @@
     }
 
     .coords-side-header {
-        padding: 16px 16px;
+        padding: var(--space-lg);
         min-height: 28px;
         display: flex;
         align-items: center;
@@ -663,23 +663,23 @@
     }
 
     .coords-side-title {
-        font-size: 14px;
+        font-size: var(--text-md);
         font-weight: 600;
         color: var(--text-primary);
     }
 
     .coords-side-body {
-        padding: 10px 12px 14px;
+        padding: 10px var(--space-md) var(--space-md);
         display: flex;
         flex-direction: column;
-        gap: 4px;
+        gap: var(--space-xs);
     }
 
     .coords-col-headers {
         display: flex;
         gap: 6px;
         align-items: center;
-        padding: 0 4px 2px;
+        padding: 0 var(--space-xs) var(--space-2xs);
     }
 
     .coords-spacer {

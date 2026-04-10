@@ -77,13 +77,13 @@
     .input-group {
         display: flex;
         flex-direction: column;
-        gap: 0.25rem;
-        margin-bottom: 0.5rem;
+        gap: var(--space-xs);
+        margin-bottom: var(--space-sm);
         overflow: visible;
     }
 
     .input-group label {
-        font-size: 0.75rem;
+        font-size: var(--text-sm);
         font-weight: 500;
         color: var(--text-secondary);
         text-transform: uppercase;
@@ -102,7 +102,7 @@
 
     .input-reset-btn {
         position: absolute;
-        right: 0.375rem;
+        right: 6px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -110,11 +110,11 @@
         height: 1.5rem;
         padding: 0;
         border: none;
-        border-radius: 0.25rem;
+        border-radius: var(--radius-sm);
         background: transparent;
         color: var(--text-secondary);
         cursor: pointer;
-        transition: all 0.2s;
+        transition: background-color 0.2s, color 0.2s;
     }
 
     .input-reset-btn:hover {
@@ -123,19 +123,19 @@
     }
 
     .input-reset-btn i {
-        font-size: 16px;
+        font-size: var(--icon-lg);
     }
 
     .input-group input {
-        padding: 0.5rem 0.625rem;
+        padding: var(--space-sm) 10px;
         border: 1px solid var(--border-primary);
         border-radius: var(--radius-sm);
-        font-size: 0.8rem;
-        transition: all 0.2s;
+        font-size: var(--text-base);
+        transition: border-color 0.2s, box-shadow 0.2s;
         background: var(--bg-primary);
         color: var(--text-primary);
         width: 100%;
-        min-width: 0; /* Allow shrinking */
+        min-width: 0;
         box-sizing: border-box;
     }
 
@@ -151,7 +151,7 @@
     }
 
     .input-hint {
-        font-size: 0.75rem;
+        font-size: var(--text-sm);
         color: var(--text-secondary);
         font-style: italic;
         opacity: 0.8;
@@ -159,17 +159,17 @@
 
     .button-row {
         display: flex;
-        gap: 0.375rem;
+        gap: 6px;
     }
 
     .action-btn {
         flex: 1;
-        padding: 0.4rem 0.5rem;
+        padding: var(--space-xs) var(--space-sm);
         background: var(--success-primary);
         color: white;
         border: none;
         border-radius: var(--radius-sm);
-        font-size: 0.8rem;
+        font-size: var(--text-base);
         font-weight: 500;
         cursor: pointer;
         transition: background-color 0.2s;
