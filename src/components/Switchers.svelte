@@ -5,9 +5,12 @@
   import { apiUrlStore, mapStyleStore, DEFAULT_MAP_STYLE_URI, DEFAULT_API_SCHEMA, DEFAULT_API_HOST, DEFAULT_API_PORT } from '../store/state'
 
   export let klass: string = ''
+  export let forceOpen: boolean = false
 
   let showSettings = false;
   let containerEl: HTMLElement = undefined as any;
+
+  $: effectiveShow = forceOpen || showSettings;
 
   const resetAllSettings = () => {
       theme.set('system');
@@ -19,7 +22,7 @@
   };
 
   function handleClickOutside(e: MouseEvent) {
-      if (showSettings && containerEl && !containerEl.contains(e.target as Node)) {
+      if (!forceOpen && showSettings && containerEl && !containerEl.contains(e.target as Node)) {
           showSettings = false;
       }
   }
@@ -27,14 +30,16 @@
 
 <svelte:window on:click={handleClickOutside} />
 
-<div class="switcher-container {klass}" bind:this={containerEl}>
-    <button class="settings-toggle" on:click={() => showSettings = !showSettings}>
-        <i class="material-icons">settings</i>
-        <span>Settings</span>
-        <i class="material-icons expand-icon" class:rotated={showSettings}>expand_more</i>
-    </button>
-  
-    {#if showSettings}
+<div class="switcher-container {klass}" class:force-open={forceOpen} bind:this={containerEl}>
+    {#if !forceOpen}
+        <button class="settings-toggle" on:click={() => showSettings = !showSettings}>
+            <i class="material-icons">settings</i>
+            <span>Settings</span>
+            <i class="material-icons expand-icon" class:rotated={effectiveShow}>expand_more</i>
+        </button>
+    {/if}
+
+    {#if effectiveShow}
         <div class="settings-panel">
             <div class="settings-content">
                 <div class="form-section">
@@ -262,5 +267,25 @@
           opacity: 1;
           transform: translateY(0);
       }
+  }
+
+  /* Force-open mode: inline full-width panel (used by mobile settings tab) */
+  .switcher-container.force-open {
+      position: static;
+      z-index: auto;
+      display: block;
+      width: 100%;
+      height: 100%;
+      overflow-y: auto;
+  }
+
+  .force-open .settings-panel {
+      position: static;
+      width: 100% !important;
+      max-width: 100% !important;
+      border: none;
+      border-radius: 0;
+      box-shadow: none;
+      animation: none;
   }
 </style>

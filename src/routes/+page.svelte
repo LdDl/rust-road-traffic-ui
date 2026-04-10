@@ -33,8 +33,8 @@
     let startY = 0;
     let startHeight = 0;
 
-    // Mobile tab switching: "view" = canvas+map together, "zones" = zone list
-    let mobileTab: 'view' | 'zones' = 'view';
+    // Mobile tab switching
+    let mobileTab: 'view' | 'zones' | 'settings' = 'view';
 
     let stateVariable: States;
     state.subscribe((value) => stateVariable = value)
@@ -320,8 +320,7 @@
         onDeleteFromMap={stateDelFromMap}
         onSave={() => saveTOML(initialAPIURL, dataStorageLinked)}
     />
-    <Switchers klass={canvasFocused || mapFocused ? 'blurred noselect' : ''}/>
-    <!-- Mobile tab bar (visible < 768px) -->
+    <!-- Mobile tab bar (visible < 1024px) -->
     <div class="mobile-tab-bar">
         <button class="mobile-tab" class:active={mobileTab === 'view'} on:click={() => mobileTab = 'view'}>
             <i class="material-icons">dashboard</i>
@@ -331,8 +330,13 @@
             <i class="material-icons">list</i>
             <span>Zones</span>
         </button>
+        <button class="mobile-tab" class:active={mobileTab === 'settings'} on:click={() => mobileTab = 'settings'}>
+            <i class="material-icons">settings</i>
+            <span>Settings</span>
+        </button>
     </div>
-    <div id="main_workspace" style="grid-template-columns: {leftPanelWidth}% 2px {100 - leftPanelWidth}%;">
+    <Switchers klass={canvasFocused || mapFocused ? 'blurred noselect' : ''} forceOpen={mobileTab === 'settings'}/>
+    <div id="main_workspace" class:mobile-hidden={mobileTab === 'settings'} style="grid-template-columns: {leftPanelWidth}% 2px {100 - leftPanelWidth}%;">
         <div id="left_workspace" style="grid-template-rows: {topPanelHeight}% 2px {100 - topPanelHeight}%;">
             <div class="canvas-panel" class:mobile-hidden={mobileTab === 'zones'}>
                 <CanvasComponent klass={!canvasFocused && mapFocused ? 'blurred noselect' : ''}/>
@@ -356,7 +360,7 @@
             <div class="zones-panel" class:mobile-hidden={mobileTab === 'view'}>
                 <ConfigurationStorage dataReady={dataReady} data={dataStorageAll} klass={!($canvasReady) || (canvasFocused || mapFocused) ? 'blurred noselect' : ''}/>
             </div>
-            <div class="overlay" style="{!canvasFocused && mapFocused ? 'display: block;' : 'display: none;'}">
+            <div class="overlay" style="{!canvasFocused && mapFocused ? 'display: flex;' : 'display: none;'}">
                 <span>Press ESC to cancel '{cancelActionText !== undefined? cancelActionText : cancelActionUnexpected}' mode</span>
                 <button class="overlay-cancel-btn" on:click={cancelCurrentAction}>Cancel</button>
             </div>
@@ -379,7 +383,7 @@
         </div>
         <div id="right_workspace" class:mobile-hidden={mobileTab === 'zones'}>
             <MapComponent bind:this={mapComponent} klass={!($canvasReady) || (canvasFocused && !mapFocused) ? 'blurred noselect' : ''}/>
-            <div class="overlay" style="{canvasFocused && !mapFocused ? 'display: block;' : 'display: none;'}">
+            <div class="overlay" style="{canvasFocused && !mapFocused ? 'display: flex;' : 'display: none;'}">
                 <span>Press ESC to cancel '{cancelActionText !== undefined? cancelActionText : cancelActionUnexpected}' mode</span>
                 <button class="overlay-cancel-btn" on:click={cancelCurrentAction}>Cancel</button>
             </div>
@@ -730,16 +734,11 @@
             display: none !important;
         }
 
-        /* Toolbar: collapse into icon-only floating panel */
+        /* Toolbar: icon-only on mobile, positioned above tab bar */
         :global(.toolbar-side) {
-            width: 48px !important;
             top: auto !important;
             bottom: 60px !important;
             transform: none !important;
-        }
-
-        :global(.toolbar-side .toolbar-content) {
-            padding: 0.5rem !important;
         }
 
         :global(.toolbar-side .group-header) {
@@ -750,28 +749,28 @@
             margin: 0.125rem 0.5rem !important;
         }
 
-        :global(.toolbar-side .tool-btn) {
-            padding: 0.5rem !important;
-            justify-content: center !important;
-        }
-
         :global(.toolbar-side .tool-btn span) {
             display: none !important;
         }
 
-        /* Settings panel full-width on mobile */
-        :global(.settings-panel) {
-            width: calc(100vw - 2rem) !important;
-            max-width: calc(100vw - 2rem) !important;
+        :global(.toolbar-side.collapsed) {
+            width: 48px !important;
         }
 
-        :global(.switcher-container) {
-            right: 0.5rem !important;
-            top: 0.5rem !important;
+        /* Hide floating Switchers on mobile - settings are a tab now */
+        :global(.switcher-container:not(.force-open)) {
+            display: none !important;
         }
 
-        :global(.settings-toggle span) {
-            display: none;
+        /* Settings tab: Switchers renders inline in main area */
+        :global(.switcher-container.force-open) {
+            flex: 1;
+            min-height: 0;
+        }
+
+        /* Hide main workspace when on settings tab */
+        #main_workspace.mobile-hidden {
+            display: none !important;
         }
     }
 

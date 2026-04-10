@@ -50,7 +50,7 @@
                 title="Add zone to canvas"
             >
                 <i class="material-icons">add</i>
-                {#if !collapsed}<span>Add Zone</span>{/if}
+                <span>Add Zone</span>
             </button>
             <button 
                 class="tool-btn danger"
@@ -59,7 +59,7 @@
                 title="Delete zone from canvas"
             >
                 <i class="material-icons">delete</i>
-                {#if !collapsed}<span>Delete</span>{/if}
+                <span>Delete</span>
             </button>
         </div>
         
@@ -79,7 +79,7 @@
                 title="Add zone to map"
             >
                 <i class="material-icons">add_location</i>
-                {#if !collapsed}<span>Add Zone</span>{/if}
+                <span>Add Zone</span>
             </button>
             <button 
                 class="tool-btn danger"
@@ -88,7 +88,7 @@
                 title="Delete zone from map"
             >
                 <i class="material-icons">location_off</i>
-                {#if !collapsed}<span>Delete</span>{/if}
+                <span>Delete</span>
             </button>
         </div>
         
@@ -106,7 +106,7 @@
                 <i class="material-icons">
                     {#if saving}hourglass_empty{:else if saveResult === 'success'}check{:else if saveResult === 'error'}error_outline{:else}save{/if}
                 </i>
-                {#if !collapsed}<span>{saving ? 'Saving...' : saveResult === 'success' ? 'Saved!' : saveResult === 'error' ? 'Error' : 'Save'}</span>{/if}
+                <span>{saving ? 'Saving...' : saveResult === 'success' ? 'Saved!' : saveResult === 'error' ? 'Error' : 'Save'}</span>
             </button>
         </div>
     </div>
@@ -298,7 +298,7 @@
     .collapsed .tool-btn {
         justify-content: center;
     }
-    
+
     .collapsed .tool-btn span {
         display: none;
     }
