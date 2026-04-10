@@ -36,6 +36,11 @@
     // Mobile tab switching
     let mobileTab: 'view' | 'zones' | 'settings' = 'view';
 
+    // Cancel active mode when leaving View tab on mobile
+    $: if (mobileTab !== 'view' && stateVariable !== States.Waiting) {
+        cancelCurrentAction();
+    }
+
     let stateVariable: States;
     state.subscribe((value) => stateVariable = value)
 
@@ -313,13 +318,15 @@
 <svelte:window on:keydown={keyPress} />
 
 <div id="main-app">
-    <Toolbar
-        onAddToCanvas={stateAddToCanvas}
-        onDeleteFromCanvas={stateDelFromCanvas}
-        onAddToMap={stateAddToMap}
-        onDeleteFromMap={stateDelFromMap}
-        onSave={() => saveTOML(initialAPIURL, dataStorageLinked)}
-    />
+    <div class="toolbar-wrapper" class:toolbar-hidden-mobile={mobileTab !== 'view'}>
+        <Toolbar
+            onAddToCanvas={stateAddToCanvas}
+            onDeleteFromCanvas={stateDelFromCanvas}
+            onAddToMap={stateAddToMap}
+            onDeleteFromMap={stateDelFromMap}
+            onSave={() => saveTOML(initialAPIURL, dataStorageLinked)}
+        />
+    </div>
     <!-- Mobile tab bar (visible < 1024px) -->
     <div class="mobile-tab-bar">
         <button class="mobile-tab" class:active={mobileTab === 'view'} on:click={() => mobileTab = 'view'}>
@@ -741,20 +748,17 @@
             transform: none !important;
         }
 
-        :global(.toolbar-side .group-header) {
-            display: none !important;
-        }
-
         :global(.toolbar-side .toolbar-separator) {
             margin: 0.125rem 0.5rem !important;
         }
 
-        :global(.toolbar-side .tool-btn span) {
-            display: none !important;
-        }
-
         :global(.toolbar-side.collapsed) {
             width: 48px !important;
+        }
+
+        /* Hide toolbar on Zones/Settings tabs */
+        .toolbar-hidden-mobile {
+            display: none !important;
         }
 
         /* Hide floating Switchers on mobile - settings are a tab now */
@@ -789,6 +793,55 @@
         #right_workspace {
             flex: 1;
             min-width: 0;
+        }
+
+        /* Compact toolbar for landscape — centered vertically */
+        :global(.toolbar-side) {
+            top: 50% !important;
+            bottom: auto !important;
+            transform: translateY(-50%) !important;
+        }
+
+        :global(.toolbar-side .toolbar-content) {
+            padding: 0.375rem !important;
+            gap: 0.25rem !important;
+        }
+
+        :global(.toolbar-side .toolbar-group) {
+            gap: 0.25rem !important;
+        }
+
+        :global(.toolbar-side .group-header) {
+            height: 1rem !important;
+            margin-bottom: 0 !important;
+        }
+
+        :global(.toolbar-side .group-icon i) {
+            font-size: 14px !important;
+        }
+
+        :global(.toolbar-side .tool-btn) {
+            padding: 0.375rem !important;
+            font-size: 0.75rem !important;
+        }
+
+        :global(.toolbar-side .tool-btn i) {
+            font-size: 18px !important;
+        }
+
+        :global(.toolbar-side .toolbar-separator) {
+            margin: 0 !important;
+        }
+
+        /* Compact tab bar in landscape */
+        .mobile-tab {
+            padding: 4px 4px !important;
+            min-height: 32px !important;
+            font-size: 10px !important;
+        }
+
+        .mobile-tab i {
+            font-size: 16px !important;
         }
     }
 </style>
