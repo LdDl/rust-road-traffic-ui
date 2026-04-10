@@ -615,13 +615,12 @@
     .coords-side-panel {
         width: 0;
         overflow: hidden;
-        background: var(--bg-primary);
+        background: #1a1a1a;
         border-top: 1px solid var(--border-primary);
         border-right: 1px solid var(--border-primary);
         border-bottom: 1px solid var(--border-primary);
         border-left: none;
         border-radius: 0 12px 12px 0;
-        box-shadow: 4px 4px 20px var(--shadow);
         flex-shrink: 0;
         transition: width 0.3s ease;
     }
@@ -703,33 +702,36 @@
         color: white;
     }
 
-    .coords-input {
+    .coords-side-panel input.coords-input {
         flex: 1;
         min-width: 0;
-        padding: 5px 7px;
-        border: 1px solid var(--border-primary);
-        border-radius: 4px;
-        font-size: 11px;
-        font-family: monospace;
-        background: var(--bg-primary);
-        color: var(--text-primary);
+        padding: 4px 6px !important;
+        border: 1px solid var(--border-primary) !important;
+        border-radius: 4px !important;
+        font-size: 11px !important;
+        line-height: 1.3 !important;
+        font-family: monospace !important;
+        background: var(--bg-primary) !important;
+        color: var(--text-primary) !important;
         box-sizing: border-box;
+        height: auto !important;
+        min-height: 0 !important;
         transition: border-color 0.15s, box-shadow 0.15s;
     }
 
-    .coords-input:focus {
-        outline: none;
-        border-color: var(--accent-primary);
-        box-shadow: 0 0 0 2px rgba(var(--accent-primary-rgb), 0.15);
+    .coords-side-panel input.coords-input:focus {
+        outline: none !important;
+        border-color: var(--accent-primary) !important;
+        box-shadow: 0 0 0 2px rgba(var(--accent-primary-rgb), 0.15) !important;
     }
 
     /* Hide number spinners in popup */
-    .coords-input::-webkit-inner-spin-button,
-    .coords-input::-webkit-outer-spin-button {
+    .coords-side-panel input.coords-input::-webkit-inner-spin-button,
+    .coords-side-panel input.coords-input::-webkit-outer-spin-button {
         -webkit-appearance: none;
         margin: 0;
     }
-    .coords-input {
+    .coords-side-panel input.coords-input {
         -moz-appearance: textfield;
         appearance: textfield;
     }
