@@ -166,8 +166,8 @@
     .input-group {
         display: flex;
         flex-direction: column;
-        gap: 0.5rem;
-        margin-bottom: 1rem;
+        gap: 0.25rem;
+        margin-bottom: 0.5rem;
     }
 
     .input-group label {
@@ -179,10 +179,10 @@
     }
 
     .input-group input {
-        padding: 0.75rem;
+        padding: 0.5rem 0.625rem;
         border: 1px solid var(--border-primary);
         border-radius: 0.375rem;
-        font-size: 0.875rem;
+        font-size: 0.8rem;
         transition: all 0.2s;
         background: var(--bg-primary);
         color: var(--text-primary);
@@ -225,8 +225,8 @@
         position: absolute;
         right: 1px;
         top: 1px;
-        width: 2rem;
-        height: calc(0.875rem * 1.5 + 0.75rem * 2);
+        width: 1.75rem;
+        height: calc(0.8rem * 1.5 + 0.5rem * 2);
         display: flex;
         flex-direction: column;
         border-radius: 0 0.3rem 0.3rem 0;
@@ -276,8 +276,8 @@
         background: var(--bg-secondary);
         border: 1px solid var(--border-secondary);
         border-radius: 0.375rem;
-        padding: 0.75rem;
-        margin-bottom: 1rem;
+        padding: 0.5rem 0.625rem;
+        margin-bottom: 0.5rem;
         font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
         font-size: 0.8rem;
         box-sizing: border-box;
@@ -383,12 +383,12 @@
     
     .action-btn {
         width: 100%;
-        padding: 0.75rem;
+        padding: 0.4rem 0.5rem;
         background: var(--accent-primary);
         color: white;
         border: none;
         border-radius: 0.375rem;
-        font-size: 0.875rem;
+        font-size: 0.8rem;
         font-weight: 500;
         cursor: pointer;
         transition: all 0.2s;
