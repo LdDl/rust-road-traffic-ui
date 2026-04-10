@@ -263,7 +263,7 @@
             Array.from($dataStorage.values()).some(element => {
                 if (element.properties.spatial_object_id === mapFeature.id) {
                     const value = element.id ?? 'No canvas ID';
-                    const color = element.properties.color_rgb_str;
+                    const color = element.properties.color_rgb_str ?? '#666';
                     hiddenInput.value = value;
                     selectedColor.style.backgroundColor = color;
                     selectedColor.style.display = 'block';
