@@ -795,7 +795,7 @@
             min-width: 0;
         }
 
-        /* Compact toolbar for landscape — centered vertically */
+        /* Compact toolbar for landscape - centered vertically */
         :global(.toolbar-side) {
             top: 50% !important;
             bottom: auto !important;

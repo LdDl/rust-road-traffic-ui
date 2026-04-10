@@ -115,11 +115,11 @@
     .zone-form {
         display: flex;
         flex-direction: column;
-        gap: 16px;
+        gap: var(--space-lg);
     }
 
     .section-label {
-        font-size: 11px;
+        font-size: var(--text-xs);
         font-weight: 600;
         color: var(--text-secondary);
         text-transform: uppercase;
@@ -135,13 +135,13 @@
     .coords-section {
         display: flex;
         flex-direction: column;
-        gap: 8px;
+        gap: var(--space-sm);
     }
 
     .coords-header {
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: var(--space-sm);
     }
 
     .header-spacer {
@@ -151,7 +151,7 @@
 
     .header-label {
         flex: 1;
-        font-size: 11px;
+        font-size: var(--text-xs);
         color: var(--text-secondary);
         font-weight: 500;
     }
@@ -159,14 +159,14 @@
     .coords-grid {
         display: flex;
         flex-direction: column;
-        gap: 4px;
+        gap: var(--space-xs);
     }
 
     .coord-row {
         display: flex;
         align-items: center;
-        gap: 8px;
-        padding: 4px;
+        gap: var(--space-sm);
+        padding: var(--space-xs);
         border-radius: var(--radius-sm);
         transition: background-color 0.15s;
     }
@@ -176,12 +176,12 @@
     }
 
     .point-label {
-        width: 24px;
-        height: 24px;
-        line-height: 24px;
-        font-size: 12px;
+        width: var(--space-2xl);
+        height: var(--space-2xl);
+        line-height: var(--space-2xl);
+        font-size: var(--text-sm);
         font-weight: 700;
-        border-radius: 4px;
+        border-radius: var(--radius-sm);
         background: var(--bg-tertiary);
         color: var(--text-primary);
         text-align: center;
@@ -197,10 +197,10 @@
     .lane-field input {
         flex: 1;
         min-width: 0;
-        padding: 8px 10px;
+        padding: var(--space-sm) 10px;
         border: 1px solid var(--border-primary);
         border-radius: var(--radius-sm);
-        font-size: 13px;
+        font-size: var(--text-base);
         font-family: monospace;
         background: var(--bg-primary);
         color: var(--text-primary);
@@ -230,23 +230,23 @@
     .lane-section {
         display: flex;
         flex-direction: column;
-        gap: 8px;
+        gap: var(--space-sm);
     }
 
     .lane-row {
         display: flex;
-        gap: 12px;
+        gap: var(--space-md);
     }
 
     .lane-field {
         flex: 1;
         display: flex;
         flex-direction: column;
-        gap: 4px;
+        gap: var(--space-xs);
     }
 
     .lane-field label {
-        font-size: 11px;
+        font-size: var(--text-xs);
         font-weight: 500;
         color: var(--text-secondary);
     }
@@ -254,12 +254,12 @@
     /* Save button */
     .save-btn {
         width: 100%;
-        padding: 8px 14px;
+        padding: var(--space-sm) var(--space-md);
         background: var(--success-primary);
         color: white;
         border: none;
         border-radius: var(--radius-sm);
-        font-size: 14px;
+        font-size: var(--text-md);
         font-weight: 600;
         cursor: pointer;
         transition: background-color 0.2s;
