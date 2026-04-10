@@ -294,8 +294,8 @@
         left: 50%;
         transform: translate(-50%, -50%);
         background-color: var(--loading-bg);
-        padding: 0.66665rem;
-        border-radius: 5px;
+        padding: var(--space-md);
+        border-radius: var(--radius-sm);
         pointer-events: none;
         font-size: 2rem;
     }

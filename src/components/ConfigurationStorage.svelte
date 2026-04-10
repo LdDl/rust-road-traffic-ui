@@ -221,14 +221,14 @@
     .empty-state {
         display: flex;
         align-items: center;
-        gap: 8px;
-        padding: 16px;
+        gap: var(--space-sm);
+        padding: var(--space-lg);
         color: var(--text-secondary);
-        font-size: 13px;
+        font-size: var(--text-base);
     }
 
     .empty-state i {
-        font-size: 20px;
+        font-size: var(--icon-lg);
         opacity: 0.6;
     }
 
@@ -236,7 +236,7 @@
         grid-area: B;
         overflow-y: auto;
         height: 100%;
-        padding: 8px;
+        padding: var(--space-sm);
         background: var(--bg-primary);
         color: var(--text-primary);
     }
@@ -244,7 +244,7 @@
     /* Custom scrollbar with theme support */
     #configuration::-webkit-scrollbar {
         background-color: var(--bg-primary);
-        width: 8px;
+        width: var(--space-sm);
     }
 
     #configuration::-webkit-scrollbar-track {
@@ -253,7 +253,7 @@
 
     #configuration::-webkit-scrollbar-thumb {
         background-color: var(--text-secondary);
-        border-radius: 4px;
+        border-radius: var(--radius-sm);
         opacity: 0.7;
     }
 
@@ -263,7 +263,7 @@
     }
 
     .zone-card {
-        margin-bottom: 8px;
+        margin-bottom: var(--space-sm);
         border: 1px solid var(--border-primary);
         border-radius: var(--radius-sm);
         overflow: hidden;
@@ -282,7 +282,7 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        font-size: 14px;
+        font-size: var(--text-md);
         font-weight: 500;
         transition: background-color 0.2s;
     }
@@ -294,7 +294,7 @@
     .zone-header-main {
         display: flex;
         align-items: center;
-        gap: 0.5rem;
+        gap: var(--space-sm);
         flex: 1;
     }
 
@@ -304,7 +304,7 @@
     }
 
     .zone-badge {
-        font-size: 10px;
+        font-size: var(--text-2xs);
         font-weight: 600;
         padding: 1px 6px;
         border-radius: 3px;
@@ -320,7 +320,7 @@
     }
 
     .zone-status {
-        font-size: 12px;
+        font-size: var(--text-sm);
         color: var(--text-secondary);
         font-style: italic;
     }
@@ -341,23 +341,23 @@
     .color-display {
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: var(--space-sm);
     }
 
     .color-swatch {
         width: 32px;
-        height: 16px;
+        height: var(--space-lg);
         border: 1px solid var(--border-primary);
-        border-radius: 2px;
+        border-radius: var(--space-2xs);
     }
 
     table {
-        font-size: 12px;
+        font-size: var(--text-sm);
         width: 100%;
     }
 
     td {
-        padding: 4px 8px;
+        padding: var(--space-xs) var(--space-sm);
         vertical-align: top;
         border-bottom: 1px solid var(--border-secondary);
     }
@@ -381,16 +381,16 @@
     .edit-btn {
         display: inline-flex;
         align-items: center;
-        gap: 4px;
-        margin-top: 8px;
-        padding: 4px 10px;
+        gap: var(--space-xs);
+        margin-top: var(--space-sm);
+        padding: var(--space-xs) 10px;
         background: var(--bg-secondary);
         border: 1px solid var(--border-primary);
         border-radius: 3px;
         color: var(--text-secondary);
-        font-size: 11px;
+        font-size: var(--text-xs);
         cursor: pointer;
-        transition: all 0.2s;
+        transition: color 0.2s, border-color 0.2s;
     }
 
     .edit-btn:hover {
@@ -399,7 +399,7 @@
     }
 
     .edit-btn i {
-        font-size: 14px;
+        font-size: var(--icon-sm);
     }
 
     /* Modal */
@@ -417,7 +417,7 @@
         background: var(--bg-primary);
         border: 1px solid var(--border-primary);
         border-radius: var(--radius-md);
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        box-shadow: 0 var(--space-sm) 32px rgba(0, 0, 0, 0.3);
         width: 420px;
         max-width: 90vw;
         max-height: 80vh;
@@ -428,7 +428,7 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 16px 20px;
+        padding: var(--space-lg) var(--space-xl);
         border-bottom: 1px solid var(--border-secondary);
     }
 
@@ -440,15 +440,15 @@
 
     .modal-title-row h3 {
         margin: 0;
-        font-size: 16px;
+        font-size: var(--text-lg);
         font-weight: 600;
         color: var(--text-primary);
     }
 
     .modal-swatch {
-        width: 20px;
-        height: 20px;
-        border-radius: 4px;
+        width: var(--space-xl);
+        height: var(--space-xl);
+        border-radius: var(--radius-sm);
     }
 
     .modal-close {
@@ -463,7 +463,7 @@
         border-radius: var(--radius-sm);
         color: var(--text-secondary);
         cursor: pointer;
-        transition: all 0.2s;
+        transition: background-color 0.2s, color 0.2s;
     }
 
     .modal-close:hover {
@@ -472,10 +472,10 @@
     }
 
     .modal-close i {
-        font-size: 18px;
+        font-size: var(--icon-md);
     }
 
     .modal-body {
-        padding: 16px 20px 20px;
+        padding: var(--space-lg) var(--space-xl) var(--space-xl);
     }
 </style>

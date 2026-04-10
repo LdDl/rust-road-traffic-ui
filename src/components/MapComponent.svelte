@@ -689,7 +689,7 @@
 
     .coords-col-label {
         flex: 1;
-        font-size: 10px;
+        font-size: var(--text-2xs);
         color: var(--text-secondary);
         font-weight: 500;
     }
@@ -698,7 +698,7 @@
         display: flex;
         gap: 6px;
         align-items: center;
-        padding: 4px;
+        padding: var(--space-xs);
         border-radius: var(--radius-sm);
         transition: background-color 0.15s;
     }
@@ -712,9 +712,9 @@
         height: 22px;
         line-height: 22px;
         text-align: center;
-        font-size: 11px;
+        font-size: var(--text-xs);
         font-weight: 700;
-        border-radius: 4px;
+        border-radius: var(--radius-sm);
         background: var(--bg-tertiary);
         color: var(--text-primary);
         flex-shrink: 0;
@@ -726,27 +726,28 @@
         color: white;
     }
 
-    .coords-side-panel input.coords-input {
+    /* High specificity to override Tailwind/DaisyUI base input styles */
+    .popup-container .coords-side-panel input.coords-input {
         flex: 1;
         min-width: 0;
-        padding: 4px 6px !important;
-        border: 1px solid var(--border-primary) !important;
-        border-radius: 4px !important;
-        font-size: 11px !important;
-        line-height: 1.3 !important;
-        font-family: monospace !important;
-        background: var(--bg-primary) !important;
-        color: var(--text-primary) !important;
+        padding: var(--space-xs) 6px;
+        border: 1px solid var(--border-primary);
+        border-radius: var(--radius-sm);
+        font-size: var(--text-xs);
+        line-height: 1.3;
+        font-family: monospace;
+        background: var(--bg-primary);
+        color: var(--text-primary);
         box-sizing: border-box;
-        height: auto !important;
-        min-height: 0 !important;
+        height: auto;
+        min-height: 0;
         transition: border-color 0.15s, box-shadow 0.15s;
     }
 
-    .coords-side-panel input.coords-input:focus {
-        outline: none !important;
-        border-color: var(--accent-primary) !important;
-        box-shadow: 0 0 0 2px rgba(var(--accent-primary-rgb), 0.15) !important;
+    .popup-container .coords-side-panel input.coords-input:focus {
+        outline: none;
+        border-color: var(--accent-primary);
+        box-shadow: 0 0 0 2px rgba(var(--accent-primary-rgb), 0.15);
     }
 
     /* Hide number spinners in popup */
@@ -762,13 +763,13 @@
 
     .save-coords-btn {
         width: 100%;
-        padding: 7px;
+        padding: var(--space-sm);
         margin-top: 6px;
         background: var(--accent-primary);
         color: white;
         border: none;
-        border-radius: 4px;
-        font-size: 12px;
+        border-radius: var(--radius-sm);
+        font-size: var(--text-sm);
         font-weight: 600;
         cursor: pointer;
         transition: background-color 0.2s;
@@ -781,12 +782,12 @@
     .form-actions {
         display: flex;
         justify-content: flex-end;
-        padding: 0 20px 16px;
+        padding: 0 var(--space-xl) var(--space-lg);
     }
 
     /* Material Icons in popup */
     .popup-container .material-icons {
-        font-size: 16px;
+        font-size: var(--icon-lg);
     }
 
     /* Dark theme: slightly lighter input backgrounds */
@@ -803,7 +804,7 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 8px 10px;
+        padding: var(--space-sm) 10px;
         background: var(--bg-primary);
         border: 1px solid var(--border-primary);
         border-radius: var(--radius-sm);
@@ -824,13 +825,13 @@
     .selected-option {
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: var(--space-sm);
         flex: 1;
     }
 
     .selected-color {
-        width: 20px;
-        height: 20px;
+        width: var(--space-xl);
+        height: var(--space-xl);
         border-radius: 50%;
         border: 2px solid var(--border-primary);
         flex-shrink: 0;
@@ -839,14 +840,14 @@
 
     .selected-text {
         color: var(--text-primary);
-        font-size: 14px;
+        font-size: var(--text-md);
         transition: color 0.3s ease;
     }
 
     .dropdown-arrow {
         color: var(--text-secondary);
-        font-size: 20px;
-        transition: all 0.3s ease;
+        font-size: var(--icon-lg);
+        transition: color 0.3s ease;
     }
 
     .custom-select-trigger:hover .dropdown-arrow {
@@ -855,18 +856,17 @@
 
     .custom-select-dropdown {
         position: absolute;
-        top: calc(100% + 4px);
+        top: calc(100% + var(--space-xs));
         left: 0;
         right: 0;
         background: var(--bg-primary);
         border: 1px solid var(--border-primary);
         border-radius: var(--radius-sm);
-        box-shadow: 0 4px 12px var(--shadow);
+        box-shadow: 0 var(--space-xs) var(--space-md) var(--shadow);
         z-index: 10;
         max-height: 200px;
         overflow-y: auto;
         display: none;
-        transition: all 0.3s ease;
     }
 
     .custom-select-dropdown.show {
@@ -876,10 +876,10 @@
     .custom-option {
         display: flex;
         align-items: center;
-        gap: 12px;
-        padding: 12px 16px;
+        gap: var(--space-md);
+        padding: var(--space-md) var(--space-lg);
         cursor: pointer;
-        transition: all 0.3s ease;
+        transition: background-color 0.15s;
         border-bottom: 1px solid var(--border-secondary);
     }
 
@@ -892,8 +892,8 @@
     }
 
     .option-color {
-        width: 20px;
-        height: 20px;
+        width: var(--space-xl);
+        height: var(--space-xl);
         border-radius: 50%;
         border: 2px solid var(--border-primary);
         flex-shrink: 0;
@@ -902,7 +902,7 @@
 
     .option-text {
         color: var(--text-primary);
-        font-size: 14px;
+        font-size: var(--text-md);
         font-weight: 500;
         transition: color 0.3s ease;
     }
@@ -914,13 +914,11 @@
 
     .custom-select-dropdown::-webkit-scrollbar-track {
         background: var(--bg-secondary);
-        transition: background-color 0.3s ease;
     }
 
     .custom-select-dropdown::-webkit-scrollbar-thumb {
         background: var(--text-secondary);
         border-radius: 3px;
-        transition: background-color 0.3s ease;
     }
 
     .custom-select-dropdown::-webkit-scrollbar-thumb:hover {

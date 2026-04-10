@@ -7,6 +7,8 @@
     export let onAddToMap: () => void;
     export let onDeleteFromMap: () => void;
     export let onSave: () => void | Promise<void>;
+    export let compact: boolean = false;
+    export let landscape: boolean = false;
 
     let stateVariable: States;
     state.subscribe((value) => stateVariable = value);
@@ -30,7 +32,7 @@
     };
 </script>
 
-<div class="toolbar-side" class:collapsed>
+<div class="toolbar-side" class:collapsed class:compact class:landscape>
     <button class="toolbar-toggle" on:click={() => collapsed = !collapsed}>
         <i class="material-icons">{collapsed ? 'chevron_left' : 'chevron_right'}</i>
     </button>
@@ -302,5 +304,58 @@
 
     .collapsed .tool-btn span {
         display: none;
+    }
+
+    /* Compact mode (mobile/tablet <=1024px) - positioned above tab bar */
+    .toolbar-side.compact {
+        top: auto;
+        bottom: 60px;
+        transform: none;
+    }
+
+    .compact .toolbar-separator {
+        margin: 2px var(--space-sm);
+    }
+
+    .compact.collapsed {
+        width: 48px;
+    }
+
+    /* Landscape compact - centered, tighter spacing */
+    .toolbar-side.compact.landscape {
+        top: 50%;
+        bottom: auto;
+        transform: translateY(-50%);
+    }
+
+    .compact.landscape .toolbar-content {
+        padding: 6px;
+        gap: var(--space-xs);
+    }
+
+    .compact.landscape .toolbar-group {
+        gap: var(--space-xs);
+    }
+
+    .compact.landscape .group-header {
+        height: var(--text-lg);
+        margin-bottom: 0;
+    }
+
+    .compact.landscape .group-icon i {
+        font-size: var(--icon-sm);
+    }
+
+    .compact.landscape .tool-btn {
+        padding: 6px;
+        font-size: var(--text-sm);
+    }
+
+    .compact.landscape .tool-btn i {
+        font-size: var(--icon-md);
+    }
+
+    .compact.landscape .toolbar-separator {
+        margin: 0;
     }
 </style>

@@ -6,6 +6,7 @@
 
   export let klass: string = ''
   export let forceOpen: boolean = false
+  export let compact: boolean = false
 
   let showSettings = false;
   let containerEl: HTMLElement = undefined as any;
@@ -30,7 +31,7 @@
 
 <svelte:window on:click={handleClickOutside} />
 
-<div class="switcher-container {klass}" class:force-open={forceOpen} bind:this={containerEl}>
+<div class="switcher-container {klass}" class:force-open={forceOpen} class:compact bind:this={containerEl}>
     {#if !forceOpen}
         <button class="settings-toggle" on:click={() => showSettings = !showSettings}>
             <i class="material-icons">settings</i>
@@ -170,7 +171,7 @@
       transform: rotate(180deg);
   }
 
-  /* Dropdown panel — fixed width on desktop, full-width when force-open */
+  /* Dropdown panel - fixed width on desktop, full-width when force-open */
   .switcher-container:not(.force-open) .settings-panel {
       width: 380px;
       max-width: calc(100vw - 2rem);
@@ -277,5 +278,15 @@
       border-radius: 0;
       box-shadow: none;
       animation: none;
+  }
+
+  /* Compact mode (mobile) - hide floating toggle, show only when force-open */
+  .switcher-container.compact:not(.force-open) {
+      display: none;
+  }
+
+  .switcher-container.compact.force-open {
+      flex: 1;
+      min-height: 0;
   }
 </style>

@@ -36,6 +36,15 @@
     // Mobile tab switching
     let mobileTab: 'view' | 'zones' | 'settings' = 'view';
 
+    // Responsive detection via matchMedia
+    let isMobile = false;
+    let isLandscape = false;
+    let mqlMobile: MediaQueryList;
+    let mqlLandscape: MediaQueryList;
+
+    const onMobileChange = (e: MediaQueryListEvent) => { isMobile = e.matches };
+    const onLandscapeChange = (e: MediaQueryListEvent) => { isLandscape = e.matches };
+
     // Cancel active mode when leaving View tab on mobile
     $: if (mobileTab !== 'view' && stateVariable !== States.Waiting) {
         cancelCurrentAction();
@@ -139,6 +148,14 @@
         console.log('Mounted page')
         initSubscribers(SubscriberState.Init)
 
+        // Responsive breakpoint detection
+        mqlMobile = window.matchMedia('(max-width: 1024px)');
+        mqlLandscape = window.matchMedia('(max-width: 1024px) and (orientation: landscape)');
+        isMobile = mqlMobile.matches;
+        isLandscape = mqlLandscape.matches;
+        mqlMobile.addEventListener('change', onMobileChange);
+        mqlLandscape.addEventListener('change', onLandscapeChange);
+
         // Override DeleteClickedZone click event
         DeleteClickedZone.onClick = (s: any, e: any) => {
             if (e.featureTarget && stateVariable === States.DeletingZoneMap) {
@@ -190,6 +207,8 @@
         unbindVertexLabels()
         unsubscribeCanvas()
         unsubscribeGeoData()
+        mqlMobile?.removeEventListener('change', onMobileChange);
+        mqlLandscape?.removeEventListener('change', onLandscapeChange);
         unsubApiChange()
     });
 
@@ -325,6 +344,8 @@
             onAddToMap={stateAddToMap}
             onDeleteFromMap={stateDelFromMap}
             onSave={() => saveTOML(initialAPIURL, dataStorageLinked)}
+            compact={isMobile}
+            landscape={isLandscape}
         />
     </div>
     <!-- Mobile tab bar (visible < 1024px) -->
@@ -342,9 +363,9 @@
             <span>Settings</span>
         </button>
     </div>
-    <Switchers klass={canvasFocused || mapFocused ? 'blurred noselect' : ''} forceOpen={mobileTab === 'settings'}/>
-    <div id="main_workspace" class:mobile-hidden={mobileTab === 'settings'} style="grid-template-columns: {leftPanelWidth}% 2px {100 - leftPanelWidth}%;">
-        <div id="left_workspace" style="grid-template-rows: {topPanelHeight}% 2px {100 - topPanelHeight}%;">
+    <Switchers klass={canvasFocused || mapFocused ? 'blurred noselect' : ''} forceOpen={mobileTab === 'settings'} compact={isMobile}/>
+    <div id="main_workspace" class:mobile-hidden={mobileTab === 'settings'} class:mobile={isMobile} style={isMobile ? '' : `grid-template-columns: ${leftPanelWidth}% 2px ${100 - leftPanelWidth}%`}>
+        <div id="left_workspace" style={isMobile ? '' : `grid-template-rows: ${topPanelHeight}% 2px ${100 - topPanelHeight}%`}>
             <div class="canvas-panel" class:mobile-hidden={mobileTab === 'zones'}>
                 <CanvasComponent klass={!canvasFocused && mapFocused ? 'blurred noselect' : ''}/>
             </div>
@@ -432,7 +453,7 @@
     .overlay {
         display: flex;
         flex-direction: column;
-        gap: 0.5rem;
+        gap: var(--space-sm);
         justify-content: center;
         align-items: center;
         position: absolute;
@@ -441,28 +462,28 @@
         transform: translate(-50%, -50%);
         background-color: var(--bg-secondary);
         color: var(--text-primary);
-        padding: 0.75rem 1rem;
+        padding: var(--space-md) var(--space-lg);
         border-radius: var(--radius-md);
         pointer-events: auto;
         border: 1px solid var(--border-primary);
-        box-shadow: 0 4px 12px var(--shadow);
+        box-shadow: 0 var(--space-xs) var(--space-md) var(--shadow);
         backdrop-filter: blur(10px);
         opacity: 0.95;
         font-weight: 500;
-        font-size: 0.875rem;
+        font-size: var(--text-md);
         z-index: 20;
     }
 
     .overlay-cancel-btn {
-        padding: 0.25rem 0.75rem;
+        padding: var(--space-xs) var(--space-md);
         background: var(--danger-primary);
         color: white;
         border: none;
         border-radius: var(--radius-sm);
         cursor: pointer;
-        font-size: 0.8rem;
+        font-size: var(--text-base);
         font-weight: 500;
-        transition: background 0.2s;
+        transition: background-color 0.2s;
     }
 
     .overlay-cancel-btn:hover {
@@ -665,20 +686,20 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 2px;
-            padding: 8px 4px;
+            gap: var(--space-2xs);
+            padding: var(--space-sm) var(--space-xs);
             background: transparent;
             border: none;
             border-bottom: 2px solid transparent;
             color: var(--text-secondary);
-            font-size: 11px;
+            font-size: var(--text-xs);
             cursor: pointer;
-            transition: all 0.2s;
+            transition: color 0.2s, background-color 0.2s, border-color 0.2s;
             min-height: 44px;
         }
 
         .mobile-tab i {
-            font-size: 20px;
+            font-size: var(--icon-lg);
         }
 
         .mobile-tab.active {
@@ -693,22 +714,19 @@
 
         /* Portrait: canvas on top, map on bottom (column) */
         #main_workspace {
-            display: flex !important;
+            display: flex;
             flex-direction: column;
         }
 
         /* Hide splitters on mobile */
-        .splitter {
-            display: none !important;
-        }
-
+        .splitter,
         .horizontal-splitter {
-            display: none !important;
+            display: none;
         }
 
         /* Left workspace: holds canvas OR zones depending on tab */
         #left_workspace {
-            display: flex !important;
+            display: flex;
             flex-direction: column;
             flex: 1;
             min-height: 0;
@@ -741,35 +759,9 @@
             display: none !important;
         }
 
-        /* Toolbar: icon-only on mobile, positioned above tab bar */
-        :global(.toolbar-side) {
-            top: auto !important;
-            bottom: 60px !important;
-            transform: none !important;
-        }
-
-        :global(.toolbar-side .toolbar-separator) {
-            margin: 0.125rem 0.5rem !important;
-        }
-
-        :global(.toolbar-side.collapsed) {
-            width: 48px !important;
-        }
-
         /* Hide toolbar on Zones/Settings tabs */
         .toolbar-hidden-mobile {
             display: none !important;
-        }
-
-        /* Hide floating Switchers on mobile - settings are a tab now */
-        :global(.switcher-container:not(.force-open)) {
-            display: none !important;
-        }
-
-        /* Settings tab: Switchers renders inline in main area */
-        :global(.switcher-container.force-open) {
-            flex: 1;
-            min-height: 0;
         }
 
         /* Hide main workspace when on settings tab */
@@ -781,7 +773,7 @@
     /* Landscape phone: canvas left, map right (row) */
     @media (max-width: 1024px) and (orientation: landscape) {
         #main_workspace {
-            flex-direction: row !important;
+            flex-direction: row;
         }
 
         /* In landscape row layout, left_workspace should not stretch full width */
@@ -795,53 +787,15 @@
             min-width: 0;
         }
 
-        /* Compact toolbar for landscape - centered vertically */
-        :global(.toolbar-side) {
-            top: 50% !important;
-            bottom: auto !important;
-            transform: translateY(-50%) !important;
-        }
-
-        :global(.toolbar-side .toolbar-content) {
-            padding: 0.375rem !important;
-            gap: 0.25rem !important;
-        }
-
-        :global(.toolbar-side .toolbar-group) {
-            gap: 0.25rem !important;
-        }
-
-        :global(.toolbar-side .group-header) {
-            height: 1rem !important;
-            margin-bottom: 0 !important;
-        }
-
-        :global(.toolbar-side .group-icon i) {
-            font-size: 14px !important;
-        }
-
-        :global(.toolbar-side .tool-btn) {
-            padding: 0.375rem !important;
-            font-size: 0.75rem !important;
-        }
-
-        :global(.toolbar-side .tool-btn i) {
-            font-size: 18px !important;
-        }
-
-        :global(.toolbar-side .toolbar-separator) {
-            margin: 0 !important;
-        }
-
         /* Compact tab bar in landscape */
         .mobile-tab {
-            padding: 4px 4px !important;
-            min-height: 32px !important;
-            font-size: 10px !important;
+            padding: var(--space-xs);
+            min-height: 32px;
+            font-size: var(--text-2xs);
         }
 
         .mobile-tab i {
-            font-size: 16px !important;
+            font-size: var(--icon-lg);
         }
     }
 </style>
