@@ -6,45 +6,56 @@
     import { map, draw } from '../store/map'
     import { mapStyleStore, changeStyle } from '../store/state'
     import { dataStorage, updateDataStorage, resetZoneSpatialInfo } from '../store/data_storage'
-    import { EMPTY_POLYGON_RGB } from '../lib/gl_draw_styles.js'
-    import { resolveMapStyle, EMPTY_MAP_STYLE, BLANK_MAP_STYLE_MARKER } from '../lib/map_styles'
-    import { theme } from '../store/theme' // Add theme import
+    import { EMPTY_POLYGON_RGB, createDrawStyles } from '../lib/gl_draw_styles.js'
+    import { resolveMapStyle, createBlankStyle, BLANK_MAP_STYLE_MARKER } from '../lib/map_styles'
+    import { resolvedTheme } from '../store/theme'
     import type { Feature, GeoJsonObject, Polygon } from 'geojson';
-    
+
     export let klass: string = ''
 
     let mapContainer: HTMLElement;
     const { accepted_uri } = mapStyleStore;
     let initialStylesURI = $accepted_uri
-    let currentTheme = $theme;
 
     const unsubStylesChange = accepted_uri.subscribe(value => {
         if (initialStylesURI !== value) {
-            $map.setStyle(resolveMapStyle(value))
+            $map.setStyle(resolveMapStyle(value, $resolvedTheme === 'dark'))
             initialStylesURI = $accepted_uri
         }
     })
 
-    const unsubThemeChange = theme.subscribe(newTheme => {
+    const unsubThemeChange = resolvedTheme.subscribe(newTheme => {
         if ($map) {
-            // Update all existing popup containers with new theme
             const popupContainers = document.querySelectorAll('.popup-container');
             popupContainers.forEach(container => {
                 container.setAttribute('data-theme', newTheme);
             });
+            // Update blank map background on theme change
+            if ($accepted_uri === BLANK_MAP_STYLE_MARKER) {
+                $map.setStyle(createBlankStyle(newTheme === 'dark'));
+            }
+            // Update draw layer paint properties for theme
+            const isDark = newTheme === 'dark';
+            const styles = createDrawStyles(isDark);
+            for (const style of styles) {
+                if ($map.getLayer(style.id) && 'paint' in style) {
+                    const paint = style.paint as Record<string, unknown>;
+                    for (const [prop, value] of Object.entries(paint)) {
+                        try {
+                            $map.setPaintProperty(style.id, prop, value);
+                        } catch { /* layer may not exist yet */ }
+                    }
+                }
+            }
         }
     });
-
-    function svgToDataURL(svg: string): string {
-        return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
-    }
 
     onMount(() => {
         console.log('Mounted map component')
         const initialState = { lng: 0, lat: 0, zoom: 5 };
         map.set(new MMap({
             container: mapContainer,
-            style: resolveMapStyle(initialStylesURI),
+            style: resolveMapStyle(initialStylesURI, $resolvedTheme === 'dark'),
             center: [initialState.lng, initialState.lat],
             zoom: initialState.zoom
         }));
@@ -63,7 +74,7 @@
             }
             fellBackToBlank = true;
             console.warn('Map style failed to load, falling back to blank style:', err);
-            $map.setStyle(EMPTY_MAP_STYLE);
+            $map.setStyle(createBlankStyle($resolvedTheme === 'dark'));
             mapStyleStore.accepted_uri.set(BLANK_MAP_STYLE_MARKER);
             mapStyleStore.uri.set(BLANK_MAP_STYLE_MARKER);
             initialStylesURI = BLANK_MAP_STYLE_MARKER;
@@ -105,7 +116,7 @@
             });
 
             const popupContent = `
-                <div class="popup-container" data-theme="${$theme}">
+                <div class="popup-container" data-theme="${$resolvedTheme}">
                     <div class="popup-main" id="popup-main">
                         <div class="popup-header">
                             <h3 class="popup-title">Zone Configuration</h3>
@@ -484,7 +495,7 @@
         max-width: 380px;
         background: var(--bg-primary);
         border: 1px solid var(--border-primary);
-        border-radius: 12px;
+        border-radius: var(--radius-lg);
         box-shadow: 0 4px 20px var(--shadow);
         flex-shrink: 0;
         position: relative;
@@ -492,7 +503,7 @@
     }
 
     .popup-main.side-open {
-        border-radius: 12px 0 0 12px;
+        border-radius: var(--radius-lg) 0 0 var(--radius-lg);
         border-right: none;
     }
 
@@ -516,8 +527,8 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 28px;
-        height: 28px;
+        width: 36px;
+        height: 36px;
         padding: 0;
         background: var(--bg-secondary);
         border: 1px solid var(--border-primary);
@@ -615,12 +626,12 @@
     .coords-side-panel {
         width: 0;
         overflow: hidden;
-        background: #1a1a1a;
+        background: var(--bg-primary);
         border-top: 1px solid var(--border-primary);
         border-right: 1px solid var(--border-primary);
         border-bottom: 1px solid var(--border-primary);
         border-left: none;
-        border-radius: 0 12px 12px 0;
+        border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
         flex-shrink: 0;
         transition: width 0.3s ease;
     }

@@ -1,5 +1,6 @@
 <script lang="ts">
     import { type Writable } from 'svelte/store'
+    import { slide } from 'svelte/transition'
     import { DirectionType, type Zone } from '$lib/zones';
     import { map, draw } from '../store/map';
     import { updateDataStorage } from '../store/data_storage';
@@ -44,11 +45,13 @@
         if (!isFinite(lng) || !isFinite(lat)) return;
 
         const el = document.createElement('div');
+        const bgColor = getComputedStyle(document.documentElement).getPropertyValue('--bg-primary').trim() || '#ffffff';
         el.style.cssText = `
             width: 14px; height: 14px;
             border-radius: 50%;
             border: 2px solid ${zone.properties.color_rgb_str || '#ff0000'};
-            background: rgba(255,255,255,0.8);
+            background: ${bgColor};
+            opacity: 0.9;
             pointer-events: none;
         `;
 
@@ -123,7 +126,7 @@
                         <span class="expand-arrow">{expandedZones[k] ? '▼' : '▶'}</span>
                     </button>
                     {#if expandedZones[k]}
-                        <div class="zone-content">
+                        <div class="zone-content" transition:slide={{ duration: 200 }}>
                             <table class="table table-sm">
                                 <tbody>
                                     <tr>
@@ -182,7 +185,7 @@
 {#if modalZone}
     <!-- svelte-ignore a11y_no_static_element_interactions a11y_click_events_have_key_events -->
     <div class="modal-backdrop" on:click={handleBackdropClick}>
-        <div class="modal-panel">
+        <div class="modal-panel" role="dialog" aria-modal="true" aria-label="Edit zone {modalZone.id}">
             <div class="modal-header">
                 <div class="modal-title-row">
                     <div class="color-swatch modal-swatch" style="background-color: {modalZone.properties.color_rgb_str};"></div>
@@ -237,7 +240,7 @@
     .zone-card {
         margin-bottom: 8px;
         border: 1px solid var(--border-primary);
-        border-radius: 4px;
+        border-radius: var(--radius-sm);
         overflow: hidden;
         background: var(--bg-primary);
         box-shadow: 0 1px 3px var(--shadow);
@@ -388,7 +391,7 @@
     .modal-panel {
         background: var(--bg-primary);
         border: 1px solid var(--border-primary);
-        border-radius: 8px;
+        border-radius: var(--radius-md);
         box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
         width: 420px;
         max-width: 90vw;
@@ -427,8 +430,8 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 28px;
-        height: 28px;
+        width: 36px;
+        height: 36px;
         padding: 0;
         background: var(--bg-secondary);
         border: 1px solid var(--border-primary);

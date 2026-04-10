@@ -51,14 +51,14 @@ const changeDirectionControlHandler = (eventData: TPointerEvent, transformData: 
         L1: L1,
         L2: L2,
         direction: targetObject.direction,
-        color: segmentObject.stroke || 'rgb(255, 0, 0)',
-        shadow: segmentObject.shadow
+        color: (typeof segmentObject.stroke === 'string' ? segmentObject.stroke : undefined) || 'rgb(255, 0, 0)',
+        shadow: segmentObject.shadow ?? undefined
     });
 
     // Replace old arrow in group
     targetObject.remove(directionArrowGroup);
     targetObject.insertAt(1, newArrow);
-    targetObject.parentContour.fire('virtial_line:modified', { target: targetObject.parentContour });
+    targetObject.parentContour.fire('virtual_line:modified', { target: targetObject.parentContour });
     targetObject.canvas?.renderAll() // Force call of render
     return true
 }

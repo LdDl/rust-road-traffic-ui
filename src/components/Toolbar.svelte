@@ -110,9 +110,9 @@
     .toolbar-toggle {
         position: absolute;
         top: 1rem;
-        left: -12px;
-        width: 24px;
-        height: 24px;
+        left: -22px;
+        width: 44px;
+        height: 44px;
         background: var(--bg-primary); /* Changed from white */
         border: 1px solid var(--border-primary); /* Changed from #e5e7eb */
         border-radius: 50%;
@@ -238,11 +238,11 @@
     }
     
     .tool-btn.success {
-        background: var(--success-hover);
+        background: var(--success-primary);
         color: white;
-        border-color: var(--success-hover);
+        border-color: var(--success-primary);
     }
-    
+
     .tool-btn.success:hover {
         background: var(--success-hover);
         border-color: var(--success-hover);

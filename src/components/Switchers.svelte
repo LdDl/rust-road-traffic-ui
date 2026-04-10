@@ -1,24 +1,33 @@
 <script lang="ts">
   import IPForm from './IPForm.svelte'
   import StylesForm from './StylesForm.svelte'
-  import { theme, toggleTheme } from '../store/theme'
+  import { theme } from '../store/theme'
   import { apiUrlStore, mapStyleStore, DEFAULT_MAP_STYLE_URI, DEFAULT_API_SCHEMA, DEFAULT_API_HOST, DEFAULT_API_PORT } from '../store/state'
 
   export let klass: string = ''
 
   let showSettings = false;
+  let containerEl: HTMLElement = undefined as any;
 
   const resetAllSettings = () => {
-      theme.set('light');
+      theme.set('system');
       apiUrlStore.schema.set(DEFAULT_API_SCHEMA);
       apiUrlStore.host.set(DEFAULT_API_HOST);
       apiUrlStore.port.set(DEFAULT_API_PORT);
       mapStyleStore.uri.set(DEFAULT_MAP_STYLE_URI);
       mapStyleStore.accepted_uri.set(DEFAULT_MAP_STYLE_URI);
   };
+
+  function handleClickOutside(e: MouseEvent) {
+      if (showSettings && containerEl && !containerEl.contains(e.target as Node)) {
+          showSettings = false;
+      }
+  }
 </script>
 
-<div class="switcher-container {klass}">
+<svelte:window on:click={handleClickOutside} />
+
+<div class="switcher-container {klass}" bind:this={containerEl}>
     <button class="settings-toggle" on:click={() => showSettings = !showSettings}>
         <i class="material-icons">settings</i>
         <span>Settings</span>
@@ -31,16 +40,24 @@
                 <div class="form-section">
                     <h4>Theme</h4>
                     <div class="theme-selector">
-                        <button 
-                            class="theme-option" 
+                        <button
+                            class="theme-option"
+                            class:active={$theme === 'system'}
+                            on:click={() => theme.set('system')}
+                        >
+                            <i class="material-icons">settings_brightness</i>
+                            <span>System</span>
+                        </button>
+                        <button
+                            class="theme-option"
                             class:active={$theme === 'light'}
                             on:click={() => theme.set('light')}
                         >
                             <i class="material-icons">light_mode</i>
                             <span>Light</span>
                         </button>
-                        <button 
-                            class="theme-option" 
+                        <button
+                            class="theme-option"
                             class:active={$theme === 'dark'}
                             on:click={() => theme.set('dark')}
                         >
@@ -116,10 +133,6 @@
       border-color: var(--accent-primary);
   }
   
-  :global(.toolbar-expanded) .switcher-container {
-      right: 220px;
-  }
-  
   .settings-toggle {
       display: flex;
       align-items: center;
@@ -158,7 +171,7 @@
       right: 0;
       background: var(--bg-primary);
       border: 1px solid var(--border-primary);
-      border-radius: 0.5rem;
+      border-radius: var(--radius-md);
       box-shadow: 0 4px 20px var(--shadow);
       animation: slideDown 0.3s ease;
       z-index: 1002;
@@ -191,7 +204,7 @@
   }
   
   .form-wrapper {
-    width: calc(100% - 0rem); /* Slight adjustment to prevent overflow */
+    width: 100%;
     max-width: 100%;
     overflow: visible;
   }

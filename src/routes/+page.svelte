@@ -33,12 +33,15 @@
     let startY = 0;
     let startHeight = 0;
 
+    // Mobile tab switching
+    let mobileTab: 'canvas' | 'map' | 'zones' = 'canvas';
+
     let stateVariable: States;
     state.subscribe((value) => stateVariable = value)
 
 	const title = 'Rust Road Traffic UI'
     
-    let mapComponent: any
+    let mapComponent: MapComponent
     let unsubscribeCanvas: Unsubscriber
     let unsubscribeGeoData: Unsubscriber
     $: canvasFocused = (stateVariable === States.AddingZoneCanvas || stateVariable === States.DeletingZoneCanvas)
@@ -185,12 +188,16 @@
         unsubApiChange()
     });
 
-    function keyPress(e: KeyboardEvent) { 
+    function keyPress(e: KeyboardEvent) {
         if (e.key === "Escape") {
-            resetCurrentCanvasDrawing($canvasState)
-            $draw.changeMode('simple_select')
-            state.set(States.Waiting)
+            cancelCurrentAction()
         }
+    }
+
+    function cancelCurrentAction() {
+        resetCurrentCanvasDrawing($canvasState)
+        $draw.changeMode('simple_select')
+        state.set(States.Waiting)
     }
 
     const resetCurrentCanvasDrawing = (extendedCanvas?: FabricCanvasWrap) => {
@@ -247,17 +254,18 @@
         }
     }
 
-    /* Vertical Splitter Logic */
-    const startDrag = (e: MouseEvent) => {
+    /* Vertical Splitter Logic (pointer events for mouse + touch) */
+    const startDrag = (e: PointerEvent) => {
         isDragging = true;
         startX = e.clientX;
         startWidth = leftPanelWidth;
-        document.addEventListener('mousemove', handleDrag);
-        document.addEventListener('mouseup', stopDrag);
+        (e.target as HTMLElement).setPointerCapture(e.pointerId);
+        document.addEventListener('pointermove', handleDrag);
+        document.addEventListener('pointerup', stopDrag);
         e.preventDefault();
     };
 
-    const handleDrag = (e: MouseEvent) => {
+    const handleDrag = (e: PointerEvent) => {
         if (!isDragging) return;
         const deltaX = e.clientX - startX;
         const containerWidth = window.innerWidth;
@@ -267,43 +275,45 @@
 
     const stopDrag = () => {
         isDragging = false;
-        document.removeEventListener('mousemove', handleDrag);
-        document.removeEventListener('mouseup', stopDrag);
+        document.removeEventListener('pointermove', handleDrag);
+        document.removeEventListener('pointerup', stopDrag);
     };
 
-    /* Horizontal Splitter Logic */
-    const startHorizontalDrag = (e: MouseEvent) => {
+    /* Horizontal Splitter Logic (pointer events for mouse + touch) */
+    const startHorizontalDrag = (e: PointerEvent) => {
         isHorizontalDragging = true;
         startY = e.clientY;
         startHeight = topPanelHeight;
-        document.addEventListener('mousemove', handleHorizontalDrag);
-        document.addEventListener('mouseup', stopHorizontalDrag);
+        (e.target as HTMLElement).setPointerCapture(e.pointerId);
+        document.addEventListener('pointermove', handleHorizontalDrag);
+        document.addEventListener('pointerup', stopHorizontalDrag);
         e.preventDefault();
     };
 
-    const handleHorizontalDrag = (e: MouseEvent) => {
+    const handleHorizontalDrag = (e: PointerEvent) => {
         if (!isHorizontalDragging) return;
         const deltaY = e.clientY - startY;
-        const containerHeight = window.innerHeight - 60; // Subtract toolbar height
+        const containerHeight = window.innerHeight - 60;
         const deltaPercent = (deltaY / containerHeight) * 100;
         topPanelHeight = Math.max(30, Math.min(85, startHeight + deltaPercent));
     };
 
     const stopHorizontalDrag = () => {
         isHorizontalDragging = false;
-        document.removeEventListener('mousemove', handleHorizontalDrag);
-        document.removeEventListener('mouseup', stopHorizontalDrag);
+        document.removeEventListener('pointermove', handleHorizontalDrag);
+        document.removeEventListener('pointerup', stopHorizontalDrag);
     };
 </script>
 
 <sveltekit:head>
 	<title>{title}</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
 </sveltekit:head>
 
 <svelte:window on:keydown={keyPress} />
 
 <div id="main-app">
-    <Toolbar 
+    <Toolbar
         onAddToCanvas={stateAddToCanvas}
         onDeleteFromCanvas={stateDelFromCanvas}
         onAddToMap={stateAddToMap}
@@ -311,12 +321,29 @@
         onSave={() => saveTOML(initialAPIURL, dataStorageLinked)}
     />
     <Switchers klass={canvasFocused || mapFocused ? 'blurred noselect' : ''}/>
+    <!-- Mobile tab bar (visible < 768px) -->
+    <div class="mobile-tab-bar">
+        <button class="mobile-tab" class:active={mobileTab === 'canvas'} on:click={() => mobileTab = 'canvas'}>
+            <i class="material-icons">grid_on</i>
+            <span>Canvas</span>
+        </button>
+        <button class="mobile-tab" class:active={mobileTab === 'map'} on:click={() => mobileTab = 'map'}>
+            <i class="material-icons">map</i>
+            <span>Map</span>
+        </button>
+        <button class="mobile-tab" class:active={mobileTab === 'zones'} on:click={() => mobileTab = 'zones'}>
+            <i class="material-icons">list</i>
+            <span>Zones</span>
+        </button>
+    </div>
     <div id="main_workspace" style="grid-template-columns: {leftPanelWidth}% 2px {100 - leftPanelWidth}%;">
-        <div id="left_workspace" style="grid-template-rows: {topPanelHeight}% 2px {100 - topPanelHeight}%;">
-            <CanvasComponent klass={!canvasFocused && mapFocused ? 'blurred noselect' : ''}/>
-            <div class="horizontal-splitter" 
+        <div id="left_workspace" class="mobile-panel" class:mobile-hidden={mobileTab !== 'canvas' && mobileTab !== 'zones'} style="grid-template-rows: {topPanelHeight}% 2px {100 - topPanelHeight}%;">
+            <div class="canvas-panel" class:mobile-hidden={mobileTab === 'zones'}>
+                <CanvasComponent klass={!canvasFocused && mapFocused ? 'blurred noselect' : ''}/>
+            </div>
+            <div class="horizontal-splitter"
                 class:dragging={isHorizontalDragging}
-                on:mousedown={startHorizontalDrag}
+                on:pointerdown={startHorizontalDrag}
                 role="slider"
                 tabindex="0"
                 aria-label="Panel height"
@@ -330,14 +357,17 @@
                     <div></div> <!-- bottom line -->
                 </div>
             </div>
-            <ConfigurationStorage dataReady={dataReady} data={dataStorageAll} klass={!($canvasReady) || (canvasFocused || mapFocused) ? 'blurred noselect' : ''}/>
+            <div class="zones-panel" class:mobile-hidden={mobileTab === 'canvas'}>
+                <ConfigurationStorage dataReady={dataReady} data={dataStorageAll} klass={!($canvasReady) || (canvasFocused || mapFocused) ? 'blurred noselect' : ''}/>
+            </div>
             <div class="overlay" style="{!canvasFocused && mapFocused ? 'display: block;' : 'display: none;'}">
-                Press ESC to cancel '{cancelActionText !== undefined? cancelActionText : cancelActionUnexpected}' mode
+                <span>Press ESC to cancel '{cancelActionText !== undefined? cancelActionText : cancelActionUnexpected}' mode</span>
+                <button class="overlay-cancel-btn" on:click={cancelCurrentAction}>Cancel</button>
             </div>
         </div>
-        <div class="splitter" 
+        <div class="splitter"
             class:dragging={isDragging}
-            on:mousedown={startDrag}
+            on:pointerdown={startDrag}
             role="slider"
             tabindex="0"
             aria-label="Panel width"
@@ -351,10 +381,11 @@
                 <div></div> <!-- right line -->
             </div>
         </div>
-        <div id="right_workspace">
+        <div id="right_workspace" class="mobile-panel" class:mobile-hidden={mobileTab !== 'map'}>
             <MapComponent bind:this={mapComponent} klass={!($canvasReady) || (canvasFocused && !mapFocused) ? 'blurred noselect' : ''}/>
             <div class="overlay" style="{canvasFocused && !mapFocused ? 'display: block;' : 'display: none;'}">
-                Press ESC to cancel '{cancelActionText !== undefined? cancelActionText : cancelActionUnexpected}' mode
+                <span>Press ESC to cancel '{cancelActionText !== undefined? cancelActionText : cancelActionUnexpected}' mode</span>
+                <button class="overlay-cancel-btn" on:click={cancelCurrentAction}>Cancel</button>
             </div>
         </div>
     </div>
@@ -392,6 +423,9 @@
     }
     
     .overlay {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
         justify-content: center;
         align-items: center;
         position: absolute;
@@ -400,15 +434,32 @@
         transform: translate(-50%, -50%);
         background-color: var(--bg-secondary);
         color: var(--text-primary);
-        padding: 0.66665rem;
-        border-radius: 5px;
-        pointer-events: none;
+        padding: 0.75rem 1rem;
+        border-radius: var(--radius-md);
+        pointer-events: auto;
         border: 1px solid var(--border-primary);
         box-shadow: 0 4px 12px var(--shadow);
         backdrop-filter: blur(10px);
         opacity: 0.95;
         font-weight: 500;
         font-size: 0.875rem;
+        z-index: 20;
+    }
+
+    .overlay-cancel-btn {
+        padding: 0.25rem 0.75rem;
+        background: var(--danger-primary);
+        color: white;
+        border: none;
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        font-size: 0.8rem;
+        font-weight: 500;
+        transition: background 0.2s;
+    }
+
+    .overlay-cancel-btn:hover {
+        background: var(--danger-hover);
     }
 
     #main_workspace {
@@ -426,6 +477,7 @@
         position: relative;
         z-index: 10;
         transition: background-color 0.3s ease;
+        touch-action: none;
     }
 
     .splitter::before {
@@ -475,6 +527,7 @@
         z-index: 10;
         grid-area: splitter;
         transition: background-color 0.3s ease;
+        touch-action: none;
     }
 
     .horizontal-splitter::before {
@@ -564,13 +617,7 @@
         background: var(--bg-primary);
     }
     
-    /* #main-app > #main_workspace > *:not(.map-wrap) {
-        background: #ffd83c;
-        filter: blur(3px);
-    } */
-
     .blurred {
-        /* background: #ffd83c; */
         filter: blur(3px);
         cursor: not-allowed !important;
         transition: filter 0.3s ease;
@@ -584,6 +631,146 @@
         -khtml-user-select: none; /* Konqueror HTML */
         -moz-user-select: none; /* Old versions of Firefox */
         -ms-user-select: none; /* Internet Explorer/Edge */
-        user-select: none; /* Non-prefixed version, currently supported by Chrome, Edge, Opera and Firefox */
+        user-select: none;
+    }
+
+    /* Mobile tab bar - hidden on desktop */
+    .mobile-tab-bar {
+        display: none;
+    }
+
+    .canvas-panel, .zones-panel {
+        display: contents;
+    }
+
+    /* Responsive: tablet/phone (<768px) */
+    @media (max-width: 768px) {
+        .mobile-tab-bar {
+            display: flex;
+            background: var(--bg-primary);
+            border-bottom: 1px solid var(--border-primary);
+            flex-shrink: 0;
+            z-index: 50;
+        }
+
+        .mobile-tab {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            padding: 8px 4px;
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid transparent;
+            color: var(--text-secondary);
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s;
+            min-height: 44px;
+        }
+
+        .mobile-tab i {
+            font-size: 20px;
+        }
+
+        .mobile-tab.active {
+            color: var(--accent-primary);
+            border-bottom-color: var(--accent-primary);
+        }
+
+        .mobile-tab:hover {
+            color: var(--text-primary);
+            background: var(--bg-secondary);
+        }
+
+        #main_workspace {
+            display: flex !important;
+            flex-direction: column;
+        }
+
+        /* Hide splitters on mobile */
+        .splitter {
+            display: none !important;
+        }
+
+        .horizontal-splitter {
+            display: none !important;
+        }
+
+        /* Full-size panels on mobile */
+        #left_workspace {
+            display: flex !important;
+            flex-direction: column;
+            flex: 1;
+            min-height: 0;
+        }
+
+        #left_workspace .canvas-panel {
+            display: block;
+            flex: 1;
+            min-height: 0;
+        }
+
+        #left_workspace .zones-panel {
+            display: block;
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+        }
+
+        #right_workspace {
+            flex: 1;
+            min-height: 0;
+        }
+
+        /* Tab switching: hide inactive panels */
+        .mobile-hidden {
+            display: none !important;
+        }
+
+        /* Toolbar: collapse into smaller floating button */
+        :global(.toolbar-side) {
+            width: 48px !important;
+            top: auto !important;
+            bottom: 80px !important;
+            transform: none !important;
+        }
+
+        :global(.toolbar-side .toolbar-content) {
+            padding: 0.5rem !important;
+        }
+
+        :global(.toolbar-side .group-header) {
+            display: none !important;
+        }
+
+        :global(.toolbar-side .toolbar-separator) {
+            margin: 0.125rem 0.5rem !important;
+        }
+
+        :global(.toolbar-side .tool-btn) {
+            padding: 0.5rem !important;
+            justify-content: center !important;
+        }
+
+        :global(.toolbar-side .tool-btn span) {
+            display: none !important;
+        }
+
+        /* Settings panel full-width on mobile */
+        :global(.settings-panel) {
+            width: calc(100vw - 2rem) !important;
+            max-width: calc(100vw - 2rem) !important;
+        }
+
+        :global(.switcher-container) {
+            right: 0.5rem !important;
+            top: 0.5rem !important;
+        }
+
+        :global(.settings-toggle span) {
+            display: none;
+        }
     }
 </style>

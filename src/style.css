@@ -1,10 +1,6 @@
 @import "tailwindcss";
 @plugin "daisyui";
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
 /* Theme CSS Custom Properties */
 /* Light theme colors */
 :root {
@@ -27,6 +23,14 @@
     --danger-primary-rgb: 239, 68, 68;
     --danger-hover: #dc2626;
     --danger-bg: #fef2f2;
+    --warning-bg: #fef3c7;
+    --warning-text: #92400e;
+    --warning-border: #fcd34d;
+    --loading-bg: rgba(128, 128, 128, 0.8);
+    --blank-map-bg: #e5e5e5;
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
 }
 
 /* Dark theme colors */
@@ -50,6 +54,14 @@
     --danger-primary-rgb: 248, 113, 113;
     --danger-hover: #ef4444;
     --danger-bg: #2d1b1b;
+    --warning-bg: #422006;
+    --warning-text: #fbbf24;
+    --warning-border: #92400e;
+    --loading-bg: rgba(30, 30, 30, 0.85);
+    --blank-map-bg: #2d2d2d;
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
 }
 
 /* Apply theme colors globally */
@@ -57,4 +69,14 @@
     background-color: var(--bg-primary);
     color: var(--text-primary);
     transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Global focus-visible indicator for keyboard navigation */
+:global(:focus-visible) {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 2px;
+}
+
+:global(:focus:not(:focus-visible)) {
+    outline: none;
 }

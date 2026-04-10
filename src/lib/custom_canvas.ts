@@ -203,9 +203,9 @@ export function prepareContour(contourFinalized: any, state: Writable<States>, s
     contour.inner.on('mousedown', contourMouseDownEventWrapper(state, storage, updateDataStorageFn))
     contour.inner.on('modified', contourModifiedEventWrapper(storage, updateDataStorageFn))
     if (init_virtual_lines_events) {
-        contour.inner.on('virtial_line:created', customEventCreatedForVirtualLine(storage, updateDataStorageFn))
-        contour.inner.on('virtial_line:modified', customEventModifiedForVirtualLine(storage, updateDataStorageFn))
-        contour.inner.on('virtial_line:removed', customEventRemovedForVirtualLine(storage, updateDataStorageFn))
+        contour.inner.on('virtual_line:created', customEventCreatedForVirtualLine(storage, updateDataStorageFn))
+        contour.inner.on('virtual_line:modified', customEventModifiedForVirtualLine(storage, updateDataStorageFn))
+        contour.inner.on('virtual_line:removed', customEventRemovedForVirtualLine(storage, updateDataStorageFn))
     }
 
     contour.inner.on('mouseover', function (options: TPointerEventInfo<TPointerEvent>) {
@@ -232,13 +232,7 @@ export function prepareContour(contourFinalized: any, state: Writable<States>, s
     contour.inner.on('mouseout', function (options: TPointerEventInfo<MouseEvent>) {
         const targetContour = options.target
         if (!targetContour) {
-            console.warn('Empty target contour on mouseout - this can happen during object cleanup:', {
-                event: options.e?.type,
-                hasTarget: !!options.target,
-                scenePoint: options.scenePoint,
-                viewportPoint: options.viewportPoint,
-                canvasObjects: targetContour?.canvas?.getObjects()?.length || 0
-            });
+            console.warn('Empty target contour on mouseout - this can happen during object cleanup');
             return
         }
         if (!(targetContour instanceof CustomPolygon)) {
@@ -461,9 +455,9 @@ export const drawCanvasPolygons = (extendedCanvas: FabricCanvasWrap, state: Writ
             prepareVirtualLine(contour, true, feature.properties.virtual_line)
         }
         /* Special case: should add events only after lines has been added to avoid excess updateDataStorageFn call */
-        contour.inner.on('virtial_line:created', customEventCreatedForVirtualLine(storage, updateDataStorageFn))
-        contour.inner.on('virtial_line:modified', customEventModifiedForVirtualLine(storage, updateDataStorageFn))
-        contour.inner.on('virtial_line:removed', customEventRemovedForVirtualLine(storage, updateDataStorageFn))
+        contour.inner.on('virtual_line:created', customEventCreatedForVirtualLine(storage, updateDataStorageFn))
+        contour.inner.on('virtual_line:modified', customEventModifiedForVirtualLine(storage, updateDataStorageFn))
+        contour.inner.on('virtual_line:removed', customEventRemovedForVirtualLine(storage, updateDataStorageFn))
         contour.notation.forEach((vertextNotation: FabricText) => {
             extendedCanvas.add(vertextNotation)
         })

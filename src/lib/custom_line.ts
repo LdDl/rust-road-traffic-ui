@@ -205,7 +205,7 @@ export function prepareVirtualLine(targetContour: CustomPolygon, givenByAPI: boo
         L1: L1Canvas,
         L2: L2Canvas,
         direction: props.direction,
-        color: targetContour.stroke || 'rgb(255, 0, 0)',
+        color: (typeof targetContour.stroke === 'string' ? targetContour.stroke : undefined) || 'rgb(255, 0, 0)',
         shadow: shadow
     });
     /* Denote line vertices */
@@ -355,7 +355,7 @@ export function prepareVirtualLine(targetContour: CustomPolygon, givenByAPI: boo
         targetGroupObject.current_points[0][1] = L1ModifiedScaled.y
         targetGroupObject.current_points[1][0] = L2ModifiedScaled.x
         targetGroupObject.current_points[1][1] = L2ModifiedScaled.y
-        targetContour.fire('virtial_line:modified', { target: targetContour })
+        targetContour.fire('virtual_line:modified', { target: targetContour })
     })
 
     virtLineGroup.on('mouseover', function(options: TPointerEventInfo<TPointerEvent>) {
@@ -438,12 +438,12 @@ export function prepareVirtualLine(targetContour: CustomPolygon, givenByAPI: boo
 
     virtLineGroup.on('removed', function(options) {
         if (virtLineGroup.parentContour) {
-            virtLineGroup.parentContour.fire('virtial_line:removed', { target: targetContour })
+            virtLineGroup.parentContour.fire('virtual_line:removed', { target: targetContour })
         }
     })
 
     targetContour.virtual_line = virtLineGroup
-    targetContour.fire('virtial_line:created', { target: targetContour })
+    targetContour.fire('virtual_line:created', { target: targetContour })
 
     virtLineGroup.parentContour = targetContour
     
