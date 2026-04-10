@@ -7,6 +7,7 @@
     import { mapStyleStore, changeStyle } from '../store/state'
     import { dataStorage, updateDataStorage, resetZoneSpatialInfo } from '../store/data_storage'
     import { EMPTY_POLYGON_RGB } from '../lib/gl_draw_styles.js'
+    import { resolveMapStyle, EMPTY_MAP_STYLE, BLANK_MAP_STYLE_MARKER } from '../lib/map_styles'
     import { theme } from '../store/theme' // Add theme import
     import type { Feature, GeoJsonObject, Polygon } from 'geojson';
     
@@ -19,7 +20,7 @@
 
     const unsubStylesChange = accepted_uri.subscribe(value => {
         if (initialStylesURI !== value) {
-            $map.setStyle(value)
+            $map.setStyle(resolveMapStyle(value))
             initialStylesURI = $accepted_uri
         }
     })
@@ -43,10 +44,30 @@
         const initialState = { lng: 0, lat: 0, zoom: 5 };
         map.set(new MMap({
             container: mapContainer,
-            style: initialStylesURI,
+            style: resolveMapStyle(initialStylesURI),
             center: [initialState.lng, initialState.lat],
             zoom: initialState.zoom
         }));
+
+        let fellBackToBlank = false;
+        $map.on('error', (e: any) => {
+            if (fellBackToBlank) {
+                return
+            }
+            const err = e?.error;
+            const status = err?.status;
+            const isStyleLoadError = status === 401 || status === 403 || status === 404 ||
+                (typeof err?.message === 'string' && /style/i.test(err.message));
+            if (!isStyleLoadError) {
+                return
+            }
+            fellBackToBlank = true;
+            console.warn('Map style failed to load, falling back to blank style:', err);
+            $map.setStyle(EMPTY_MAP_STYLE);
+            mapStyleStore.accepted_uri.set(BLANK_MAP_STYLE_MARKER);
+            mapStyleStore.uri.set(BLANK_MAP_STYLE_MARKER);
+            initialStylesURI = BLANK_MAP_STYLE_MARKER;
+        })
 
         $map.on('load', () => {
             $map.resize()
@@ -260,9 +281,11 @@
         });
         if (hasValidCoords && isFinite(minLng) && isFinite(maxLng) && isFinite(minLat) && isFinite(maxLat)) {
             const bounds = new maplibregl.LngLatBounds([minLng, minLat], [maxLng, maxLat]);
+            const isBlank = $accepted_uri === BLANK_MAP_STYLE_MARKER;
             $map.fitBounds(bounds, {
                 maxZoom: 18,
-                padding: 100
+                padding: 100,
+                ...(isBlank ? { duration: 0 } : {})
             });
             return
         }

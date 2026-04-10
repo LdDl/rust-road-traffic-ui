@@ -69,6 +69,23 @@
             }
         })
         const endpoint = `${initialAPIURL}/api/polygons/geojson`
+
+        // Two async operations race: map style load and data fetch.
+        // With fast styles (e.g. blank), 'load' fires before fetch completes.
+        // Coordinate via two flags so drawGeoPolygons runs once both are done.
+        let mapReady = (subType === SubscriberState.ReInit) || $map.isStyleLoaded()
+        let dataFetched = false
+
+        const tryDrawGeo = () => {
+            if (mapReady && dataFetched) {
+                mapComponent.drawGeoPolygons($draw, $dataStorage)
+            }
+        }
+
+        if (!mapReady) {
+            $map.once('load', () => { mapReady = true; tryDrawGeo() })
+        }
+
         fetch(`${endpoint}`)
             .then((response) => {
                 return response.json()
@@ -77,13 +94,8 @@
                 data.features.forEach((feature: ZoneFeature) => {
                     addZoneFeature(feature)
                 });
-                if (subType === SubscriberState.ReInit) {
-                    mapComponent.drawGeoPolygons($draw, $dataStorage);
-                } else {
-                    $map.on('load', () => {
-                        mapComponent.drawGeoPolygons($draw, $dataStorage);
-                    });
-                }
+                dataFetched = true
+                tryDrawGeo()
                 dataReady.set(true)
             })
             .catch((error) => {
@@ -99,8 +111,8 @@
             /* Clean UP */
             canvasReady.set(false)
             dataReady.set(false)
-            unsubscribeCanvas()
-            unsubscribeGeoData()
+            if (unsubscribeCanvas) unsubscribeCanvas()
+            if (unsubscribeGeoData) unsubscribeGeoData()
             clearDataStorage()
             if ($canvasState !== undefined && $canvasState != null) {
                 //@ts-ignore

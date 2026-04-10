@@ -2,10 +2,20 @@
   import IPForm from './IPForm.svelte'
   import StylesForm from './StylesForm.svelte'
   import { theme, toggleTheme } from '../store/theme'
+  import { apiUrlStore, mapStyleStore, DEFAULT_MAP_STYLE_URI, DEFAULT_API_SCHEMA, DEFAULT_API_HOST, DEFAULT_API_PORT } from '../store/state'
 
   export let klass: string = ''
-  
+
   let showSettings = false;
+
+  const resetAllSettings = () => {
+      theme.set('light');
+      apiUrlStore.schema.set(DEFAULT_API_SCHEMA);
+      apiUrlStore.host.set(DEFAULT_API_HOST);
+      apiUrlStore.port.set(DEFAULT_API_PORT);
+      mapStyleStore.uri.set(DEFAULT_MAP_STYLE_URI);
+      mapStyleStore.accepted_uri.set(DEFAULT_MAP_STYLE_URI);
+  };
 </script>
 
 <div class="switcher-container {klass}">
@@ -52,6 +62,13 @@
                         <StylesForm />
                     </div>
                 </div>
+
+                <div class="reset-section">
+                    <button type="button" class="reset-all-btn" on:click={resetAllSettings}>
+                        <i class="material-icons">settings_backup_restore</i>
+                        Reset to default
+                    </button>
+                </div>
             </div>
         </div>
     {/if}
@@ -77,15 +94,15 @@
   .theme-option {
       display: flex;
       align-items: center;
-      gap: 0.5rem;
-      padding: 0.5rem 0.75rem;
+      gap: 0.375rem;
+      padding: 0.375rem 0.625rem;
       background: var(--bg-secondary);
       border: 1px solid var(--border-primary);
       border-radius: 0.375rem;
       cursor: pointer;
       transition: all 0.2s;
       color: var(--text-secondary);
-      font-size: 0.875rem;
+      font-size: 0.8rem;
   }
 
   .theme-option:hover {
@@ -145,38 +162,38 @@
       box-shadow: 0 4px 20px var(--shadow);
       animation: slideDown 0.3s ease;
       z-index: 1002;
-      width: 420px;
+      width: 380px;
       max-width: 90vw;
   }
-  
+
   .settings-content {
-      padding: 1.5rem;
-      display: flex;
-      flex-direction: column;
-      gap: 1.5rem;
-  }
-  
-  .form-section {
+      padding: 1rem;
       display: flex;
       flex-direction: column;
       gap: 0.75rem;
   }
-  
+
+  .form-section {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+  }
+
   .form-section h4 {
       margin: 0;
-      font-size: 0.875rem;
+      font-size: 0.75rem;
       font-weight: 600;
       color: var(--text-primary);
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      padding-bottom: 0.5rem;
+      padding-bottom: 0.375rem;
       border-bottom: 1px solid var(--border-secondary);
   }
   
   .form-wrapper {
     width: calc(100% - 0rem); /* Slight adjustment to prevent overflow */
     max-width: 100%;
-    overflow: hidden;
+    overflow: visible;
   }
   
   :global(.settings-panel .api-form),
@@ -193,6 +210,36 @@
       max-width: 100%;
   }
   
+  .reset-section {
+      padding-top: 0.5rem;
+      border-top: 1px solid var(--border-secondary);
+  }
+
+  .reset-all-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.375rem;
+      width: 100%;
+      padding: 0.4rem 0.625rem;
+      background: transparent;
+      border: 1px solid var(--border-primary);
+      border-radius: 0.375rem;
+      color: var(--text-secondary);
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.2s;
+  }
+
+  .reset-all-btn:hover {
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      border-color: var(--border-secondary);
+  }
+
+  .reset-all-btn i {
+      font-size: 18px;
+  }
+
   @keyframes slideDown {
       from {
           opacity: 0;
