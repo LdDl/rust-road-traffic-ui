@@ -709,10 +709,8 @@
         width: 0;
         overflow: hidden;
         background: var(--bg-primary);
-        border-top: 1px solid var(--border-primary);
-        border-right: 1px solid var(--border-primary);
-        border-bottom: 1px solid var(--border-primary);
-        border-left: none;
+        border: 1px solid var(--border-primary);
+        border-left: 1px dashed var(--border-secondary);
         border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
         transition: width 0.3s ease;
     }
