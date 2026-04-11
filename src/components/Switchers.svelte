@@ -117,8 +117,8 @@
   .theme-option {
       display: flex;
       align-items: center;
-      gap: 6px;
-      padding: 6px 10px;
+      gap: var(--space-xs);
+      padding: var(--space-xs) var(--space-md);
       background: var(--bg-secondary);
       border: 1px solid var(--border-primary);
       border-radius: var(--radius-sm);
@@ -209,7 +209,7 @@
       color: var(--text-primary);
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      padding-bottom: 6px;
+      padding-bottom: var(--space-xs);
       border-bottom: 1px solid var(--border-secondary);
   }
 
@@ -227,7 +227,7 @@
   .reset-all-btn {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: var(--space-xs);
       width: 100%;
       padding: var(--space-xs) 10px;
       background: transparent;

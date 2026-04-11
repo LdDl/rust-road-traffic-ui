@@ -273,7 +273,7 @@
 
     .zone-header {
         width: 100%;
-        padding: 10px;
+        padding: var(--space-md);
         background: var(--bg-secondary);
         color: var(--text-primary);
         border: none;
@@ -306,8 +306,8 @@
     .zone-badge {
         font-size: var(--text-2xs);
         font-weight: 600;
-        padding: 1px 6px;
-        border-radius: 3px;
+        padding: 1px var(--space-xs);
+        border-radius: var(--radius-xs);
         text-transform: uppercase;
         letter-spacing: 0.03em;
         flex-shrink: 0;
@@ -333,7 +333,7 @@
     }
 
     .zone-content {
-        padding: 10px;
+        padding: var(--space-md);
         background: var(--bg-primary);
         border-top: 1px solid var(--border-secondary);
     }
@@ -345,7 +345,7 @@
     }
 
     .color-swatch {
-        width: 32px;
+        width: var(--space-3xl);
         height: var(--space-lg);
         border: 1px solid var(--border-primary);
         border-radius: var(--space-2xs);
@@ -383,10 +383,10 @@
         align-items: center;
         gap: var(--space-xs);
         margin-top: var(--space-sm);
-        padding: var(--space-xs) 10px;
+        padding: var(--space-xs) var(--space-md);
         background: var(--bg-secondary);
         border: 1px solid var(--border-primary);
-        border-radius: 3px;
+        border-radius: var(--radius-xs);
         color: var(--text-secondary);
         font-size: var(--text-xs);
         cursor: pointer;
@@ -417,7 +417,7 @@
         background: var(--bg-primary);
         border: 1px solid var(--border-primary);
         border-radius: var(--radius-md);
-        box-shadow: 0 var(--space-sm) 32px rgba(0, 0, 0, 0.3);
+        box-shadow: 0 var(--space-sm) var(--space-3xl) rgba(0, 0, 0, 0.3);
         width: 420px;
         max-width: 90vw;
         max-height: 80vh;
@@ -435,7 +435,7 @@
     .modal-title-row {
         display: flex;
         align-items: center;
-        gap: 10px;
+        gap: var(--space-md);
     }
 
     .modal-title-row h3 {
@@ -455,8 +455,8 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 36px;
-        height: 36px;
+        width: var(--touch-target-sm);
+        height: var(--touch-target-sm);
         padding: 0;
         background: var(--bg-secondary);
         border: 1px solid var(--border-primary);

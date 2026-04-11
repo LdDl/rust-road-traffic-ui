@@ -527,8 +527,8 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 36px;
-        height: 36px;
+        width: var(--touch-target-sm);
+        height: var(--touch-target-sm);
         padding: 0;
         background: var(--bg-secondary);
         border: 1px solid var(--border-primary);
@@ -564,7 +564,7 @@
     /* Compact popup inputs (replaces DaisyUI input classes) */
     .popup-input {
         width: 100%;
-        padding: var(--space-sm) 10px;
+        padding: var(--space-sm) var(--space-md);
         border: 1px solid var(--border-primary);
         border-radius: var(--radius-sm);
         font-size: var(--text-base);
@@ -594,7 +594,7 @@
     .popup-save-btn {
         display: flex;
         align-items: center;
-        gap: 6px;
+        gap: var(--space-xs);
         padding: var(--space-sm) var(--space-md);
         background: var(--accent-primary);
         border: none;
@@ -669,7 +669,7 @@
     }
 
     .coords-side-body {
-        padding: 10px var(--space-md) var(--space-md);
+        padding: var(--space-md) var(--space-md) var(--space-md);
         display: flex;
         flex-direction: column;
         gap: var(--space-xs);
@@ -677,7 +677,7 @@
 
     .coords-col-headers {
         display: flex;
-        gap: 6px;
+        gap: var(--space-xs);
         align-items: center;
         padding: 0 var(--space-xs) var(--space-2xs);
     }
@@ -696,7 +696,7 @@
 
     .coords-row {
         display: flex;
-        gap: 6px;
+        gap: var(--space-xs);
         align-items: center;
         padding: var(--space-xs);
         border-radius: var(--radius-sm);
@@ -730,7 +730,7 @@
     .popup-container .coords-side-panel input.coords-input {
         flex: 1;
         min-width: 0;
-        padding: var(--space-xs) 6px;
+        padding: var(--space-xs) var(--space-xs);
         border: 1px solid var(--border-primary);
         border-radius: var(--radius-sm);
         font-size: var(--text-xs);
@@ -764,7 +764,7 @@
     .save-coords-btn {
         width: 100%;
         padding: var(--space-sm);
-        margin-top: 6px;
+        margin-top: var(--space-xs);
         background: var(--accent-primary);
         color: white;
         border: none;
@@ -804,13 +804,13 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: var(--space-sm) 10px;
+        padding: var(--space-sm) var(--space-md);
         background: var(--bg-primary);
         border: 1px solid var(--border-primary);
         border-radius: var(--radius-sm);
         cursor: pointer;
         transition: border-color 0.15s;
-        min-height: 36px;
+        min-height: var(--touch-target-sm);
     }
 
     .custom-select-trigger:hover {

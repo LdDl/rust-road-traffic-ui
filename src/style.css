@@ -28,6 +28,7 @@
     --warning-border: #fcd34d;
     --loading-bg: rgba(128, 128, 128, 0.8);
     --blank-map-bg: #e5e5e5;
+    --radius-xs: 3px;
     --radius-sm: 4px;
     --radius-md: 8px;
     --radius-lg: 12px;
@@ -40,6 +41,7 @@
     --space-lg: 16px;
     --space-xl: 20px;
     --space-2xl: 24px;
+    --space-3xl: 32px;
 
     /* Typography scale */
     --text-2xs: 0.625rem;   /* 10px */
@@ -55,6 +57,10 @@
     --icon-md: 18px;
     --icon-lg: 20px;
     --icon-xl: 24px;
+
+    /* Touch targets */
+    --touch-target-sm: 36px;
+    --touch-target-md: 44px;
 
     /* Breakpoints (as reference - CSS can't use vars in @media, but JS can) */
     --breakpoint-mobile: 1024px;
