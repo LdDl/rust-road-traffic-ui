@@ -118,17 +118,22 @@
             const popupContent = `
                 <div class="popup-container" data-theme="${$resolvedTheme}">
                     <div class="popup-main" id="popup-main">
+                        <div class="popup-accent-bar"></div>
                         <div class="popup-header">
-                            <h3 class="popup-title">Zone configuration</h3>
+                            <div class="popup-header-left">
+                                <i class="material-icons popup-header-icon">layers</i>
+                                <h3 class="popup-title">Zone configuration</h3>
+                            </div>
                             <button class="popup-close-btn" id="popup-close-btn" type="button">
                                 <i class="material-icons">close</i>
                             </button>
                         </div>
 
                         <div class="popup-content">
-                            <div class="form-control w-full">
-                                <label class="label">
-                                    <span class="label-text">Attach canvas polygons</span>
+                            <div class="popup-field-group">
+                                <label class="popup-label">
+                                    <i class="material-icons">polyline</i>
+                                    Attach canvas polygon
                                 </label>
                                 <div class="custom-select-wrapper">
                                     <div class="custom-select-trigger" id="select-trigger">
@@ -150,28 +155,32 @@
                                 </div>
                             </div>
 
-                            <div class="form-control w-full">
-                                <label class="label">
-                                    <span class="label-text">Direction value</span>
-                                </label>
-                                <input
-                                    value="${clickedFeature ? clickedFeature.properties?.road_lane_direction : -1}"
-                                    id="lane-direction"
-                                    type="number"
-                                    class="popup-input"
-                                >
-                            </div>
+                            <div class="popup-fields-card">
+                                <div class="popup-field-group">
+                                    <label class="popup-label">
+                                        <i class="material-icons">swap_horiz</i>
+                                        Direction value
+                                    </label>
+                                    <input
+                                        value="${clickedFeature ? clickedFeature.properties?.road_lane_direction : -1}"
+                                        id="lane-direction"
+                                        type="number"
+                                        class="popup-input"
+                                    >
+                                </div>
 
-                            <div class="form-control w-full">
-                                <label class="label">
-                                    <span class="label-text">Lane</span>
-                                </label>
-                                <input
-                                    value="${clickedFeature ? clickedFeature.properties?.road_lane_num : -1}"
-                                    id="lane-number"
-                                    type="number"
-                                    class="popup-input"
-                                >
+                                <div class="popup-field-group">
+                                    <label class="popup-label">
+                                        <i class="material-icons">format_list_numbered</i>
+                                        Lane
+                                    </label>
+                                    <input
+                                        value="${clickedFeature ? clickedFeature.properties?.road_lane_num : -1}"
+                                        id="lane-number"
+                                        type="number"
+                                        class="popup-input"
+                                    >
+                                </div>
                             </div>
 
                             <button id="toggle-coords-btn" class="toggle-coords-btn" type="button">
@@ -180,10 +189,10 @@
                             </button>
                         </div>
 
-                        <div class="form-actions">
+                        <div class="popup-footer">
                             <button id="attach-canvas-btn" class="popup-save-btn">
                                 <i class="material-icons">save</i>
-                                Save
+                                Save zone
                             </button>
                         </div>
                     </div>
@@ -217,7 +226,8 @@
                 className: "themed-popup",
                 closeButton: false,
                 closeOnClick: false,
-                maxWidth: 'none'
+                maxWidth: 'none',
+                offset: 12
             })
                 .setLngLat(e.lngLat)
                 .setHTML(popupContent)
@@ -463,14 +473,11 @@
         box-shadow: none;
         padding: 0;
         overflow: visible;
+        height: auto;
     }
 
     .maplibregl-popup.themed-popup .maplibregl-popup-tip {
-        border-top-color: var(--bg-primary);
-        border-bottom-color: var(--bg-primary);
-        border-left-color: var(--bg-primary);
-        border-right-color: var(--bg-primary);
-        transition: border-color 0.3s ease;
+        display: none;
     }
 
     .maplibregl-popup.themed-popup .maplibregl-popup-close-button {
@@ -483,22 +490,23 @@
     }
 
     .popup-container {
-        display: flex;
-        align-items: flex-start;
+        position: relative;
+        display: inline-block;
         color: var(--text-primary);
         font-family: 'Roboto', sans-serif;
         transition: color 0.3s ease;
     }
 
     .popup-main {
-        min-width: 320px;
-        max-width: 380px;
+        min-width: 340px;
+        max-width: 400px;
         background: var(--bg-primary);
         border: 1px solid var(--border-primary);
         border-radius: var(--radius-lg);
-        box-shadow: 0 4px 20px var(--shadow);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08);
         flex-shrink: 0;
         position: relative;
+        overflow: hidden;
         transition: border-radius 0.3s ease, background-color 0.3s ease, border-color 0.3s ease;
     }
 
@@ -507,8 +515,15 @@
         border-right: none;
     }
 
+    /* Accent bar at the top — subtle top border */
+    .popup-accent-bar {
+        height: 2px;
+        background: var(--accent-primary);
+        opacity: 0.6;
+    }
+
     .popup-header {
-        padding: var(--space-lg) var(--space-xl);
+        padding: var(--space-md) var(--space-xl);
         border-bottom: 1px solid var(--border-secondary);
         display: flex;
         align-items: center;
@@ -516,11 +531,23 @@
         transition: border-color 0.3s ease;
     }
 
+    .popup-header-left {
+        display: flex;
+        align-items: center;
+        gap: var(--space-sm);
+    }
+
+    .popup-header-icon {
+        font-size: var(--icon-lg);
+        color: var(--accent-primary);
+    }
+
     .popup-title {
         margin: 0;
-        font-size: var(--text-lg);
+        font-size: var(--text-md);
         font-weight: 600;
         color: var(--text-primary);
+        letter-spacing: -0.01em;
     }
 
     .popup-close-btn {
@@ -554,11 +581,37 @@
         gap: var(--space-lg);
     }
 
-    /* Popup form labels */
-    .popup-container .form-control .label-text {
+    /* Popup field groups */
+    .popup-field-group {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-xs);
+    }
+
+    .popup-label {
+        display: flex;
+        align-items: center;
+        gap: var(--space-xs);
         color: var(--text-secondary);
         font-weight: 500;
         font-size: var(--text-sm);
+    }
+
+    .popup-label .material-icons {
+        font-size: var(--icon-sm);
+        color: var(--text-secondary);
+        opacity: 0.7;
+    }
+
+    /* Card grouping for related fields */
+    .popup-fields-card {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-md);
+        padding: var(--space-md);
+        background: var(--bg-secondary);
+        border-radius: var(--radius-md);
+        border: 1px solid var(--border-secondary);
     }
 
     /* Compact popup inputs (replaces DaisyUI input classes) */
@@ -591,52 +644,68 @@
         appearance: textfield;
     }
 
+    .popup-footer {
+        padding: var(--space-md) var(--space-xl) var(--space-lg);
+    }
+
     .popup-save-btn {
         display: flex;
         align-items: center;
-        gap: var(--space-xs);
-        padding: var(--space-sm) var(--space-md);
+        justify-content: center;
+        gap: var(--space-sm);
+        width: 100%;
+        padding: var(--space-md) var(--space-lg);
         background: var(--accent-primary);
         border: none;
-        border-radius: var(--radius-sm);
+        border-radius: var(--radius-md);
         color: white;
-        font-size: var(--text-base);
-        font-weight: 500;
+        font-size: var(--text-md);
+        font-weight: 600;
         cursor: pointer;
-        transition: background-color 0.2s;
+        transition: background-color 0.2s, transform 0.1s, box-shadow 0.2s;
+        box-shadow: 0 2px 8px rgba(var(--accent-primary-rgb, 59, 130, 246), 0.3);
     }
 
     .popup-save-btn:hover {
         background: var(--accent-hover);
+        box-shadow: 0 4px 12px rgba(var(--accent-primary-rgb, 59, 130, 246), 0.4);
+    }
+
+    .popup-save-btn:active {
+        transform: scale(0.98);
     }
 
     /* Coordinates slide toggle */
     .toggle-coords-btn {
         display: flex;
         align-items: center;
-        gap: var(--space-xs);
+        gap: var(--space-sm);
         width: 100%;
         padding: var(--space-sm) var(--space-md);
-        background: var(--bg-secondary);
-        border: 1px solid var(--border-primary);
-        border-radius: var(--radius-sm);
+        background: transparent;
+        border: 1px dashed var(--border-secondary);
+        border-radius: var(--radius-md);
         color: var(--text-secondary);
-        font-size: var(--text-base);
+        font-size: var(--text-sm);
         cursor: pointer;
-        transition: color 0.2s, border-color 0.2s;
+        transition: color 0.2s, border-color 0.2s, background-color 0.2s;
     }
 
     .toggle-coords-btn:hover {
         color: var(--accent-primary);
         border-color: var(--accent-primary);
+        background: rgba(var(--accent-primary-rgb, 59, 130, 246), 0.05);
     }
 
     .toggle-coords-btn i {
-        font-size: var(--icon-md);
+        font-size: var(--icon-sm);
         transition: transform 0.2s;
     }
 
     .coords-side-panel {
+        position: absolute;
+        top: 0;
+        left: 100%;
         width: 0;
         overflow: hidden;
         background: var(--bg-primary);
@@ -645,7 +714,6 @@
         border-bottom: 1px solid var(--border-primary);
         border-left: none;
         border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
-        flex-shrink: 0;
         transition: width 0.3s ease;
     }
 
@@ -654,12 +722,13 @@
     }
 
     .coords-side-header {
-        padding: var(--space-lg);
-        min-height: 28px;
+        padding: var(--space-md) var(--space-lg);
         display: flex;
         align-items: center;
         border-bottom: 1px solid var(--border-secondary);
-        box-sizing: content-box;
+        box-sizing: border-box;
+        /* Match total height of accent-bar(2px) + popup-header (which contains 36px close btn + 12px*2 padding) */
+        min-height: calc(2px + var(--touch-target-sm) + var(--space-md) * 2 + 1px);
     }
 
     .coords-side-title {
@@ -763,36 +832,46 @@
 
     .save-coords-btn {
         width: 100%;
-        padding: var(--space-sm);
-        margin-top: var(--space-xs);
-        background: var(--accent-primary);
-        color: white;
-        border: none;
+        padding: var(--space-xs) var(--space-sm);
+        margin-top: var(--space-sm);
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+        border: 1px solid var(--border-primary);
         border-radius: var(--radius-sm);
-        font-size: var(--text-sm);
+        font-size: var(--text-xs);
         font-weight: 600;
         cursor: pointer;
-        transition: background-color 0.2s;
+        transition: background-color 0.2s, border-color 0.2s;
     }
 
     .save-coords-btn:hover {
-        background: var(--accent-hover);
+        background: var(--accent-primary);
+        border-color: var(--accent-primary);
+        color: white;
     }
 
-    .form-actions {
-        display: flex;
-        justify-content: flex-end;
-        padding: 0 var(--space-xl) var(--space-lg);
-    }
 
     /* Material Icons in popup */
     .popup-container .material-icons {
         font-size: var(--icon-lg);
     }
 
-    /* Dark theme: slightly lighter input backgrounds */
+    /* Dark theme adjustments */
     .popup-container[data-theme="dark"] .popup-input {
         background: var(--bg-secondary);
+    }
+
+    .popup-container[data-theme="dark"] .popup-main {
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    .popup-container[data-theme="dark"] .popup-fields-card {
+        background: var(--bg-tertiary);
+        border-color: var(--border-primary);
+    }
+
+    .popup-container[data-theme="dark"] .popup-save-btn {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
     }
 
     .custom-select-wrapper {
