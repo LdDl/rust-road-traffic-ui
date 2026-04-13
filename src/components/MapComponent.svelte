@@ -208,7 +208,7 @@
                                 <span class="coords-col-label">Latitude</span>
                             </div>
                             ${vertices.map((v, i) => `
-                                <div class="coords-row">
+                                <div class="coords-row" data-point-index="${i}">
                                     <span class="coords-point-label">${v.label}</span>
                                     <input type="number" step="any" placeholder="0.000000" value="${v.lng}" id="coord-lng-${i}" class="coords-input">
                                     <input type="number" step="any" placeholder="0.000000" value="${v.lat}" id="coord-lat-${i}" class="coords-input">
@@ -335,6 +335,40 @@
                     }
                 });
             }
+
+            // Highlight map point on coords row hover
+            let highlightMarker: maplibregl.Marker | null = null;
+            const coordsRows = document.querySelectorAll('.coords-row[data-point-index]');
+            coordsRows.forEach(row => {
+                row.addEventListener('mouseenter', () => {
+                    if (highlightMarker) { highlightMarker.remove(); highlightMarker = null; }
+                    const idx = parseInt(row.getAttribute('data-point-index') || '0');
+                    const coord = ring[idx];
+                    if (!coord || !isFinite(coord[0]) || !isFinite(coord[1]) || !$map) return;
+                    const el = document.createElement('div');
+                    const bgColor = getComputedStyle(document.documentElement).getPropertyValue('--bg-primary').trim() || '#ffffff';
+                    const color = mapFeature.properties?.color_rgb_str || '#ff0000';
+                    el.style.cssText = `
+                        width: 14px; height: 14px;
+                        border-radius: 50%;
+                        border: 2px solid ${color};
+                        background: ${bgColor};
+                        opacity: 0.9;
+                        pointer-events: none;
+                    `;
+                    highlightMarker = new maplibregl.Marker({ element: el })
+                        .setLngLat([coord[0], coord[1]])
+                        .addTo($map);
+                });
+                row.addEventListener('mouseleave', () => {
+                    if (highlightMarker) { highlightMarker.remove(); highlightMarker = null; }
+                });
+            });
+
+            // Clean up highlight when popup closes
+            popup.on('close', () => {
+                if (highlightMarker) { highlightMarker.remove(); highlightMarker = null; }
+            });
 
             const attachBtn = document.getElementById('attach-canvas-btn');
             if (!attachBtn) {
