@@ -239,22 +239,21 @@
                 popupCloseBtn.addEventListener('click', () => popup.remove());
             }
 
-            // Draggable popup via header
-            const popupHeader = document.querySelector('.popup-header') as HTMLElement;
+            // Draggable popup - any non-interactive area
+            const popupContainer = document.querySelector('.popup-container') as HTMLElement;
             const popupEl = popup.getElement();
-            if (popupHeader && popupEl) {
-                popupHeader.style.cursor = 'grab';
-                popupHeader.style.userSelect = 'none';
+            if (popupContainer && popupEl) {
+                const interactive = 'input, button, select, textarea, label, .custom-select-trigger, .custom-select-dropdown, .custom-option';
                 let isDragging = false;
                 let dragOffsetX = 0, dragOffsetY = 0;
                 let startX = 0, startY = 0;
 
-                popupHeader.addEventListener('mousedown', (e) => {
-                    if ((e.target as HTMLElement).closest('.popup-close-btn')) return;
+                popupContainer.addEventListener('mousedown', (e) => {
+                    if ((e.target as HTMLElement).closest(interactive)) return;
                     isDragging = true;
                     startX = e.clientX - dragOffsetX;
                     startY = e.clientY - dragOffsetY;
-                    popupHeader.style.cursor = 'grabbing';
+                    popupContainer.style.cursor = 'grabbing';
                     e.preventDefault();
                 });
 
@@ -269,7 +268,7 @@
                 document.addEventListener('mouseup', () => {
                     if (!isDragging) return;
                     isDragging = false;
-                    popupHeader.style.cursor = 'grab';
+                    popupContainer.style.cursor = '';
                 });
             }
 
