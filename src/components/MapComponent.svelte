@@ -239,6 +239,40 @@
                 popupCloseBtn.addEventListener('click', () => popup.remove());
             }
 
+            // Draggable popup via header
+            const popupHeader = document.querySelector('.popup-header') as HTMLElement;
+            const popupEl = popup.getElement();
+            if (popupHeader && popupEl) {
+                popupHeader.style.cursor = 'grab';
+                popupHeader.style.userSelect = 'none';
+                let isDragging = false;
+                let dragOffsetX = 0, dragOffsetY = 0;
+                let startX = 0, startY = 0;
+
+                popupHeader.addEventListener('mousedown', (e) => {
+                    if ((e.target as HTMLElement).closest('.popup-close-btn')) return;
+                    isDragging = true;
+                    startX = e.clientX - dragOffsetX;
+                    startY = e.clientY - dragOffsetY;
+                    popupHeader.style.cursor = 'grabbing';
+                    e.preventDefault();
+                });
+
+                document.addEventListener('mousemove', (e) => {
+                    if (!isDragging) return;
+                    dragOffsetX = e.clientX - startX;
+                    dragOffsetY = e.clientY - startY;
+                    popupEl.style.marginLeft = `${dragOffsetX}px`;
+                    popupEl.style.marginTop = `${dragOffsetY}px`;
+                });
+
+                document.addEventListener('mouseup', () => {
+                    if (!isDragging) return;
+                    isDragging = false;
+                    popupHeader.style.cursor = 'grab';
+                });
+            }
+
             // Setup custom dropdown functionality
             const selectTrigger = document.getElementById("select-trigger");
             const selectDropdown = document.getElementById("select-dropdown");
