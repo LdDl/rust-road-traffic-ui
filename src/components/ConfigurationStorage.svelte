@@ -61,6 +61,17 @@
         highlightMarkers = [marker];
     }
 
+    function handlePreview(zone: Zone, e: CustomEvent<{ coordinates: number[][][] }>) {
+        const { coordinates } = e.detail;
+        const spatialId = zone.properties.spatial_object_id;
+        if (!spatialId) return;
+        const existing = $draw.get(spatialId);
+        if (existing && existing.geometry.type === 'Polygon') {
+            existing.geometry.coordinates = coordinates;
+            $draw.add(existing);
+        }
+    }
+
     function handleSave(zone: Zone, e: CustomEvent<{ coordinates: number[][][], road_lane_direction: number, road_lane_num: number }>) {
         const { coordinates, road_lane_direction, road_lane_num } = e.detail;
 
@@ -210,6 +221,7 @@
                 <CompleteZoneForm
                     zone={modalZone}
                     on:save={(e) => handleSave(modalZone!, e)}
+                    on:preview={(e) => handlePreview(modalZone!, e)}
                     on:highlight={(e) => handleHighlight(modalZone!, e)}
                 />
             </div>

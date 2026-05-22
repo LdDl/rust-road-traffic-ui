@@ -10,6 +10,7 @@
             road_lane_direction: number,
             road_lane_num: number,
         },
+        preview: { coordinates: number[][][] },
         highlight: { pointIndex: number | null },
     }>();
 
@@ -23,11 +24,66 @@
         return { lng: '', lat: '' };
     }
 
-    let points = [0, 1, 2, 3].map(i => getPoint(i));
+    const initialPoints = [0, 1, 2, 3].map(i => getPoint(i));
+    let points = initialPoints.map(p => ({ ...p }));
     let laneDirection = zone.properties.road_lane_direction ?? -1;
     let laneNum = zone.properties.road_lane_num ?? -1;
 
+    // History for undo/redo
+    type Snapshot = { lng: string; lat: string }[];
+    let history: Snapshot[] = [initialPoints.map(p => ({ ...p }))];
+    let historyIndex = 0;
+    let skipPush = false;
+
+    function clonePoints(pts: { lng: string; lat: string }[]): Snapshot {
+        return pts.map(p => ({ ...p }));
+    }
+
+    function pushHistory() {
+        if (skipPush) return;
+        const snap = clonePoints(points);
+        // Trim any redo states ahead
+        history = [...history.slice(0, historyIndex + 1), snap];
+        historyIndex = history.length - 1;
+    }
+
+    function applySnapshot(snap: Snapshot) {
+        skipPush = true;
+        points = snap.map(p => ({ ...p }));
+        skipPush = false;
+    }
+
+    function undo() {
+        if (historyIndex <= 0) return;
+        historyIndex--;
+        applySnapshot(history[historyIndex]);
+    }
+
+    function redo() {
+        if (historyIndex >= history.length - 1) return;
+        historyIndex++;
+        applySnapshot(history[historyIndex]);
+    }
+
+    function reset() {
+        applySnapshot(initialPoints);
+        pushHistory();
+    }
+
+    $: canUndo = historyIndex > 0;
+    $: canRedo = historyIndex < history.length - 1;
+
     $: allFilled = points.every(p => p.lng !== '' && p.lat !== '');
+
+    // Reactively preview coordinates on map when all points are valid
+    $: if (allFilled) {
+        const coords = points.map(p => [parseFloat(p.lng), parseFloat(p.lat)]);
+        if (coords.every(c => isFinite(c[0]) && isFinite(c[1]))) {
+            const ring = [...coords, [...coords[0]]];
+            dispatch('preview', { coordinates: [ring] });
+        }
+    }
+
     $: hasChanges = (() => {
         const ring = zone.geometry?.coordinates?.[0];
         for (let i = 0; i < 4; i++) {
@@ -53,7 +109,20 @@
 
 <div class="zone-form">
     <div class="coords-section">
-        <span class="section-label">Polygon vertices (WGS84)</span>
+        <div class="coords-section-header">
+            <span class="section-label">Polygon vertices (WGS84)</span>
+            <div class="history-controls">
+                <button type="button" class="history-btn" disabled={!canUndo} on:click={undo} title="Undo">
+                    <i class="material-icons">undo</i>
+                </button>
+                <button type="button" class="history-btn" disabled={!canRedo} on:click={redo} title="Redo">
+                    <i class="material-icons">redo</i>
+                </button>
+                <button type="button" class="history-btn" disabled={!hasChanges} on:click={reset} title="Reset to original">
+                    <i class="material-icons">restart_alt</i>
+                </button>
+            </div>
+        </div>
         <div class="coords-header">
             <span class="header-spacer"></span>
             <span class="header-label">Longitude</span>
@@ -73,12 +142,14 @@
                         step="any"
                         placeholder="0.000000"
                         bind:value={points[i].lng}
+                        on:change={pushHistory}
                     >
                     <input
                         type="number"
                         step="any"
                         placeholder="0.000000"
                         bind:value={points[i].lat}
+                        on:change={pushHistory}
                     >
                 </div>
             {/each}
@@ -136,6 +207,46 @@
         display: flex;
         flex-direction: column;
         gap: var(--space-sm);
+    }
+
+    .coords-section-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .history-controls {
+        display: flex;
+        gap: var(--space-2xs);
+    }
+
+    .history-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        padding: 0;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-primary);
+        border-radius: var(--radius-sm);
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: background-color 0.15s, color 0.15s, border-color 0.15s;
+    }
+
+    .history-btn:hover:not(:disabled) {
+        color: var(--accent-primary);
+        border-color: var(--accent-primary);
+    }
+
+    .history-btn:disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+    }
+
+    .history-btn i {
+        font-size: var(--icon-sm);
     }
 
     .coords-header {
@@ -240,6 +351,7 @@
 
     .lane-field {
         flex: 1;
+        min-width: 0;
         display: flex;
         flex-direction: column;
         gap: var(--space-xs);

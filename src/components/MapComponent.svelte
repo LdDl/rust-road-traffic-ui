@@ -200,6 +200,17 @@
                     <div class="coords-side-panel" id="coords-slide">
                         <div class="coords-side-header">
                             <span class="coords-side-title">Coordinates</span>
+                            <div class="coords-history-controls">
+                                <button type="button" class="coords-history-btn" id="coords-undo-btn" title="Undo" disabled>
+                                    <i class="material-icons">undo</i>
+                                </button>
+                                <button type="button" class="coords-history-btn" id="coords-redo-btn" title="Redo" disabled>
+                                    <i class="material-icons">redo</i>
+                                </button>
+                                <button type="button" class="coords-history-btn" id="coords-reset-btn" title="Reset">
+                                    <i class="material-icons">restart_alt</i>
+                                </button>
+                            </div>
                         </div>
                         <div class="coords-side-body">
                             <div class="coords-col-headers">
@@ -367,6 +378,98 @@
                         updateDataStorage(linked.id, linked);
                     }
                 });
+            }
+
+            // Coordinate history for undo/redo
+            const initialCoordSnap = vertices.map(v => ({ lng: String(v.lng), lat: String(v.lat) }));
+            let coordHistory: { lng: string; lat: string }[][] = [initialCoordSnap.map(p => ({ ...p }))];
+            let coordHistoryIdx = 0;
+
+            const undoBtn = document.getElementById('coords-undo-btn') as HTMLButtonElement;
+            const redoBtn = document.getElementById('coords-redo-btn') as HTMLButtonElement;
+            const resetBtn = document.getElementById('coords-reset-btn') as HTMLButtonElement;
+
+            function updateHistoryButtons() {
+                if (undoBtn) undoBtn.disabled = coordHistoryIdx <= 0;
+                if (redoBtn) redoBtn.disabled = coordHistoryIdx >= coordHistory.length - 1;
+            }
+
+            function readCurrentCoords(): { lng: string; lat: string }[] {
+                return [0, 1, 2, 3].map(j => ({
+                    lng: (document.getElementById(`coord-lng-${j}`) as HTMLInputElement)?.value ?? '',
+                    lat: (document.getElementById(`coord-lat-${j}`) as HTMLInputElement)?.value ?? '',
+                }));
+            }
+
+            function writeCoords(snap: { lng: string; lat: string }[]) {
+                for (let j = 0; j < 4; j++) {
+                    const lngEl = document.getElementById(`coord-lng-${j}`) as HTMLInputElement;
+                    const latEl = document.getElementById(`coord-lat-${j}`) as HTMLInputElement;
+                    if (lngEl) lngEl.value = snap[j].lng;
+                    if (latEl) latEl.value = snap[j].lat;
+                }
+                updatePreviewFromInputs();
+            }
+
+            function pushCoordHistory() {
+                const snap = readCurrentCoords();
+                coordHistory = [...coordHistory.slice(0, coordHistoryIdx + 1), snap];
+                coordHistoryIdx = coordHistory.length - 1;
+                updateHistoryButtons();
+            }
+
+            function updatePreviewFromInputs() {
+                const coords: number[][] = [];
+                for (let j = 0; j < 4; j++) {
+                    const lng = parseFloat((document.getElementById(`coord-lng-${j}`) as HTMLInputElement)?.value);
+                    const lat = parseFloat((document.getElementById(`coord-lat-${j}`) as HTMLInputElement)?.value);
+                    if (!isFinite(lng) || !isFinite(lat)) return;
+                    coords.push([lng, lat]);
+                }
+                coords.push([...coords[0]]);
+                const updated = $draw.get(mapFeature.id as string);
+                if (updated && updated.geometry.type === 'Polygon') {
+                    updated.geometry.coordinates = [coords];
+                    $draw.add(updated);
+                }
+                for (let j = 0; j < 4; j++) {
+                    ring[j] = coords[j];
+                }
+            }
+
+            if (undoBtn) {
+                undoBtn.addEventListener('click', () => {
+                    if (coordHistoryIdx <= 0) return;
+                    coordHistoryIdx--;
+                    writeCoords(coordHistory[coordHistoryIdx]);
+                    updateHistoryButtons();
+                });
+            }
+            if (redoBtn) {
+                redoBtn.addEventListener('click', () => {
+                    if (coordHistoryIdx >= coordHistory.length - 1) return;
+                    coordHistoryIdx++;
+                    writeCoords(coordHistory[coordHistoryIdx]);
+                    updateHistoryButtons();
+                });
+            }
+            if (resetBtn) {
+                resetBtn.addEventListener('click', () => {
+                    writeCoords(initialCoordSnap);
+                    pushCoordHistory();
+                });
+            }
+
+            // Reactive coordinate preview on input change
+            for (let i = 0; i < 4; i++) {
+                const lngEl = document.getElementById(`coord-lng-${i}`) as HTMLInputElement;
+                const latEl = document.getElementById(`coord-lat-${i}`) as HTMLInputElement;
+                if (lngEl && latEl) {
+                    lngEl.addEventListener('input', updatePreviewFromInputs);
+                    latEl.addEventListener('input', updatePreviewFromInputs);
+                    lngEl.addEventListener('change', pushCoordHistory);
+                    latEl.addEventListener('change', pushCoordHistory);
+                }
             }
 
             // Highlight map point on coords row hover
@@ -582,7 +685,7 @@
         border-right: none;
     }
 
-    /* Accent bar at the top — subtle top border */
+    /* Accent bar at the top - subtle top border */
     .popup-accent-bar {
         height: 2px;
         background: var(--accent-primary);
@@ -790,10 +893,44 @@
         padding: var(--space-md) var(--space-lg);
         display: flex;
         align-items: center;
+        justify-content: space-between;
         border-bottom: 1px solid var(--border-secondary);
         box-sizing: border-box;
-        /* Match total height of accent-bar(2px) + popup-header (which contains 36px close btn + 12px*2 padding) */
         min-height: calc(2px + var(--touch-target-sm) + var(--space-md) * 2 + 1px);
+    }
+
+    .coords-history-controls {
+        display: flex;
+        gap: var(--space-2xs);
+    }
+
+    .coords-history-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+        padding: 0;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-primary);
+        border-radius: var(--radius-sm);
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: background-color 0.15s, color 0.15s, border-color 0.15s;
+    }
+
+    .coords-history-btn:hover:not(:disabled) {
+        color: var(--accent-primary);
+        border-color: var(--accent-primary);
+    }
+
+    .coords-history-btn:disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+    }
+
+    .coords-history-btn i {
+        font-size: 16px;
     }
 
     .coords-side-title {
