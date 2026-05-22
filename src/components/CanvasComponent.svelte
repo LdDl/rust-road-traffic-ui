@@ -77,9 +77,9 @@
                 object.off('mouseover');
                 object.off('mousedown');
                 object.off('modified');
-                object.off('virtial_line:created');
-                object.off('virtial_line:modified');
-                object.off('virtial_line:removed');
+                object.off('virtual_line:created');
+                object.off('virtual_line:modified');
+                object.off('virtual_line:removed');
                 if (object.virtual_line) {
                     extendedCanvas.remove(object.virtual_line)                    
                 }
@@ -163,19 +163,21 @@
                 offsetX: 0,
                 offsetY: 0
             });
+            const contourColor = getComputedStyle(document.documentElement).getPropertyValue('--accent-primary').trim() || '#007bff';
+            const contourStroke = getComputedStyle(document.documentElement).getPropertyValue('--text-primary').trim() || '#212529';
             const newLine = new Line(points, {
                 strokeWidth: 3,
                 selectable: false,
-                stroke: 'purple',
+                stroke: contourColor,
             })
             const newVertexNotation = new FabricText(verticesChars[fbCanvas.contourFinalized.length-1], {
                 left: clicked.x,
                 top: clicked.y,
                 fontSize: 24,
                 fontFamily: 'Roboto',
-                fill: 'purple',
+                fill: contourColor,
                 shadow: textShadow,
-                stroke: 'rgb(0, 0, 0)',
+                stroke: contourStroke,
                 strokeWidth: 0.9,
             })
             fbCanvas.contourNotationTemporary.push(newVertexNotation)
@@ -240,10 +242,10 @@
 
 <div id="mjpeg" class={"mjpeg-canvas" + ' ' + klass}>
     <!-- svelte-ignore a11y-missing-attribute -->
-    <img id="fit_img" src="{initialAPIURL}/live_streaming" width="500" height="500" on:load={imageLoaded}>
-    <!-- <img id="fit_img" src="https://pngimg.com/uploads/google/google_PNG19632.png" width="500" height="500" on:load={imageLoaded}> -->
+    <img id="fit_img" src="{initialAPIURL}/live_streaming" on:load={imageLoaded}>
+    <!-- <img id="fit_img" src="https://pngimg.com/uploads/google/google_PNG19632.png" on:load={imageLoaded}> -->
     <canvas id="fit_canvas" ></canvas>
-    <div id="loading-message" class={$imgSrcLoaded? 'd-none' : 'd-block'}>
+    <div id="loading-message" class={$imgSrcLoaded? 'd-none' : 'd-block'} aria-live="polite" aria-busy={!$imgSrcLoaded}>
         <div class={$imgSrcLoaded? 'd-none' : 'loading d-block'}>
             <ThreeDotLoader msgText="Please wait until image is loaded"/>
         </div>
@@ -261,15 +263,17 @@
     #mjpeg {
         position: relative;
         grid-area: A;
-        background-color: rgba(128, 128, 128, 0.8);
+        height: 100%;
+        background-color: var(--loading-bg);
+        overflow: hidden;
     }
     #fit_img {
         height: 100%;
         width: 100%;
     }
     #fit_canvas {
-        height: 80%;
-        width: 50%;
+        height: 100%;
+        width: 100%;
         background-color: transparent;
         position: absolute;
         left: 0;
@@ -282,36 +286,17 @@
         top: 0;
         height: 100%;
         width: 100%;
-        background-color: rgba(128, 128, 128, 0.8);
+        background-color: var(--loading-bg);
     }
     .loading {
         position: absolute;
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
-        background-color: rgba(128, 128, 128, 0.8);
-        padding: 0.66665rem;
-        border-radius: 5px;
+        background-color: var(--loading-bg);
+        padding: var(--space-md);
+        border-radius: var(--radius-sm);
         pointer-events: none;
         font-size: 2rem;
     }
-    /* .loading:after {
-        overflow: hidden;
-        display: inline-block;
-        vertical-align: bottom;
-        -webkit-animation: ellipsis steps(6, end) 1000ms infinite;
-        animation: ellipsis steps(6, end) 1000ms infinite;
-        content: "\2026";
-        width: 0px;
-    } */
-    /* @keyframes ellipsis {
-        to {
-            width: 40px;
-        }
-    }
-    @-webkit-keyframes ellipsis {
-        to {
-            width: 40px;
-        }
-    } */
 </style>

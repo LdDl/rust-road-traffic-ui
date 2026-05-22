@@ -33,7 +33,7 @@ const currentURL = window.location.href
 const appURL = new URL(currentURL)
 export const DEFAULT_API_SCHEMA = appURL.protocol.replace(/:/g,'') || defaultSchema
 export const DEFAULT_API_HOST = appURL.hostname || defaultHost
-export const DEFAULT_API_PORT = process.env.NODE_ENV === 'development'? defaultPort : parseInt(appURL.port) || ((DEFAULT_API_SCHEMA === 'https') ? 443 : 80) || defaultPort
+export const DEFAULT_API_PORT = import.meta.env.DEV ? defaultPort : parseInt(appURL.port) || ((DEFAULT_API_SCHEMA === 'https') ? 443 : 80) || defaultPort
 
 class ApiSchema {
     constructor(

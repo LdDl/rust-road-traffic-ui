@@ -18,9 +18,9 @@ function createLabelElement(label: string, color: string): HTMLDivElement {
         font-size: 11px;
         font-weight: 700;
         font-family: system-ui, sans-serif;
-        color: white;
+        color: var(--text-primary, white);
         background: ${color};
-        border: 2px solid white;
+        border: 2px solid var(--bg-primary, white);
         border-radius: 4px;
         box-shadow: 0 1px 4px rgba(0,0,0,0.3);
         pointer-events: none;
@@ -57,7 +57,7 @@ function syncLabelsFromDraw(map: MMap, mdraw: MapboxDraw) {
         const existing = managedFeatures.get(fid);
 
         if (existing && existing.markers.length === labelCount && existing.color === color) {
-            // Same count and color — just update positions
+            // Same count and color - just update positions
             for (let i = 0; i < labelCount; i++) {
                 const [lng, lat] = ring[i];
                 if (isFinite(lng) && isFinite(lat)) {
@@ -65,7 +65,7 @@ function syncLabelsFromDraw(map: MMap, mdraw: MapboxDraw) {
                 }
             }
         } else {
-            // Color changed, label count changed, or new feature — recreate
+            // Color changed, label count changed, or new feature - recreate
             if (existing) {
                 existing.markers.forEach(m => m.remove());
             }

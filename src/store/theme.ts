@@ -1,31 +1,54 @@
-import { writable } from 'svelte/store';
+import { writable, derived } from 'svelte/store';
 import { browser } from '$app/environment';
 
-export type Theme = 'light' | 'dark';
+export type ThemePreference = 'system' | 'light' | 'dark';
+export type ResolvedTheme = 'light' | 'dark';
 
-// Get initial theme from localStorage or system preference
-function getInitialTheme(): Theme {
+function getSystemTheme(): ResolvedTheme {
     if (!browser) return 'light';
-    
-    const stored = localStorage.getItem('theme') as Theme;
-    if (stored && ['light', 'dark'].includes(stored)) {
-        return stored;
-    }
-    
-    // Check system preference
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
 
-export const theme = writable<Theme>(getInitialTheme());
+function getInitialPreference(): ThemePreference {
+    if (!browser) return 'system';
+    const stored = localStorage.getItem('theme');
+    if (stored && ['system', 'light', 'dark'].includes(stored)) {
+        return stored as ThemePreference;
+    }
+    return 'system';
+}
 
-// Subscribe to theme changes and update localStorage + document class
+// The user's preference (system / light / dark)
+export const theme = writable<ThemePreference>(getInitialPreference());
+
+// Live system theme, updated on OS preference change
+const systemTheme = writable<ResolvedTheme>(getSystemTheme());
+
+if (browser) {
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    mq.addEventListener('change', (e) => {
+        systemTheme.set(e.matches ? 'dark' : 'light');
+    });
+}
+
+// Resolved theme: what actually gets applied to the document
+export const resolvedTheme = derived(
+    [theme, systemTheme],
+    ([$theme, $systemTheme]) => {
+        if ($theme === 'system') return $systemTheme;
+        return $theme;
+    }
+);
+
+// Apply to DOM and persist
 theme.subscribe((value) => {
     if (browser) {
         localStorage.setItem('theme', value);
-        document.documentElement.className = value;
     }
 });
 
-export const toggleTheme = () => {
-    theme.update(t => t === 'light' ? 'dark' : 'light');
-};
+resolvedTheme.subscribe((value) => {
+    if (browser) {
+        document.documentElement.className = value;
+    }
+});

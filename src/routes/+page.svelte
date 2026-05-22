@@ -33,12 +33,29 @@
     let startY = 0;
     let startHeight = 0;
 
+    // Mobile tab switching
+    let mobileTab: 'view' | 'zones' | 'settings' = 'view';
+
+    // Responsive detection via matchMedia
+    let isMobile = false;
+    let isLandscape = false;
+    let mqlMobile: MediaQueryList;
+    let mqlLandscape: MediaQueryList;
+
+    const onMobileChange = (e: MediaQueryListEvent) => { isMobile = e.matches };
+    const onLandscapeChange = (e: MediaQueryListEvent) => { isLandscape = e.matches };
+
+    // Cancel active mode when leaving View tab on mobile
+    $: if (mobileTab !== 'view' && stateVariable !== States.Waiting) {
+        cancelCurrentAction();
+    }
+
     let stateVariable: States;
     state.subscribe((value) => stateVariable = value)
 
 	const title = 'Rust Road Traffic UI'
     
-    let mapComponent: any
+    let mapComponent: MapComponent
     let unsubscribeCanvas: Unsubscriber
     let unsubscribeGeoData: Unsubscriber
     $: canvasFocused = (stateVariable === States.AddingZoneCanvas || stateVariable === States.DeletingZoneCanvas)
@@ -131,6 +148,14 @@
         console.log('Mounted page')
         initSubscribers(SubscriberState.Init)
 
+        // Responsive breakpoint detection
+        mqlMobile = window.matchMedia('(max-width: 1024px)');
+        mqlLandscape = window.matchMedia('(max-width: 1024px) and (orientation: landscape)');
+        isMobile = mqlMobile.matches;
+        isLandscape = mqlLandscape.matches;
+        mqlMobile.addEventListener('change', onMobileChange);
+        mqlLandscape.addEventListener('change', onLandscapeChange);
+
         // Override DeleteClickedZone click event
         DeleteClickedZone.onClick = (s: any, e: any) => {
             if (e.featureTarget && stateVariable === States.DeletingZoneMap) {
@@ -182,15 +207,21 @@
         unbindVertexLabels()
         unsubscribeCanvas()
         unsubscribeGeoData()
+        mqlMobile?.removeEventListener('change', onMobileChange);
+        mqlLandscape?.removeEventListener('change', onLandscapeChange);
         unsubApiChange()
     });
 
-    function keyPress(e: KeyboardEvent) { 
+    function keyPress(e: KeyboardEvent) {
         if (e.key === "Escape") {
-            resetCurrentCanvasDrawing($canvasState)
-            $draw.changeMode('simple_select')
-            state.set(States.Waiting)
+            cancelCurrentAction()
         }
+    }
+
+    function cancelCurrentAction() {
+        resetCurrentCanvasDrawing($canvasState)
+        $draw.changeMode('simple_select')
+        state.set(States.Waiting)
     }
 
     const resetCurrentCanvasDrawing = (extendedCanvas?: FabricCanvasWrap) => {
@@ -247,17 +278,18 @@
         }
     }
 
-    /* Vertical Splitter Logic */
-    const startDrag = (e: MouseEvent) => {
+    /* Vertical Splitter Logic (pointer events for mouse + touch) */
+    const startDrag = (e: PointerEvent) => {
         isDragging = true;
         startX = e.clientX;
         startWidth = leftPanelWidth;
-        document.addEventListener('mousemove', handleDrag);
-        document.addEventListener('mouseup', stopDrag);
+        (e.target as HTMLElement).setPointerCapture(e.pointerId);
+        document.addEventListener('pointermove', handleDrag);
+        document.addEventListener('pointerup', stopDrag);
         e.preventDefault();
     };
 
-    const handleDrag = (e: MouseEvent) => {
+    const handleDrag = (e: PointerEvent) => {
         if (!isDragging) return;
         const deltaX = e.clientX - startX;
         const containerWidth = window.innerWidth;
@@ -267,56 +299,79 @@
 
     const stopDrag = () => {
         isDragging = false;
-        document.removeEventListener('mousemove', handleDrag);
-        document.removeEventListener('mouseup', stopDrag);
+        document.removeEventListener('pointermove', handleDrag);
+        document.removeEventListener('pointerup', stopDrag);
     };
 
-    /* Horizontal Splitter Logic */
-    const startHorizontalDrag = (e: MouseEvent) => {
+    /* Horizontal Splitter Logic (pointer events for mouse + touch) */
+    const startHorizontalDrag = (e: PointerEvent) => {
         isHorizontalDragging = true;
         startY = e.clientY;
         startHeight = topPanelHeight;
-        document.addEventListener('mousemove', handleHorizontalDrag);
-        document.addEventListener('mouseup', stopHorizontalDrag);
+        (e.target as HTMLElement).setPointerCapture(e.pointerId);
+        document.addEventListener('pointermove', handleHorizontalDrag);
+        document.addEventListener('pointerup', stopHorizontalDrag);
         e.preventDefault();
     };
 
-    const handleHorizontalDrag = (e: MouseEvent) => {
+    const handleHorizontalDrag = (e: PointerEvent) => {
         if (!isHorizontalDragging) return;
         const deltaY = e.clientY - startY;
-        const containerHeight = window.innerHeight - 60; // Subtract toolbar height
+        const containerHeight = window.innerHeight - 60;
         const deltaPercent = (deltaY / containerHeight) * 100;
         topPanelHeight = Math.max(30, Math.min(85, startHeight + deltaPercent));
     };
 
     const stopHorizontalDrag = () => {
         isHorizontalDragging = false;
-        document.removeEventListener('mousemove', handleHorizontalDrag);
-        document.removeEventListener('mouseup', stopHorizontalDrag);
+        document.removeEventListener('pointermove', handleHorizontalDrag);
+        document.removeEventListener('pointerup', stopHorizontalDrag);
     };
 </script>
 
 <sveltekit:head>
 	<title>{title}</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
 </sveltekit:head>
 
 <svelte:window on:keydown={keyPress} />
 
 <div id="main-app">
-    <Toolbar 
-        onAddToCanvas={stateAddToCanvas}
-        onDeleteFromCanvas={stateDelFromCanvas}
-        onAddToMap={stateAddToMap}
-        onDeleteFromMap={stateDelFromMap}
-        onSave={() => saveTOML(initialAPIURL, dataStorageLinked)}
-    />
-    <Switchers klass={canvasFocused || mapFocused ? 'blurred noselect' : ''}/>
-    <div id="main_workspace" style="grid-template-columns: {leftPanelWidth}% 2px {100 - leftPanelWidth}%;">
-        <div id="left_workspace" style="grid-template-rows: {topPanelHeight}% 2px {100 - topPanelHeight}%;">
-            <CanvasComponent klass={!canvasFocused && mapFocused ? 'blurred noselect' : ''}/>
-            <div class="horizontal-splitter" 
+    <div class="toolbar-wrapper" class:toolbar-hidden-mobile={mobileTab !== 'view'}>
+        <Toolbar
+            onAddToCanvas={stateAddToCanvas}
+            onDeleteFromCanvas={stateDelFromCanvas}
+            onAddToMap={stateAddToMap}
+            onDeleteFromMap={stateDelFromMap}
+            onSave={() => saveTOML(initialAPIURL, dataStorageLinked)}
+            compact={isMobile}
+            landscape={isLandscape}
+        />
+    </div>
+    <!-- Mobile tab bar (visible < 1024px) -->
+    <div class="mobile-tab-bar">
+        <button class="mobile-tab" class:active={mobileTab === 'view'} on:click={() => mobileTab = 'view'}>
+            <i class="material-icons">dashboard</i>
+            <span>View</span>
+        </button>
+        <button class="mobile-tab" class:active={mobileTab === 'zones'} on:click={() => mobileTab = 'zones'}>
+            <i class="material-icons">list</i>
+            <span>Zones</span>
+        </button>
+        <button class="mobile-tab" class:active={mobileTab === 'settings'} on:click={() => mobileTab = 'settings'}>
+            <i class="material-icons">settings</i>
+            <span>Settings</span>
+        </button>
+    </div>
+    <Switchers klass={canvasFocused || mapFocused ? 'blurred noselect' : ''} forceOpen={mobileTab === 'settings'} compact={isMobile}/>
+    <div id="main_workspace" class:mobile-hidden={mobileTab === 'settings'} class:mobile={isMobile} style={isMobile ? '' : `grid-template-columns: ${leftPanelWidth}% 2px ${100 - leftPanelWidth}%`}>
+        <div id="left_workspace" style={isMobile ? '' : `grid-template-rows: ${topPanelHeight}% 2px ${100 - topPanelHeight}%`}>
+            <div class="canvas-panel" class:mobile-hidden={mobileTab === 'zones'}>
+                <CanvasComponent klass={!canvasFocused && mapFocused ? 'blurred noselect' : ''}/>
+            </div>
+            <div class="horizontal-splitter"
                 class:dragging={isHorizontalDragging}
-                on:mousedown={startHorizontalDrag}
+                on:pointerdown={startHorizontalDrag}
                 role="slider"
                 tabindex="0"
                 aria-label="Panel height"
@@ -330,14 +385,17 @@
                     <div></div> <!-- bottom line -->
                 </div>
             </div>
-            <ConfigurationStorage dataReady={dataReady} data={dataStorageAll} klass={!($canvasReady) || (canvasFocused || mapFocused) ? 'blurred noselect' : ''}/>
-            <div class="overlay" style="{!canvasFocused && mapFocused ? 'display: block;' : 'display: none;'}">
-                Press ESC to cancel '{cancelActionText !== undefined? cancelActionText : cancelActionUnexpected}' mode
+            <div class="zones-panel" class:mobile-hidden={mobileTab === 'view'}>
+                <ConfigurationStorage dataReady={dataReady} data={dataStorageAll} klass={!($canvasReady) || (canvasFocused || mapFocused) ? 'blurred noselect' : ''}/>
+            </div>
+            <div class="overlay" style="{!canvasFocused && mapFocused ? 'display: flex;' : 'display: none;'}">
+                <span>Press ESC to cancel '{cancelActionText !== undefined? cancelActionText : cancelActionUnexpected}' mode</span>
+                <button class="overlay-cancel-btn" on:click={cancelCurrentAction}>Cancel</button>
             </div>
         </div>
-        <div class="splitter" 
+        <div class="splitter"
             class:dragging={isDragging}
-            on:mousedown={startDrag}
+            on:pointerdown={startDrag}
             role="slider"
             tabindex="0"
             aria-label="Panel width"
@@ -351,10 +409,11 @@
                 <div></div> <!-- right line -->
             </div>
         </div>
-        <div id="right_workspace">
+        <div id="right_workspace" class:mobile-hidden={mobileTab === 'zones'}>
             <MapComponent bind:this={mapComponent} klass={!($canvasReady) || (canvasFocused && !mapFocused) ? 'blurred noselect' : ''}/>
-            <div class="overlay" style="{canvasFocused && !mapFocused ? 'display: block;' : 'display: none;'}">
-                Press ESC to cancel '{cancelActionText !== undefined? cancelActionText : cancelActionUnexpected}' mode
+            <div class="overlay" style="{canvasFocused && !mapFocused ? 'display: flex;' : 'display: none;'}">
+                <span>Press ESC to cancel '{cancelActionText !== undefined? cancelActionText : cancelActionUnexpected}' mode</span>
+                <button class="overlay-cancel-btn" on:click={cancelCurrentAction}>Cancel</button>
             </div>
         </div>
     </div>
@@ -392,6 +451,9 @@
     }
     
     .overlay {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-sm);
         justify-content: center;
         align-items: center;
         position: absolute;
@@ -400,15 +462,32 @@
         transform: translate(-50%, -50%);
         background-color: var(--bg-secondary);
         color: var(--text-primary);
-        padding: 0.66665rem;
-        border-radius: 5px;
-        pointer-events: none;
+        padding: var(--space-md) var(--space-lg);
+        border-radius: var(--radius-md);
+        pointer-events: auto;
         border: 1px solid var(--border-primary);
-        box-shadow: 0 4px 12px var(--shadow);
+        box-shadow: 0 var(--space-xs) var(--space-md) var(--shadow);
         backdrop-filter: blur(10px);
         opacity: 0.95;
         font-weight: 500;
-        font-size: 0.875rem;
+        font-size: var(--text-md);
+        z-index: 20;
+    }
+
+    .overlay-cancel-btn {
+        padding: var(--space-xs) var(--space-md);
+        background: var(--danger-primary);
+        color: white;
+        border: none;
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        font-size: var(--text-base);
+        font-weight: 500;
+        transition: background-color 0.2s;
+    }
+
+    .overlay-cancel-btn:hover {
+        background: var(--danger-hover);
     }
 
     #main_workspace {
@@ -426,6 +505,7 @@
         position: relative;
         z-index: 10;
         transition: background-color 0.3s ease;
+        touch-action: none;
     }
 
     .splitter::before {
@@ -475,6 +555,7 @@
         z-index: 10;
         grid-area: splitter;
         transition: background-color 0.3s ease;
+        touch-action: none;
     }
 
     .horizontal-splitter::before {
@@ -564,13 +645,7 @@
         background: var(--bg-primary);
     }
     
-    /* #main-app > #main_workspace > *:not(.map-wrap) {
-        background: #ffd83c;
-        filter: blur(3px);
-    } */
-
     .blurred {
-        /* background: #ffd83c; */
         filter: blur(3px);
         cursor: not-allowed !important;
         transition: filter 0.3s ease;
@@ -584,6 +659,143 @@
         -khtml-user-select: none; /* Konqueror HTML */
         -moz-user-select: none; /* Old versions of Firefox */
         -ms-user-select: none; /* Internet Explorer/Edge */
-        user-select: none; /* Non-prefixed version, currently supported by Chrome, Edge, Opera and Firefox */
+        user-select: none;
+    }
+
+    /* Mobile tab bar - hidden on desktop */
+    .mobile-tab-bar {
+        display: none;
+    }
+
+    .canvas-panel, .zones-panel {
+        display: contents;
+    }
+
+    /* Responsive: tablet/phone (<768px) */
+    @media (max-width: 1024px) {
+        .mobile-tab-bar {
+            display: flex;
+            background: var(--bg-primary);
+            border-bottom: 1px solid var(--border-primary);
+            flex-shrink: 0;
+            z-index: 50;
+        }
+
+        .mobile-tab {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: var(--space-2xs);
+            padding: var(--space-sm) var(--space-xs);
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid transparent;
+            color: var(--text-secondary);
+            font-size: var(--text-xs);
+            cursor: pointer;
+            transition: color 0.2s, background-color 0.2s, border-color 0.2s;
+            min-height: 44px;
+        }
+
+        .mobile-tab i {
+            font-size: var(--icon-lg);
+        }
+
+        .mobile-tab.active {
+            color: var(--accent-primary);
+            border-bottom-color: var(--accent-primary);
+        }
+
+        .mobile-tab:hover {
+            color: var(--text-primary);
+            background: var(--bg-secondary);
+        }
+
+        /* Portrait: canvas on top, map on bottom (column) */
+        #main_workspace {
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Hide splitters on mobile */
+        .splitter,
+        .horizontal-splitter {
+            display: none;
+        }
+
+        /* Left workspace: holds canvas OR zones depending on tab */
+        #left_workspace {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-height: 0;
+        }
+
+        #left_workspace .canvas-panel {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-height: 0;
+        }
+
+        #left_workspace .zones-panel {
+            display: block;
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+        }
+
+        /* Right workspace: map, flex: 1 to share space with left */
+        #right_workspace {
+            flex: 1;
+            min-height: 0;
+        }
+
+        /* Tab switching - ID-qualified selectors to beat #id specificity */
+        #right_workspace.mobile-hidden,
+        #left_workspace .canvas-panel.mobile-hidden,
+        #left_workspace .zones-panel.mobile-hidden {
+            display: none !important;
+        }
+
+        /* Hide toolbar on Zones/Settings tabs */
+        .toolbar-hidden-mobile {
+            display: none !important;
+        }
+
+        /* Hide main workspace when on settings tab */
+        #main_workspace.mobile-hidden {
+            display: none !important;
+        }
+    }
+
+    /* Landscape phone: canvas left, map right (row) */
+    @media (max-width: 1024px) and (orientation: landscape) {
+        #main_workspace {
+            flex-direction: row;
+        }
+
+        /* In landscape row layout, left_workspace should not stretch full width */
+        #left_workspace {
+            flex: 1;
+            min-width: 0;
+        }
+
+        #right_workspace {
+            flex: 1;
+            min-width: 0;
+        }
+
+        /* Compact tab bar in landscape */
+        .mobile-tab {
+            padding: var(--space-xs);
+            min-height: 32px;
+            font-size: var(--text-2xs);
+        }
+
+        .mobile-tab i {
+            font-size: var(--icon-lg);
+        }
     }
 </style>

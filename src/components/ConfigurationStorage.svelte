@@ -1,5 +1,6 @@
 <script lang="ts">
     import { type Writable } from 'svelte/store'
+    import { slide } from 'svelte/transition'
     import { DirectionType, type Zone } from '$lib/zones';
     import { map, draw } from '../store/map';
     import { updateDataStorage } from '../store/data_storage';
@@ -44,11 +45,13 @@
         if (!isFinite(lng) || !isFinite(lat)) return;
 
         const el = document.createElement('div');
+        const bgColor = getComputedStyle(document.documentElement).getPropertyValue('--bg-primary').trim() || '#ffffff';
         el.style.cssText = `
             width: 14px; height: 14px;
             border-radius: 50%;
             border: 2px solid ${zone.properties.color_rgb_str || '#ff0000'};
-            background: rgba(255,255,255,0.8);
+            background: ${bgColor};
+            opacity: 0.9;
             pointer-events: none;
         `;
 
@@ -56,6 +59,17 @@
             .setLngLat([lng, lat])
             .addTo($map);
         highlightMarkers = [marker];
+    }
+
+    function handlePreview(zone: Zone, e: CustomEvent<{ coordinates: number[][][] }>) {
+        const { coordinates } = e.detail;
+        const spatialId = zone.properties.spatial_object_id;
+        if (!spatialId) return;
+        const existing = $draw.get(spatialId);
+        if (existing && existing.geometry.type === 'Polygon') {
+            existing.geometry.coordinates = coordinates;
+            $draw.add(existing);
+        }
     }
 
     function handleSave(zone: Zone, e: CustomEvent<{ coordinates: number[][][], road_lane_direction: number, road_lane_num: number }>) {
@@ -104,6 +118,12 @@
 <div id="configuration" class={klass}>
     <div id="configuration-content">
         {#if $dataReady === true}
+            {#if data.length === 0}
+                <div class="empty-state">
+                    <i class="material-icons">info_outline</i>
+                    <span>No zones configured yet. Use the toolbar to add zones.</span>
+                </div>
+            {/if}
             {#each data as [k, element]}
                 <div class="zone-card">
                     <button class="zone-header" on:click={() => toggleZone(k)}>
@@ -123,7 +143,7 @@
                         <span class="expand-arrow">{expandedZones[k] ? '▼' : '▶'}</span>
                     </button>
                     {#if expandedZones[k]}
-                        <div class="zone-content">
+                        <div class="zone-content" transition:slide={{ duration: 200 }}>
                             <table class="table table-sm">
                                 <tbody>
                                     <tr>
@@ -175,6 +195,11 @@
                     {/if}
                 </div>
             {/each}
+        {:else}
+            <div class="empty-state">
+                <i class="material-icons">hourglass_empty</i>
+                <span>Loading zones...</span>
+            </div>
         {/if}
     </div>
 </div>
@@ -182,7 +207,7 @@
 {#if modalZone}
     <!-- svelte-ignore a11y_no_static_element_interactions a11y_click_events_have_key_events -->
     <div class="modal-backdrop" on:click={handleBackdropClick}>
-        <div class="modal-panel">
+        <div class="modal-panel" role="dialog" aria-modal="true" aria-label="Edit zone {modalZone.id}">
             <div class="modal-header">
                 <div class="modal-title-row">
                     <div class="color-swatch modal-swatch" style="background-color: {modalZone.properties.color_rgb_str};"></div>
@@ -196,6 +221,7 @@
                 <CompleteZoneForm
                     zone={modalZone}
                     on:save={(e) => handleSave(modalZone!, e)}
+                    on:preview={(e) => handlePreview(modalZone!, e)}
                     on:highlight={(e) => handleHighlight(modalZone!, e)}
                 />
             </div>
@@ -204,11 +230,25 @@
 {/if}
 
 <style scoped>
+    .empty-state {
+        display: flex;
+        align-items: center;
+        gap: var(--space-sm);
+        padding: var(--space-lg);
+        color: var(--text-secondary);
+        font-size: var(--text-base);
+    }
+
+    .empty-state i {
+        font-size: var(--icon-lg);
+        opacity: 0.6;
+    }
+
     #configuration {
         grid-area: B;
         overflow-y: auto;
         height: 100%;
-        padding: 8px;
+        padding: var(--space-sm);
         background: var(--bg-primary);
         color: var(--text-primary);
     }
@@ -216,7 +256,7 @@
     /* Custom scrollbar with theme support */
     #configuration::-webkit-scrollbar {
         background-color: var(--bg-primary);
-        width: 8px;
+        width: var(--space-sm);
     }
 
     #configuration::-webkit-scrollbar-track {
@@ -225,7 +265,7 @@
 
     #configuration::-webkit-scrollbar-thumb {
         background-color: var(--text-secondary);
-        border-radius: 4px;
+        border-radius: var(--radius-sm);
         opacity: 0.7;
     }
 
@@ -235,9 +275,9 @@
     }
 
     .zone-card {
-        margin-bottom: 8px;
+        margin-bottom: var(--space-sm);
         border: 1px solid var(--border-primary);
-        border-radius: 4px;
+        border-radius: var(--radius-sm);
         overflow: hidden;
         background: var(--bg-primary);
         box-shadow: 0 1px 3px var(--shadow);
@@ -245,7 +285,7 @@
 
     .zone-header {
         width: 100%;
-        padding: 10px;
+        padding: var(--space-md);
         background: var(--bg-secondary);
         color: var(--text-primary);
         border: none;
@@ -254,7 +294,7 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        font-size: 14px;
+        font-size: var(--text-md);
         font-weight: 500;
         transition: background-color 0.2s;
     }
@@ -266,7 +306,7 @@
     .zone-header-main {
         display: flex;
         align-items: center;
-        gap: 0.5rem;
+        gap: var(--space-sm);
         flex: 1;
     }
 
@@ -276,10 +316,10 @@
     }
 
     .zone-badge {
-        font-size: 10px;
+        font-size: var(--text-2xs);
         font-weight: 600;
-        padding: 1px 6px;
-        border-radius: 3px;
+        padding: 1px var(--space-xs);
+        border-radius: var(--radius-xs);
         text-transform: uppercase;
         letter-spacing: 0.03em;
         flex-shrink: 0;
@@ -292,7 +332,7 @@
     }
 
     .zone-status {
-        font-size: 12px;
+        font-size: var(--text-sm);
         color: var(--text-secondary);
         font-style: italic;
     }
@@ -305,7 +345,7 @@
     }
 
     .zone-content {
-        padding: 10px;
+        padding: var(--space-md);
         background: var(--bg-primary);
         border-top: 1px solid var(--border-secondary);
     }
@@ -313,23 +353,23 @@
     .color-display {
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: var(--space-sm);
     }
 
     .color-swatch {
-        width: 32px;
-        height: 16px;
+        width: var(--space-3xl);
+        height: var(--space-lg);
         border: 1px solid var(--border-primary);
-        border-radius: 2px;
+        border-radius: var(--space-2xs);
     }
 
     table {
-        font-size: 12px;
+        font-size: var(--text-sm);
         width: 100%;
     }
 
     td {
-        padding: 4px 8px;
+        padding: var(--space-xs) var(--space-sm);
         vertical-align: top;
         border-bottom: 1px solid var(--border-secondary);
     }
@@ -353,16 +393,16 @@
     .edit-btn {
         display: inline-flex;
         align-items: center;
-        gap: 4px;
-        margin-top: 8px;
-        padding: 4px 10px;
+        gap: var(--space-xs);
+        margin-top: var(--space-sm);
+        padding: var(--space-xs) var(--space-md);
         background: var(--bg-secondary);
         border: 1px solid var(--border-primary);
-        border-radius: 3px;
+        border-radius: var(--radius-xs);
         color: var(--text-secondary);
-        font-size: 11px;
+        font-size: var(--text-xs);
         cursor: pointer;
-        transition: all 0.2s;
+        transition: color 0.2s, border-color 0.2s;
     }
 
     .edit-btn:hover {
@@ -371,7 +411,7 @@
     }
 
     .edit-btn i {
-        font-size: 14px;
+        font-size: var(--icon-sm);
     }
 
     /* Modal */
@@ -388,8 +428,8 @@
     .modal-panel {
         background: var(--bg-primary);
         border: 1px solid var(--border-primary);
-        border-radius: 8px;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        border-radius: var(--radius-md);
+        box-shadow: 0 var(--space-sm) var(--space-3xl) rgba(0, 0, 0, 0.3);
         width: 420px;
         max-width: 90vw;
         max-height: 80vh;
@@ -400,42 +440,42 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 16px 20px;
+        padding: var(--space-lg) var(--space-xl);
         border-bottom: 1px solid var(--border-secondary);
     }
 
     .modal-title-row {
         display: flex;
         align-items: center;
-        gap: 10px;
+        gap: var(--space-md);
     }
 
     .modal-title-row h3 {
         margin: 0;
-        font-size: 16px;
+        font-size: var(--text-lg);
         font-weight: 600;
         color: var(--text-primary);
     }
 
     .modal-swatch {
-        width: 20px;
-        height: 20px;
-        border-radius: 4px;
+        width: var(--space-xl);
+        height: var(--space-xl);
+        border-radius: var(--radius-sm);
     }
 
     .modal-close {
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 28px;
-        height: 28px;
+        width: var(--touch-target-sm);
+        height: var(--touch-target-sm);
         padding: 0;
         background: var(--bg-secondary);
         border: 1px solid var(--border-primary);
-        border-radius: 6px;
+        border-radius: var(--radius-sm);
         color: var(--text-secondary);
         cursor: pointer;
-        transition: all 0.2s;
+        transition: background-color 0.2s, color 0.2s;
     }
 
     .modal-close:hover {
@@ -444,10 +484,10 @@
     }
 
     .modal-close i {
-        font-size: 18px;
+        font-size: var(--icon-md);
     }
 
     .modal-body {
-        padding: 16px 20px 20px;
+        padding: var(--space-lg) var(--space-xl) var(--space-xl);
     }
 </style>

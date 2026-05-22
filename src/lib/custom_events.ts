@@ -4,13 +4,13 @@ import type { DirectionType } from "./zones";
 
 declare module "fabric" {
   interface ObjectEvents {
-    'virtial_line:created': {
+    'virtual_line:created': {
       target: CustomPolygon;
     };
-    'virtial_line:modified': {
+    'virtual_line:modified': {
       target: CustomPolygon;
     };
-    'virtial_line:removed': {
+    'virtual_line:removed': {
       target: CustomPolygon;
     };
   }
