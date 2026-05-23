@@ -6,6 +6,8 @@
     import { map, draw } from '../store/map'
     import { mapStyleStore, changeStyle } from '../store/state'
     import { dataStorage, updateDataStorage, resetZoneSpatialInfo } from '../store/data_storage'
+    import { canvasState } from '../store/state'
+    import { CustomPolygon, updateCanvasMeasurements } from '../lib/custom_canvas'
     import { EMPTY_POLYGON_RGB, createDrawStyles } from '../lib/gl_draw_styles.js'
     import { resolveMapStyle, createBlankStyle, BLANK_MAP_STYLE_MARKER } from '../lib/map_styles'
     import { resolvedTheme } from '../store/theme'
@@ -603,6 +605,15 @@
         const prevFeature = [...$dataStorage].find((f) => f[1].id !== targetFeatureID && f[1].properties.spatial_object_id === spatialID)?.[1]
         if (prevFeature) {
             resetZoneSpatialInfo($dataStorage, prevFeature.id)
+            // Clear measurements on the previously linked canvas polygon
+            if ($canvasState) {
+                const prevCanvasPolygon = $canvasState.getObjects().find(
+                    obj => obj instanceof CustomPolygon && obj.unid === prevFeature.id
+                ) as CustomPolygon | undefined;
+                if (prevCanvasPolygon) {
+                    updateCanvasMeasurements(prevCanvasPolygon);
+                }
+            }
         }
 
         targetFeature.properties.spatial_object_id = spatialID
@@ -613,6 +624,17 @@
         updateDataStorage(targetFeatureID, targetFeature)
         $draw.add(mapTargetFeature)
         $draw.setFeatureProperty(spatialID, 'color_rgb_str', targetFeature.properties.color_rgb_str);
+
+        // Update canvas edge labels and skeleton after linking
+        if ($canvasState) {
+            const canvasPolygon = $canvasState.getObjects().find(
+                obj => obj instanceof CustomPolygon && obj.unid === targetFeatureID
+            ) as CustomPolygon | undefined;
+            if (canvasPolygon) {
+                updateCanvasMeasurements(canvasPolygon, spatialPolygon.coordinates);
+                $canvasState.renderAll();
+            }
+        }
     }
 </script>
   
