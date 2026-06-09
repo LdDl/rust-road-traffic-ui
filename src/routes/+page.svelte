@@ -13,11 +13,12 @@
     import { EMPTY_POLYGON_RGB } from '../lib/gl_draw_styles.js'
     import { DeleteClickedZone } from '../lib/custom_delete.js'
 	import type { Polygon } from 'geojson';
-	import { type FabricCanvasWrap, drawCanvasPolygons } from '$lib/custom_canvas';
+	import { type FabricCanvasWrap, drawCanvasPolygons, CustomPolygon, updateCanvasMeasurements } from '$lib/custom_canvas';
 	import type { ZoneFeature, ZonesCollection } from '$lib/zones';
 	import { saveTOML } from '$lib/rest_api_mutations';
 	import { States, SubscriberState } from '$lib/states';
 	import { bindVertexLabels, unbindVertexLabels, clearAllVertexLabels } from '$lib/vertex_labels';
+	import { bindEdgeLabels, unbindEdgeLabels } from '$lib/edge_labels';
     import "../style.css";
     
     const { apiURL } = apiUrlStore
@@ -178,6 +179,7 @@
         
         mapComponent.attachDraw($draw)
         bindVertexLabels($map, $draw)
+        bindEdgeLabels($map, $draw)
         $map.on("draw.create", function(e: DrawCreateEvent) {
             e.features[0].properties = {
                 color_rgb_str: EMPTY_POLYGON_RGB,
@@ -197,6 +199,17 @@
             const spatialPolygon = mapTargetFeature.geometry as Polygon // @todo: Do we need type check?
             mustUpdateSpatial.geometry.coordinates = spatialPolygon.coordinates
             updateDataStorage(mustUpdateSpatial.id, mustUpdateSpatial)
+
+            // Update canvas measurements in real-time
+            if ($canvasState) {
+                const canvasPolygon = $canvasState.getObjects().find(
+                    obj => obj instanceof CustomPolygon && obj.unid === mustUpdateSpatial!.id
+                ) as CustomPolygon | undefined;
+                if (canvasPolygon) {
+                    updateCanvasMeasurements(canvasPolygon, spatialPolygon.coordinates);
+                    $canvasState.renderAll();
+                }
+            }
         })
     });
 
@@ -205,6 +218,7 @@
         canvasReady.set(false)
         dataReady.set(false)
         unbindVertexLabels()
+        unbindEdgeLabels()
         unsubscribeCanvas()
         unsubscribeGeoData()
         mqlMobile?.removeEventListener('change', onMobileChange);

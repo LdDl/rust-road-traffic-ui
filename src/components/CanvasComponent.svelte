@@ -84,7 +84,16 @@
                     extendedCanvas.remove(object.virtual_line)                    
                 }
                 object.notation.forEach((textObject) => {
-                    extendedCanvas.remove(textObject)    
+                    extendedCanvas.remove(textObject)
+                })
+                object.edge_labels.forEach((label) => {
+                    extendedCanvas.remove(label)
+                })
+                object.skeleton_lines.forEach((line) => {
+                    extendedCanvas.remove(line)
+                })
+                object.skeleton_labels.forEach((label) => {
+                    extendedCanvas.remove(label)
                 })
                 extendedCanvas.remove(object)
             }
@@ -227,6 +236,9 @@
             contour.notation.forEach((vertextNotation: FabricText) => {
                 fbCanvas.add(vertextNotation)
             })
+            contour.edge_labels.forEach((label) => fbCanvas.add(label))
+            contour.skeleton_lines.forEach((line) => fbCanvas.add(line))
+            contour.skeleton_labels.forEach((label) => fbCanvas.add(label))
             fbCanvas.renderAll()
             fbCanvas.contourTemporary = []
             fbCanvas.contourNotationTemporary = []

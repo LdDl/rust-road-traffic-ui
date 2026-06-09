@@ -8,6 +8,7 @@ import type {
     ModifiedEvent
 } from "fabric";
 import { UUIDv4, findLefTopX, findLeftTopY, getRandomRGB } from './utils'
+import { haversineDistance, geoMidpoint, pixelMidpoint, formatDistance } from './geo_utils'
 import { type Zone } from "./zones";
 import { get, type Writable } from "svelte/store";
 import { States } from "./states";
@@ -110,6 +111,9 @@ export class CustomPolygon extends Polygon implements ContourWrap {
     notation: FabricText[];
     current_points?: Point[] | undefined
     virtual_line?: CustomLineGroup | undefined
+    edge_labels: FabricText[];
+    skeleton_lines: Line[];
+    skeleton_labels: FabricText[];
     constructor(points: Point[], options?: Partial<TOptions<FabricObjectProps>>) {
         super(points, options);
         // Initialize additional properties
@@ -118,6 +122,9 @@ export class CustomPolygon extends Polygon implements ContourWrap {
         this.inner = this
         this.current_points = []
         this.virtual_line = undefined
+        this.edge_labels = [];
+        this.skeleton_lines = [];
+        this.skeleton_labels = [];
     }
 }
 
@@ -170,7 +177,144 @@ export const makeContour = (coordinates: any, color = getRandomRGB()): CustomPol
     contour.current_points = contour.points.map(p => new Point(p.x, p.y));
     contour.unid = '00000000-0000-0000-0000-000000000000'
     contour.notation = denotedVertices
+
+    // Edge labels (initially hidden, shown after linking to map polygon)
+    const edgeLabels: FabricText[] = [];
+    for (let i = 0; i < coordinates.length; i++) {
+        const edgeLabel = new FabricText('', {
+            left: 0, top: 0,
+            fontSize: 13,
+            fontWeight: 'bold',
+            fontFamily: 'Roboto',
+            fill: '#ffffff',
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            padding: 3,
+            selectable: false,
+            visible: false,
+            originX: 'center',
+            originY: 'center',
+        });
+        edgeLabels.push(edgeLabel);
+    }
+    contour.edge_labels = edgeLabels;
+
+    // Skeleton lines (2 dashed black lines, initially hidden)
+    const skeletonLines: Line[] = [];
+    const skeletonLabels: FabricText[] = [];
+    for (let i = 0; i < 2; i++) {
+        const skelLine = new Line([0, 0, 0, 0], {
+            stroke: '#333333',
+            strokeWidth: 1.5,
+            strokeDashArray: [6, 4],
+            selectable: false,
+            visible: false,
+        });
+        skeletonLines.push(skelLine);
+        const skelLabel = new FabricText('', {
+            left: 0, top: 0,
+            fontSize: 13,
+            fontWeight: 'bold',
+            fontFamily: 'Roboto',
+            fill: '#ffffff',
+            backgroundColor: 'rgba(230, 57, 70, 0.85)',
+            padding: 3,
+            selectable: false,
+            visible: false,
+            originX: 'center',
+            originY: 'center',
+        });
+        skeletonLabels.push(skelLabel);
+    }
+    contour.skeleton_lines = skeletonLines;
+    contour.skeleton_labels = skeletonLabels;
+
     return contour
+}
+
+/**
+ * Update edge labels and skeleton on canvas polygon using geo coordinates.
+ * If geoCoords is undefined/empty, hides all measurements.
+ */
+export function updateCanvasMeasurements(polygon: CustomPolygon, geoCoords?: number[][][]) {
+    const points = polygon.current_points;
+    if (!points || points.length < 2) return;
+
+    const hasGeo = geoCoords && geoCoords[0] && geoCoords[0].length >= points.length;
+    const ring = hasGeo ? geoCoords![0] : undefined;
+
+    // Update edge labels
+    for (let i = 0; i < polygon.edge_labels.length; i++) {
+        const j = (i + 1) % points.length;
+        if (i >= points.length) {
+            polygon.edge_labels[i].set({ visible: false });
+            continue;
+        }
+        const mid = pixelMidpoint(points[i], points[j]);
+        if (ring) {
+            const c1 = ring[i] as [number, number];
+            const c2 = ring[j] as [number, number];
+            const dist = haversineDistance(c1, c2);
+            polygon.edge_labels[i].set({
+                text: formatDistance(dist),
+                left: mid.x,
+                top: mid.y,
+                visible: true,
+            });
+        } else {
+            polygon.edge_labels[i].set({ visible: false });
+        }
+    }
+
+    // Update skeleton (only for 4-point polygons with geo coords)
+    if (points.length === 4 && ring) {
+        const A = ring[0] as [number, number];
+        const B = ring[1] as [number, number];
+        const C = ring[2] as [number, number];
+        const D = ring[3] as [number, number];
+
+        const midAB = geoMidpoint(A, B);
+        const midCD = geoMidpoint(C, D);
+        const midDA = geoMidpoint(D, A);
+        const midBC = geoMidpoint(B, C);
+
+        // Pixel midpoints for positioning
+        const pMidAB = pixelMidpoint(points[0], points[1]);
+        const pMidCD = pixelMidpoint(points[2], points[3]);
+        const pMidDA = pixelMidpoint(points[3], points[0]);
+        const pMidBC = pixelMidpoint(points[1], points[2]);
+
+        // Skeleton line 1: midAB => midCD
+        polygon.skeleton_lines[0].set({
+            x1: pMidAB.x, y1: pMidAB.y,
+            x2: pMidCD.x, y2: pMidCD.y,
+            visible: true,
+        });
+        const dist1 = haversineDistance(midAB, midCD);
+        // Label at 30% to avoid crossing point
+        polygon.skeleton_labels[0].set({
+            text: formatDistance(dist1),
+            left: pMidAB.x + (pMidCD.x - pMidAB.x) * 0.3,
+            top: pMidAB.y + (pMidCD.y - pMidAB.y) * 0.3,
+            visible: true,
+        });
+
+        // Skeleton line 2: midDA => midBC
+        polygon.skeleton_lines[1].set({
+            x1: pMidDA.x, y1: pMidDA.y,
+            x2: pMidBC.x, y2: pMidBC.y,
+            visible: true,
+        });
+        const dist2 = haversineDistance(midDA, midBC);
+        polygon.skeleton_labels[1].set({
+            text: formatDistance(dist2),
+            left: pMidDA.x + (pMidBC.x - pMidDA.x) * 0.3,
+            top: pMidDA.y + (pMidBC.y - pMidDA.y) * 0.3,
+            visible: true,
+        });
+    } else {
+        polygon.skeleton_lines.forEach(l => l.set({ visible: false }));
+        polygon.skeleton_labels.forEach(l => l.set({ visible: false }));
+    }
 }
 
 export function prepareContour(contourFinalized: any, state: Writable<States>, storage: Writable<Map<string, Zone>>, updateDataStorageFn: (key: string, value: Zone) => void, featureID: string = '', color = getRandomRGB(), init_virtual_lines_events: boolean = true) {
@@ -438,6 +582,11 @@ function contourModifiedEventWrapper(storage: Writable<Map<string, Zone>>, updat
             ]
         }) as [[number, number], [number, number], [number, number], [number, number]]
         updateDataStorageFn(targetPolygon.unid, existingContour)
+
+        // Update edge labels and skeleton if linked to map polygon
+        if (existingContour.properties.spatial_object_id && existingContour.geometry?.coordinates) {
+            updateCanvasMeasurements(targetPolygon, existingContour.geometry.coordinates)
+        }
     }
 }
 
@@ -461,6 +610,14 @@ export const drawCanvasPolygons = (extendedCanvas: FabricCanvasWrap, state: Writ
         contour.notation.forEach((vertextNotation: FabricText) => {
             extendedCanvas.add(vertextNotation)
         })
+        // Add edge labels, skeleton lines, and skeleton labels to canvas
+        contour.edge_labels.forEach(label => extendedCanvas.add(label))
+        contour.skeleton_lines.forEach(line => extendedCanvas.add(line))
+        contour.skeleton_labels.forEach(label => extendedCanvas.add(label))
+        // Update measurements if linked to map polygon
+        if (feature.properties.spatial_object_id && feature.geometry?.coordinates) {
+            updateCanvasMeasurements(contour, feature.geometry.coordinates)
+        }
         extendedCanvas.renderAll()
     })
 }
