@@ -100,7 +100,7 @@
 <style>
   .switcher-container {
       position: fixed;
-      top: var(--space-lg);
+      top: calc(var(--statusbar-height) + var(--space-sm));
       right: var(--space-lg);
       z-index: 1001;
       transition: right 0.3s ease;

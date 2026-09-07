@@ -6,6 +6,7 @@
     import Switchers from '../components/Switchers.svelte'
     import ConfigurationStorage from '../components/ConfigurationStorage.svelte';
     import Toolbar from '../components/Toolbar.svelte';
+    import StatusBar from '../components/StatusBar.svelte';
     import { state, canvasReady, dataReady, canvasState, apiUrlStore, changeAPI } from '../store/state.js'
     import { type DrawCreateEvent, type DrawUpdateEvent } from "@mapbox/mapbox-gl-draw"
     import { dataStorage, addZoneFeature, updateDataStorage, clearDataStorage, resetZoneSpatialInfo } from '../store/data_storage'
@@ -16,6 +17,7 @@
 	import { type FabricCanvasWrap, drawCanvasPolygons, CustomPolygon, updateCanvasMeasurements } from '$lib/custom_canvas';
 	import type { ZoneFeature, ZonesCollection } from '$lib/zones';
 	import { saveTOML } from '$lib/rest_api_mutations';
+	import { registerEscapeLayer } from '$lib/escape_stack';
 	import { States, SubscriberState } from '$lib/states';
 	import { bindVertexLabels, unbindVertexLabels, clearAllVertexLabels } from '$lib/vertex_labels';
 	import { bindEdgeLabels, unbindEdgeLabels } from '$lib/edge_labels';
@@ -29,6 +31,8 @@
     let startX = 0;
     let startWidth = 0;
 
+    let releaseEscape: (() => void) | undefined;
+    let leftWorkspaceHeight = 0;
     let isHorizontalDragging = false;
     let topPanelHeight = 80;
     let startY = 0;
@@ -147,6 +151,8 @@
 
     onMount(() => {
         console.log('Mounted page')
+        // Registered first, so any panel opened later gets Escape before the drawing mode does
+        releaseEscape = registerEscapeLayer(cancelCurrentAction)
         initSubscribers(SubscriberState.Init)
 
         // Responsive breakpoint detection
@@ -224,13 +230,8 @@
         mqlMobile?.removeEventListener('change', onMobileChange);
         mqlLandscape?.removeEventListener('change', onLandscapeChange);
         unsubApiChange()
+        releaseEscape?.()
     });
-
-    function keyPress(e: KeyboardEvent) {
-        if (e.key === "Escape") {
-            cancelCurrentAction()
-        }
-    }
 
     function cancelCurrentAction() {
         resetCurrentCanvasDrawing($canvasState)
@@ -331,7 +332,7 @@
     const handleHorizontalDrag = (e: PointerEvent) => {
         if (!isHorizontalDragging) return;
         const deltaY = e.clientY - startY;
-        const containerHeight = window.innerHeight - 60;
+        const containerHeight = leftWorkspaceHeight || window.innerHeight;
         const deltaPercent = (deltaY / containerHeight) * 100;
         topPanelHeight = Math.max(30, Math.min(85, startHeight + deltaPercent));
     };
@@ -348,9 +349,9 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1" />
 </sveltekit:head>
 
-<svelte:window on:keydown={keyPress} />
 
 <div id="main-app">
+    <StatusBar />
     <div class="toolbar-wrapper" class:toolbar-hidden-mobile={mobileTab !== 'view'}>
         <Toolbar
             onAddToCanvas={stateAddToCanvas}
@@ -379,7 +380,7 @@
     </div>
     <Switchers klass={canvasFocused || mapFocused ? 'blurred noselect' : ''} forceOpen={mobileTab === 'settings'} compact={isMobile}/>
     <div id="main_workspace" class:mobile-hidden={mobileTab === 'settings'} class:mobile={isMobile} style={isMobile ? '' : `grid-template-columns: ${leftPanelWidth}% 2px ${100 - leftPanelWidth}%`}>
-        <div id="left_workspace" style={isMobile ? '' : `grid-template-rows: ${topPanelHeight}% 2px ${100 - topPanelHeight}%`}>
+        <div id="left_workspace" bind:clientHeight={leftWorkspaceHeight} style={isMobile ? '' : `grid-template-rows: ${topPanelHeight}% 2px ${100 - topPanelHeight}%`}>
             <div class="canvas-panel" class:mobile-hidden={mobileTab === 'zones'}>
                 <CanvasComponent klass={!canvasFocused && mapFocused ? 'blurred noselect' : ''}/>
             </div>

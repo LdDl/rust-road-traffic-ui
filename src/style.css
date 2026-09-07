@@ -28,6 +28,9 @@
     --warning-border: #fcd34d;
     --loading-bg: rgba(128, 128, 128, 0.8);
     --blank-map-bg: #e5e5e5;
+    /* Height of the status header, floating panels sit below it */
+    --statusbar-height: 34px;
+
     --radius-xs: 3px;
     --radius-sm: 4px;
     --radius-md: 8px;
