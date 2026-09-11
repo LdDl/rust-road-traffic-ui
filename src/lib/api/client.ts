@@ -1,11 +1,22 @@
-import type { StatusResponse } from './types';
+import type {
+	ConfigPatch,
+	ConfigView,
+	ReplaceZonesResponse,
+	RestartRefused,
+	SaveTomlResponse,
+	StatusResponse,
+	TrackingOptions,
+	UpdateConfigResponse
+} from './types';
 
 export const DEFAULT_TIMEOUT_MS = 5000;
 
 export class ApiError extends Error {
 	constructor(
 		message: string,
-		public readonly status?: number
+		public readonly status?: number,
+		/** The parsed error body, for answers that carry more than a message */
+		public readonly payload?: unknown
 	) {
 		super(message);
 		this.name = 'ApiError';
@@ -40,7 +51,8 @@ async function request<T>(baseURL: string, path: string, options: RequestOptions
 		});
 
 		if (!response.ok) {
-			throw new ApiError(await describeFailure(response), response.status);
+			const { message, payload } = await describeFailure(response);
+			throw new ApiError(message, response.status, payload);
 		}
 		return (asText ? await response.text() : await response.json()) as T;
 	} catch (error) {
@@ -63,16 +75,17 @@ async function request<T>(baseURL: string, path: string, options: RequestOptions
 	}
 }
 
-async function describeFailure(response: Response): Promise<string> {
+async function describeFailure(response: Response): Promise<{ message: string; payload?: unknown }> {
+	const fallback = `${response.status} ${response.statusText}`.trim();
 	try {
 		const payload = await response.json();
-		if (payload && typeof payload.error_text === 'string') {
-			return payload.error_text;
-		}
+		const message =
+			payload && typeof payload.error_text === 'string' ? payload.error_text : fallback;
+		return { message, payload };
 	} catch {
 		// Not every error answer is JSON, the status line is enough then
+		return { message: fallback };
 	}
-	return `${response.status} ${response.statusText}`.trim();
 }
 
 export const getStatus = (baseURL: string, signal?: AbortSignal) =>
@@ -80,3 +93,41 @@ export const getStatus = (baseURL: string, signal?: AbortSignal) =>
 
 export const ping = (baseURL: string, signal?: AbortSignal) =>
 	request<string>(baseURL, '/api/ping', { signal, timeoutMs: 2000, asText: true });
+
+/** Puts the zones into the running app. The configuration file is not touched */
+export const replaceAllZones = (baseURL: string, body: unknown) =>
+	request<ReplaceZonesResponse>(baseURL, '/api/mutations/replace_all', { method: 'POST', body });
+
+/** The only call that writes the configuration file: settings in memory plus the live zones */
+export const saveToml = (baseURL: string) =>
+	request<SaveTomlResponse>(baseURL, '/api/mutations/save_toml');
+
+export const getConfig = (baseURL: string, signal?: AbortSignal) =>
+	request<ConfigView>(baseURL, '/api/config', { signal });
+
+/** Changes the settings in memory only. Nothing reaches the file until saveToml */
+export const updateConfig = (baseURL: string, patch: ConfigPatch) =>
+	request<UpdateConfigResponse>(baseURL, '/api/config', { method: 'PUT', body: patch });
+
+/** The same lists the backend validates against, so the dropdowns never offer a refused value */
+export const getTrackingOptions = (baseURL: string, signal?: AbortSignal) =>
+	request<TrackingOptions>(baseURL, '/api/tracking/types', { signal });
+
+export type RestartOutcome = { restarted: true } | { restarted: false; refused: RestartRefused };
+
+/**
+ * A refusal because of unsaved changes is an answer, not a failure: it carries the
+ * current change state, which is what the "save first?" dialog is built from
+ */
+export async function restartApp(baseURL: string, force = false): Promise<RestartOutcome> {
+	const path = force ? '/api/mutations/restart?force=true' : '/api/mutations/restart';
+	try {
+		await request<{ message: string }>(baseURL, path, { method: 'POST' });
+		return { restarted: true };
+	} catch (error) {
+		if (error instanceof ApiError && error.status === 409 && error.payload) {
+			return { restarted: false, refused: error.payload as RestartRefused };
+		}
+		throw error;
+	}
+}

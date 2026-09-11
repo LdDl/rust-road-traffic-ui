@@ -42,3 +42,12 @@ export function formatTimestamp(value: string | null | undefined): string {
 	const time = at.toLocaleTimeString('en-GB', { hour12: false });
 	return sameDay ? time : `${at.toLocaleDateString('en-GB')} ${time}`;
 }
+
+/**
+ * Splits a path or a URL right after its separators, so that a long value wraps at a
+ * slash instead of in the middle of a word. The caller joins the parts with <wbr>
+ */
+export function splitAtSeparators(value: string | null | undefined): string[] {
+	if (!value) return [];
+	return value.split(/(?<=[/@?&])/);
+}

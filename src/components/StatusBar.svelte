@@ -8,10 +8,21 @@
 	import { changeAPI } from '../store/state';
 	import { copyText } from '$lib/clipboard';
 	import { registerEscapeLayer } from '$lib/escape_stack';
-	import { formatCount, formatFps, formatMs, formatTimestamp, formatUptime } from '$lib/format';
+	import {
+		formatCount,
+		formatFps,
+		formatMs,
+		formatTimestamp,
+		formatUptime,
+		splitAtSeparators
+	} from '$lib/format';
 
 	/** How long a restart stays announced in the header after it was noticed */
 	const RESTART_NOTICE_MS = 20000;
+	/** The backend reports the zones as one dotted path, which means nothing to a person */
+	const ZONES_KEY = 'road_lanes';
+	const describeChange = (path: string) => (path === ZONES_KEY ? 'zones' : path);
+
 	/** How long the equipment id reads "copied" before going back to the id itself */
 	const COPIED_NOTICE_MS = 2000;
 
@@ -79,7 +90,12 @@
 	// otherwise healthy install cannot keep up with its camera
 	$: onCpu = state !== null && detection?.cuda_available === false;
 	$: restartNoticeVisible = $lastRestartAt !== null && now - $lastRestartAt < RESTART_NOTICE_MS;
+	$: unsavedChanges = state?.unsaved_changes ?? [];
 	$: pendingChanges = state?.pending_changes ?? [];
+	// A restart rereads the file, so it would throw away whatever is not saved yet.
+	// The header therefore asks for a save first and only then for a restart
+	$: saveFirst = state?.save_required === true;
+	$: waitingForRestart = pendingChanges.filter((path) => !unsavedChanges.includes(path));
 	$: problem = state?.last_problem ?? null;
 	$: problemIsError = (problem?.level ?? '').toUpperCase() === 'ERROR';
 	$: lastAnswerAgo =
@@ -243,12 +259,23 @@
 			</span>
 		{/if}
 
-		{#if state?.restart_required}
+		{#if saveFirst}
 			<button
 				type="button"
 				class="badge warn"
 				on:click={openDetails}
-				title="Saved settings differ from the ones this run started with"
+				title="Changed in the running app, not written to the configuration file yet. A restart would drop it"
+			>
+				<i class="material-icons">save</i>
+				<span class="badge-text">Unsaved changes</span>
+				<span class="badge-count">{unsavedChanges.length}</span>
+			</button>
+		{:else if state?.restart_required}
+			<button
+				type="button"
+				class="badge warn"
+				on:click={openDetails}
+				title="Saved, takes effect after a restart"
 			>
 				<i class="material-icons">restart_alt</i>
 				<span class="badge-text">Restart required</span>
@@ -291,22 +318,40 @@
 		<div class="details-inner">
 			<h2 class="details-title">Device status</h2>
 
-			{#if state && (state.restart_required || problem)}
+			{#if state && (saveFirst || waitingForRestart.length > 0 || problem)}
 				<div class="details-grid attention-grid">
-					{#if state.restart_required}
+					{#if saveFirst}
+						<article class="card attention">
+							<h3>Not saved yet</h3>
+							<p class="card-text">
+								Changed in the running app but not written to the configuration file. A restart
+								rereads the file and drops these.
+							</p>
+							<ul class="change-list">
+								{#each unsavedChanges as change}
+									<li>
+										<span class="mono">{describeChange(change)}</span>
+										{#if pendingChanges.includes(change)}
+											<span class="change-tag">after restart</span>
+										{/if}
+									</li>
+								{/each}
+							</ul>
+						</article>
+					{/if}
+
+					{#if waitingForRestart.length > 0}
 						<article class="card attention">
 							<h3>Waiting for a restart</h3>
 							<p class="card-text">
-								These settings are saved in the configuration file but the running process still
-								uses the previous ones.
+								Saved in the configuration file, but the running process still uses the previous
+								values.
 							</p>
-							{#if pendingChanges.length > 0}
-								<ul class="change-list">
-									{#each pendingChanges as change}
-										<li class="mono">{change}</li>
-									{/each}
-								</ul>
-							{/if}
+							<ul class="change-list">
+								{#each waitingForRestart as change}
+									<li class="mono">{describeChange(change)}</li>
+								{/each}
+							</ul>
 						</article>
 					{/if}
 
@@ -353,7 +398,9 @@
 						<h3>Source</h3>
 						<dl>
 							<dt>Address</dt>
-							<dd class="mono wrap">{input.video_src}</dd>
+							<dd class="mono">
+								{#each splitAtSeparators(input.video_src) as part}{part}<wbr />{/each}
+							</dd>
 							<dt>Processing rate</dt>
 							<dd class="mono" class:problem={fpsBehind}>{formatFps(input.processing_fps)} fps</dd>
 							<dt>Frames processed</dt>
@@ -443,7 +490,10 @@
 								<dt>Level</dt>
 								<dd>{state.logging.level}</dd>
 								<dt>File</dt>
-								<dd class="mono wrap">{state.logging.file ?? 'stdout only'}</dd>
+								<dd class="mono">
+									{#if state.logging.file}{#each splitAtSeparators(state.logging.file) as part}{part}<wbr
+											/>{/each}{:else}stdout only{/if}
+								</dd>
 							</dl>
 						</article>
 					</div>
@@ -906,16 +956,23 @@
 		overflow-wrap: anywhere;
 	}
 
-	.card dd.wrap {
-		text-align: left;
-	}
-
 	.problem {
 		color: var(--danger-primary);
 	}
 
 	.card .card-text.problem {
 		margin-top: var(--space-sm);
+	}
+
+	.change-tag {
+		margin-left: var(--space-xs);
+		padding: 0 var(--space-xs);
+		border-radius: var(--radius-xs);
+		background: rgba(127, 127, 127, 0.2);
+		font-size: var(--text-2xs);
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
+		white-space: nowrap;
 	}
 
 	.change-list {

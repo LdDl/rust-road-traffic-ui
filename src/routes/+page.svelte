@@ -18,6 +18,7 @@
 	import { saveTOML } from '$lib/rest_api_mutations';
 	import { registerEscapeLayer } from '$lib/escape_stack';
 	import { activeTab } from '../store/navigation';
+	import { refreshStatus } from '../store/status';
 	import { States, SubscriberState } from '$lib/states';
 	import { bindVertexLabels, unbindVertexLabels, clearAllVertexLabels } from '$lib/vertex_labels';
 	import { bindEdgeLabels, unbindEdgeLabels } from '$lib/edge_labels';
@@ -368,7 +369,11 @@
             onDeleteFromCanvas={stateDelFromCanvas}
             onAddToMap={stateAddToMap}
             onDeleteFromMap={stateDelFromMap}
-            onSave={() => saveTOML(initialAPIURL, dataStorageLinked)}
+            onSave={async () => {
+                await saveTOML(initialAPIURL, dataStorageLinked)
+                // The header should stop saying "unsaved" now, not on the next poll
+                refreshStatus()
+            }}
             compact={isMobile}
             landscape={isLandscape}
         />
