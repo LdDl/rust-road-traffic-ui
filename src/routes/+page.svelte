@@ -6,19 +6,20 @@
     import ConfigurationStorage from '../components/ConfigurationStorage.svelte';
     import Toolbar from '../components/Toolbar.svelte';
     import StatusBar from '../components/StatusBar.svelte';
+    import DeviceView from '../components/DeviceView.svelte';
     import { state, canvasReady, dataReady, canvasState, apiUrlStore, changeAPI } from '../store/state.js'
     import { type DrawCreateEvent, type DrawUpdateEvent } from "@mapbox/mapbox-gl-draw"
-    import { dataStorage, addZoneFeature, updateDataStorage, clearDataStorage, resetZoneSpatialInfo } from '../store/data_storage'
+    import { dataStorage, addZoneFeature, updateDataStorage, clearDataStorage, resetZoneSpatialInfo, markZonesSaved, forgetSavedZones } from '../store/data_storage'
     import { map, draw } from '../store/map'
     import { EMPTY_POLYGON_RGB } from '../lib/gl_draw_styles.js'
     import { DeleteClickedZone } from '../lib/custom_delete.js'
 	import type { Polygon } from 'geojson';
 	import { type FabricCanvasWrap, drawCanvasPolygons, CustomPolygon, updateCanvasMeasurements } from '$lib/custom_canvas';
 	import type { ZoneFeature, ZonesCollection } from '$lib/zones';
-	import { saveTOML } from '$lib/rest_api_mutations';
 	import { registerEscapeLayer } from '$lib/escape_stack';
 	import { activeTab } from '../store/navigation';
-	import { refreshStatus } from '../store/status';
+	import { restartEpoch } from '../store/status';
+	import { saveAll } from '$lib/save_flow';
 	import { States, SubscriberState } from '$lib/states';
 	import { bindVertexLabels, unbindVertexLabels, clearAllVertexLabels } from '$lib/vertex_labels';
 	import { bindEdgeLabels, unbindEdgeLabels } from '$lib/edge_labels';
@@ -76,7 +77,6 @@
     $: canvasFocused = (stateVariable === States.AddingZoneCanvas || stateVariable === States.DeletingZoneCanvas)
     $: mapFocused = (stateVariable === States.AddingZoneMap || stateVariable === States.DeletingZoneMap)
     $: dataStorageAll = [...$dataStorage].filter((element) => element[1].id)
-    $: dataStorageLinked = dataStorageAll.filter((element) => element[1].properties.spatial_object_id)
 
     const cancelActionTexts: Map<States, string> = new Map([
         [States.AddingZoneCanvas, 'Adding zone to the canvas'],
@@ -128,6 +128,7 @@
                 });
                 dataFetched = true
                 tryDrawGeo()
+                markZonesSaved()
                 dataReady.set(true)
             })
             .catch((error) => {
@@ -140,23 +141,37 @@
             console.log(`Need to change API URL for Data: '${$apiURL}'`)
             initialAPIURL = value
 
-            /* Clean UP */
+            // The frame comes from the new address too, so the canvas waits for it again
             canvasReady.set(false)
-            dataReady.set(false)
-            if (unsubscribeCanvas) unsubscribeCanvas()
-            if (unsubscribeGeoData) unsubscribeGeoData()
-            clearDataStorage()
-            clearAllVertexLabels()
-            if ($canvasState !== undefined && $canvasState != null) {
-                //@ts-ignore
-                $canvasState.getObjects().forEach( (contour: { unid: string; }) => {
-                    //@ts-ignore
-                    $canvasState.remove(contour);
-                })
-            }
-            $draw.deleteAll()
-            initSubscribers(SubscriberState.ReInit)
+            reloadZones()
         }
+    })
+
+    function reloadZones() {
+        dataReady.set(false)
+        forgetSavedZones()
+        if (unsubscribeCanvas) unsubscribeCanvas()
+        if (unsubscribeGeoData) unsubscribeGeoData()
+        clearDataStorage()
+        clearAllVertexLabels()
+        if ($canvasState !== undefined && $canvasState != null) {
+            //@ts-ignore
+            $canvasState.getObjects().forEach( (contour: { unid: string; }) => {
+                //@ts-ignore
+                $canvasState.remove(contour);
+            })
+        }
+        $draw.deleteAll()
+        initSubscribers(SubscriberState.ReInit)
+    }
+
+    // A restart rereads the file: the zones on screen are read again from the new run.
+    // The canvas stays ready, the frame is the same size and only the stream reconnects
+    let seenRestartEpoch = $restartEpoch
+    const unsubRestart = restartEpoch.subscribe(epoch => {
+        if (epoch === seenRestartEpoch) return
+        seenRestartEpoch = epoch
+        reloadZones()
     })
 
     onMount(() => {
@@ -240,6 +255,7 @@
         mqlMobile?.removeEventListener('change', onMobileChange);
         mqlLandscape?.removeEventListener('change', onLandscapeChange);
         unsubApiChange()
+        unsubRestart()
         releaseEscape?.()
     });
 
@@ -362,6 +378,7 @@
 
 <div id="main-app">
     <StatusBar />
+    <DeviceView active={$activeTab === 'device'} />
     <div class="tab-panel" class:tab-hidden={$activeTab !== 'setup'}>
     <div class="toolbar-wrapper" class:toolbar-hidden-mobile={mobileTab !== 'view'}>
         <Toolbar
@@ -369,11 +386,7 @@
             onDeleteFromCanvas={stateDelFromCanvas}
             onAddToMap={stateAddToMap}
             onDeleteFromMap={stateDelFromMap}
-            onSave={async () => {
-                await saveTOML(initialAPIURL, dataStorageLinked)
-                // The header should stop saying "unsaved" now, not on the next poll
-                refreshStatus()
-            }}
+            onSave={() => saveAll(initialAPIURL)}
             compact={isMobile}
             landscape={isLandscape}
         />

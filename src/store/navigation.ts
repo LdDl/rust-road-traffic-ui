@@ -1,7 +1,7 @@
 import { browser } from '$app/environment';
 import { writable } from 'svelte/store';
 
-export type TabId = 'setup';
+export type TabId = 'setup' | 'device';
 
 export interface TabDefinition {
 	id: TabId;
@@ -17,6 +17,12 @@ export const TABS: TabDefinition[] = [
 		label: 'Setup',
 		icon: 'polyline',
 		description: 'Draw each zone on the camera frame and on the map, then link the two'
+	},
+	{
+		id: 'device',
+		label: 'Device',
+		icon: 'settings_input_component',
+		description: 'Video source, tracking, Redis, logging and the other settings of the device'
 	}
 ];
 
@@ -42,3 +48,6 @@ export function goToTab(id: TabId) {
 	}
 	activeTab.set(id);
 }
+
+/** Unfinished work shown on a tab's icon, so it is visible from any other tab and on a phone */
+export const tabBadges = writable<Partial<Record<TabId, number>>>({});

@@ -10,6 +10,7 @@
 	import { dataStorage, deattachCanvasFromSpatial, deleteFromDataStorage, updateDataStorage } from '../store/data_storage.js';
 	import { draw } from '../store/map.js';
 	import { writable } from 'svelte/store';
+	import { restartEpoch } from '../store/status';
 	import { lineControl } from '$lib/custom_control_zone.js';
 	import { changeDirectionControl, deleteVirtualLineControl } from '$lib/custom_control_line.js';
 	import { CUSTOM_CONTROL_TYPES } from '$lib/custom_control.js';
@@ -55,6 +56,13 @@
 
     $: applyStreamSource(active, initialAPIURL)
 
+    // A restart drops the stream connection and the frame freezes on its last image
+    const unsubRestart = restartEpoch.subscribe(epoch => {
+        if (epoch === 0 || !imgElement || !active) return
+        imgElement.removeAttribute('src')
+        requestAnimationFrame(() => applyStreamSource(active, initialAPIURL))
+    })
+
     const unsubApiChange = changeAPI.subscribe(value => {
         if (initialAPIURL !== value) {
             console.log(`Need to change API URL for MJPEG: '${$apiURL}'`)
@@ -83,6 +91,7 @@
             resizeObserver.disconnect();
         }
         unsubApiChange()
+        unsubRestart()
         canvasState.set(undefined)
     });
 

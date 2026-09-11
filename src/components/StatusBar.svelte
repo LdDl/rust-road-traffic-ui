@@ -4,6 +4,9 @@
 	import NavTabs from './NavTabs.svelte';
 	import { TABS } from '../store/navigation';
 	import SettingsPanel from './SettingsPanel.svelte';
+	import RestartDialog from './RestartDialog.svelte';
+	import { zonesDirty } from '../store/data_storage';
+	import { saveAll } from '$lib/save_flow';
 	import { acquireStatus, connection, droppedDelta, lastRestartAt, status } from '../store/status';
 	import { changeAPI } from '../store/state';
 	import { copyText } from '$lib/clipboard';
@@ -96,6 +99,26 @@
 	// The header therefore asks for a save first and only then for a restart
 	$: saveFirst = state?.save_required === true;
 	$: waitingForRestart = pendingChanges.filter((path) => !unsavedChanges.includes(path));
+	// Zones edited in this browser are unsaved too, even though the device cannot know it
+	$: localZonesOnly = $zonesDirty && !unsavedChanges.includes(ZONES_KEY);
+	$: saveNeeded = saveFirst || $zonesDirty;
+	$: unsavedCount = unsavedChanges.length + (localZonesOnly ? 1 : 0);
+
+	let restartDialog: RestartDialog;
+	let saving = false;
+	let saveError: string | null = null;
+
+	async function runSave() {
+		saving = true;
+		saveError = null;
+		try {
+			await saveAll($changeAPI);
+		} catch (error) {
+			saveError = error instanceof Error ? error.message : 'Save failed';
+		} finally {
+			saving = false;
+		}
+	}
 	$: problem = state?.last_problem ?? null;
 	$: problemIsError = (problem?.level ?? '').toUpperCase() === 'ERROR';
 	$: lastAnswerAgo =
@@ -259,26 +282,31 @@
 			</span>
 		{/if}
 
-		{#if saveFirst}
+		{#if saveNeeded}
 			<button
 				type="button"
-				class="badge warn"
-				on:click={openDetails}
-				title="Changed in the running app, not written to the configuration file yet. A restart would drop it"
+				class="badge warn action"
+				class:danger={saveError !== null}
+				disabled={saving}
+				on:click={runSave}
+				title={saveError ??
+					'Write every change to the configuration file. A restart before that would drop them'}
 			>
-				<i class="material-icons">save</i>
-				<span class="badge-text">Unsaved changes</span>
-				<span class="badge-count">{unsavedChanges.length}</span>
+				<i class="material-icons"
+					>{saving ? 'hourglass_empty' : saveError ? 'error_outline' : 'save'}</i
+				>
+				<span class="badge-text">{saving ? 'Saving' : saveError ? 'Save failed' : 'Save'}</span>
+				<span class="badge-count">{unsavedCount}</span>
 			</button>
 		{:else if state?.restart_required}
 			<button
 				type="button"
-				class="badge warn"
-				on:click={openDetails}
+				class="badge warn action"
+				on:click={() => restartDialog.begin()}
 				title="Saved, takes effect after a restart"
 			>
 				<i class="material-icons">restart_alt</i>
-				<span class="badge-text">Restart required</span>
+				<span class="badge-text">Restart</span>
 				{#if pendingChanges.length > 0}<span class="badge-count">{pendingChanges.length}</span>{/if}
 			</button>
 		{/if}
@@ -313,14 +341,16 @@
 
 <SettingsPanel open={settingsOpen} top={barHeight} onClose={() => (settingsOpen = false)} />
 
+<RestartDialog bind:this={restartDialog} />
+
 {#if detailsOpen}
 	<section class="details" bind:this={detailsEl} style="top: {barHeight}px;">
 		<div class="details-inner">
 			<h2 class="details-title">Device status</h2>
 
-			{#if state && (saveFirst || waitingForRestart.length > 0 || problem)}
+			{#if state && (saveNeeded || waitingForRestart.length > 0 || problem)}
 				<div class="details-grid attention-grid">
-					{#if saveFirst}
+					{#if saveNeeded}
 						<article class="card attention">
 							<h3>Not saved yet</h3>
 							<p class="card-text">
@@ -336,6 +366,12 @@
 										{/if}
 									</li>
 								{/each}
+								{#if localZonesOnly}
+									<li>
+										<span class="mono">zones</span>
+										<span class="change-tag">in this browser</span>
+									</li>
+								{/if}
 							</ul>
 						</article>
 					{/if}
@@ -780,6 +816,11 @@
 
 	.badge.neutral {
 		cursor: default;
+	}
+
+	.badge.action:disabled {
+		cursor: default;
+		opacity: 0.7;
 	}
 
 	.badge.warn {

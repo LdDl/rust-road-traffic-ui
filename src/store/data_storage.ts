@@ -1,7 +1,8 @@
-import { writable, type Writable } from 'svelte/store';
+import { derived, get, writable, type Writable } from 'svelte/store';
 import type MapboxDraw from '@mapbox/mapbox-gl-draw';
 import { EMPTY_POLYGON_RGB } from '../lib/gl_draw_styles.js'
 import type { Zone, ZoneFeature } from '$lib/zones.js';
+import { zonesPayload } from '$lib/rest_api_mutations';
 
 export const dataStorage: Writable<Map<string, Zone>> = writable(new Map<string, Zone>())
 
@@ -83,4 +84,27 @@ export const resetZoneSpatialInfo = (storage: Map<string, Zone>, zoneID: string)
   zone.properties.road_lane_num = -1;
   zone.geometry.coordinates = [[], [], [], [], []]
   updateDataStorage(zoneID, zone)
+}
+
+/** Zones drawn both on the frame and on the map: only these are ever saved */
+export const linkedZones = (storage: Map<string, Zone>): [string, Zone][] =>
+  [...storage].filter(([, zone]) => zone.id && zone.properties.spatial_object_id)
+
+const savedZones = writable<string | null>(null)
+
+// Edits on the canvas and the map stay in this browser until Save, so the backend cannot
+// report them. They are compared by what Save would send, which catches every way of
+// editing and turns clean again when an edit is undone by hand
+export const zonesDirty = derived([dataStorage, savedZones], ([$storage, $saved]) =>
+  $saved !== null && JSON.stringify(zonesPayload(linkedZones($storage))) !== $saved
+)
+
+/** The zones on screen now match the device: just loaded, or just saved */
+export function markZonesSaved() {
+  savedZones.set(JSON.stringify(zonesPayload(linkedZones(get(dataStorage)))))
+}
+
+/** While zones are being reloaded there is nothing to compare against */
+export function forgetSavedZones() {
+  savedZones.set(null)
 }

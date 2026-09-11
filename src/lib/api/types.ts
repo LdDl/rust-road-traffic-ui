@@ -172,3 +172,21 @@ export interface TrackingOptions {
 export interface RestartRefused extends ChangeState {
 	error_text: string;
 }
+
+/** Anything left out falls back to the saved configuration, so an empty body checks what is configured */
+export interface RedisCheckRequest {
+	host?: string;
+	port?: number;
+	username?: string | null;
+	password?: string;
+	db_index?: number;
+}
+
+export interface RedisCheckResponse {
+	ok: boolean;
+	/** Where it tried, without the password */
+	target: string;
+	took_ms: number;
+	/** Why it did not work, null when it did */
+	error?: string | null;
+}

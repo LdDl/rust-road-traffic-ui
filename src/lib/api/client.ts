@@ -1,6 +1,8 @@
 import type {
 	ConfigPatch,
 	ConfigView,
+	RedisCheckRequest,
+	RedisCheckResponse,
 	ReplaceZonesResponse,
 	RestartRefused,
 	SaveTomlResponse,
@@ -75,7 +77,9 @@ async function request<T>(baseURL: string, path: string, options: RequestOptions
 	}
 }
 
-async function describeFailure(response: Response): Promise<{ message: string; payload?: unknown }> {
+async function describeFailure(
+	response: Response
+): Promise<{ message: string; payload?: unknown }> {
 	const fallback = `${response.status} ${response.statusText}`.trim();
 	try {
 		const payload = await response.json();
@@ -131,3 +135,11 @@ export async function restartApp(baseURL: string, force = false): Promise<Restar
 		throw error;
 	}
 }
+
+/** Always answers 200; ok says whether Redis replied, error says why not */
+export const checkRedis = (baseURL: string, body: RedisCheckRequest) =>
+	request<RedisCheckResponse>(baseURL, '/api/redis/check', {
+		method: 'POST',
+		body,
+		timeoutMs: 10000
+	});
