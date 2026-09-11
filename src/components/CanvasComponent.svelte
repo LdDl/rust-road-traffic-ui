@@ -16,6 +16,10 @@
     import { resizeCanvas } from '$lib/custom_canvas_resize.js';
 
     export let klass: string = ''
+    /** False while another tab is on screen: the MJPEG stream is a long lived connection */
+    export let active: boolean = true
+
+    let imgElement: HTMLImageElement | undefined
 
     const { apiURL } = apiUrlStore
     let initialAPIURL = `${$apiURL}`
@@ -37,6 +41,19 @@
         imgSrcLoaded.set(true)
         canvasReady.set(true)
     }
+
+    // Dropping the attribute closes the stream; an empty src would fetch the page itself
+    function applyStreamSource(on: boolean, baseURL: string) {
+        if (!imgElement) return
+        const wanted = `${baseURL}/live_streaming`
+        if (on) {
+            if (imgElement.getAttribute('src') !== wanted) imgElement.src = wanted
+        } else if (imgElement.hasAttribute('src')) {
+            imgElement.removeAttribute('src')
+        }
+    }
+
+    $: applyStreamSource(active, initialAPIURL)
 
     const unsubApiChange = changeAPI.subscribe(value => {
         if (initialAPIURL !== value) {
@@ -254,7 +271,7 @@
 
 <div id="mjpeg" class={"mjpeg-canvas" + ' ' + klass}>
     <!-- svelte-ignore a11y-missing-attribute -->
-    <img id="fit_img" src="{initialAPIURL}/live_streaming" on:load={imageLoaded}>
+    <img id="fit_img" bind:this={imgElement} src="{initialAPIURL}/live_streaming" on:load={imageLoaded}>
     <!-- <img id="fit_img" src="https://pngimg.com/uploads/google/google_PNG19632.png" on:load={imageLoaded}> -->
     <canvas id="fit_canvas" ></canvas>
     <div id="loading-message" class={$imgSrcLoaded? 'd-none' : 'd-block'} aria-live="polite" aria-busy={!$imgSrcLoaded}>

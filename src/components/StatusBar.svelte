@@ -1,6 +1,9 @@
 <script lang="ts">
 	import { onDestroy, onMount } from 'svelte';
 	import Hint from './Hint.svelte';
+	import NavTabs from './NavTabs.svelte';
+	import { TABS } from '../store/navigation';
+	import SettingsPanel from './SettingsPanel.svelte';
 	import { acquireStatus, connection, droppedDelta, lastRestartAt, status } from '../store/status';
 	import { changeAPI } from '../store/state';
 	import { copyText } from '$lib/clipboard';
@@ -22,6 +25,10 @@
 	let release: (() => void) | undefined;
 	let barHeight = 0;
 	let detailsOpen = false;
+	let settingsOpen = false;
+	/** Detection, tracking, Redis and logging are fixed at startup, so they stay folded away */
+	let configOpen = false;
+	let detailsEl: HTMLElement | undefined;
 	let showVideoSrc = false;
 	let now = Date.now();
 	let ticker: ReturnType<typeof setInterval> | undefined;
@@ -85,8 +92,35 @@
 			? null
 			: Math.max(0, Math.round((now - $connection.lastSuccessAt) / 1000));
 
-	const toggleDetails = () => (detailsOpen = !detailsOpen);
-	const openDetails = () => (detailsOpen = true);
+	// The two panels share the strip under the header, so only one of them is up at a time
+	const toggleDetails = () => {
+		detailsOpen = !detailsOpen;
+		if (detailsOpen) settingsOpen = false;
+	};
+	const openDetails = () => {
+		detailsOpen = true;
+		settingsOpen = false;
+	};
+	const toggleSettings = () => {
+		settingsOpen = !settingsOpen;
+		if (settingsOpen) detailsOpen = false;
+	};
+
+	const onDetailsPointerDown = (event: PointerEvent) => {
+		if (!detailsOpen || !detailsEl) return;
+		const target = event.target;
+		if (!(target instanceof Node)) return;
+		if (detailsEl.contains(target)) return;
+		if (target instanceof Element && target.closest('.status-trigger, .badge')) return;
+		detailsOpen = false;
+	};
+
+	const onStatusKeydown = (event: KeyboardEvent) => {
+		if (event.key === 'Enter' || event.key === ' ') {
+			event.preventDefault();
+			toggleDetails();
+		}
+	};
 
 	let releaseEscape: (() => void) | undefined;
 
@@ -98,8 +132,25 @@
 	$: updateEscapeLayer(detailsOpen);
 </script>
 
+<svelte:window on:pointerdown={onDetailsPointerDown} />
+
 <header class="status-bar" bind:clientHeight={barHeight}>
-	<div class="segment identity">
+	{#if TABS.length > 1}
+		<div class="segment nav">
+			<NavTabs />
+		</div>
+	{/if}
+
+	<div
+		class="segment identity status-trigger"
+		class:with-nav={TABS.length > 1}
+		role="button"
+		tabindex="0"
+		aria-expanded={detailsOpen}
+		aria-label="Device status, open for details"
+		on:click={toggleDetails}
+		on:keydown={onStatusKeydown}
+	>
 		<span
 			class="connection"
 			class:online
@@ -147,44 +198,46 @@
 				<span class="connection-error truncate" title={$connection.error}>{$connection.error}</span>
 			{/if}
 		{/if}
-	</div>
 
-	<div class="segment metrics" class:stale class:hidden={state === null}>
-		<span
-			class="metric"
-			class:warn={fpsBehind}
-			title="Processed frames per second against the target rate"
-		>
-			<i class="material-icons">speed</i>
-			<span class="metric-value mono">
-				{formatFps(input?.processing_fps)}<span class="metric-of">/{formatFps(targetFps)}</span>
+		<div class="metrics" class:stale class:hidden={state === null}>
+			<span
+				class="metric"
+				class:warn={fpsBehind}
+				title="Processed frames per second against the target rate"
+			>
+				<i class="material-icons">speed</i>
+				<span class="metric-value mono">
+					{formatFps(input?.processing_fps)}<span class="metric-of">/{formatFps(targetFps)}</span>
+				</span>
+				<span class="metric-label">fps</span>
+				<Hint
+					text="How many frames per second the detector actually keeps up with, next to the rate it should reach. That target is the source frame rate divided by how often a frame is taken for processing. Staying below it on a live source means the device is not keeping up."
+				/>
 			</span>
-			<span class="metric-label">fps</span>
-			<Hint
-				text="How many frames per second the detector actually keeps up with, next to the rate it should reach. That target is the source frame rate divided by how often a frame is taken for processing. Staying below it on a live source means the device is not keeping up."
-			/>
-		</span>
 
-		<span class="metric" class:warn={dropping} title="Frames the detector never got to">
-			<i class="material-icons">layers_clear</i>
-			<span class="metric-value mono">
-				{formatCount(input?.frames_dropped)}{#if dropping}<span class="metric-delta"
-						>+{$droppedDelta}</span
-					>{/if}
+			<span class="metric" class:warn={dropping} title="Frames the detector never got to">
+				<i class="material-icons">layers_clear</i>
+				<span class="metric-value mono">
+					{formatCount(input?.frames_dropped)}{#if dropping}<span class="metric-delta"
+							>+{$droppedDelta}</span
+						>{/if}
+				</span>
+				<span class="metric-label">dropped</span>
+				<Hint
+					text={isLive
+						? 'Frames that arrived while the detector was still busy and were thrown away. A number that keeps growing means the device cannot process the stream at this rate.'
+						: 'Frames thrown away because the detector was busy. Always 0 for a video file: a file waits, a camera does not.'}
+				/>
 			</span>
-			<span class="metric-label">dropped</span>
-			<Hint
-				text={isLive
-					? 'Frames that arrived while the detector was still busy and were thrown away. A number that keeps growing means the device cannot process the stream at this rate.'
-					: 'Frames thrown away because the detector was busy. Always 0 for a video file: a file waits, a camera does not.'}
-			/>
-		</span>
 
-		<span class="metric uptime" title="Time since the process started">
-			<i class="material-icons">schedule</i>
-			<span class="metric-value mono">{formatUptime(state?.uptime_seconds)}</span>
-			<span class="metric-label">uptime</span>
-		</span>
+			<span class="metric uptime" title="Time since the process started">
+				<i class="material-icons">schedule</i>
+				<span class="metric-value mono">{formatUptime(state?.uptime_seconds)}</span>
+				<span class="metric-label">uptime</span>
+			</span>
+		</div>
+
+		<i class="material-icons status-chevron">{detailsOpen ? 'expand_less' : 'expand_more'}</i>
 	</div>
 
 	<div class="segment actions">
@@ -224,179 +277,200 @@
 
 		<button
 			type="button"
-			class="details-toggle"
-			class:active={detailsOpen}
-			aria-expanded={detailsOpen}
-			aria-label={detailsOpen ? 'Hide details' : 'Show details'}
-			on:click={toggleDetails}
+			class="details-toggle settings-toggle"
+			class:active={settingsOpen}
+			aria-expanded={settingsOpen}
+			aria-label="View settings"
+			title="Theme, device address and map style"
+			on:click={toggleSettings}
 		>
-			<i class="material-icons">{detailsOpen ? 'expand_less' : 'expand_more'}</i>
+			<i class="material-icons">tune</i>
 		</button>
 	</div>
 </header>
 
+<SettingsPanel open={settingsOpen} top={barHeight} onClose={() => (settingsOpen = false)} />
+
 {#if detailsOpen}
-	<button
-		type="button"
-		class="details-backdrop"
-		aria-label="Close details"
-		style="top: {barHeight}px;"
-		on:click={() => (detailsOpen = false)}
-	></button>
+	<section class="details" bind:this={detailsEl} style="top: {barHeight}px;">
+		<div class="details-inner">
+			<h2 class="details-title">Device status</h2>
 
-	<section class="details" style="top: {barHeight}px;">
-		<p class="details-note">
-			Everything here is what the process is doing right now. Settings live in the configuration
-			file and most of them are read once, at startup, so a saved change shows up only after a
-			restart.
-		</p>
-
-		<div class="details-grid">
-			<article class="card">
-				<h3>Connection</h3>
-				<dl>
-					<dt>Address</dt>
-					<dd class="mono">{$changeAPI}</dd>
-					<dt>State</dt>
-					<dd>{connectionText}</dd>
-					<dt>Last answer</dt>
-					<dd>{lastAnswerAgo === null ? 'never' : `${lastAnswerAgo} s ago`}</dd>
-					{#if $connection.error}
-						<dt>Error</dt>
-						<dd class="problem">{$connection.error}</dd>
-						<dt>Failed attempts</dt>
-						<dd>{$connection.failures}</dd>
+			{#if state && (state.restart_required || problem)}
+				<div class="details-grid attention-grid">
+					{#if state.restart_required}
+						<article class="card attention">
+							<h3>Waiting for a restart</h3>
+							<p class="card-text">
+								These settings are saved in the configuration file but the running process still
+								uses the previous ones.
+							</p>
+							{#if pendingChanges.length > 0}
+								<ul class="change-list">
+									{#each pendingChanges as change}
+										<li class="mono">{change}</li>
+									{/each}
+								</ul>
+							{/if}
+						</article>
 					{/if}
-				</dl>
-			</article>
 
-			{#if state && input}
+					{#if problem}
+						<article class="card" class:attention={!problemIsError} class:alarm={problemIsError}>
+							<h3>Last problem</h3>
+							<dl>
+								<dt>Level</dt>
+								<dd>{problem.level}</dd>
+								{#if problem.scope}
+									<dt>Scope</dt>
+									<dd class="mono">{problem.scope}</dd>
+								{/if}
+								<dt>At</dt>
+								<dd class="mono">{formatTimestamp(problem.at)}</dd>
+							</dl>
+							<p class="card-text problem">{problem.message}</p>
+						</article>
+					{/if}
+				</div>
+			{/if}
+
+			<div class="details-grid">
 				<article class="card">
-					<h3>Source</h3>
+					<h3>Connection</h3>
 					<dl>
 						<dt>Address</dt>
-						<dd class="mono wrap">
-							{showVideoSrc ? input.video_src : maskCredentials(input.video_src)}
-							{#if input.video_src !== maskCredentials(input.video_src)}
-								<button
-									type="button"
-									class="inline-toggle"
-									on:click={() => (showVideoSrc = !showVideoSrc)}
-								>
-									{showVideoSrc ? 'hide' : 'show'}
-								</button>
-							{/if}
-						</dd>
-						<dt>Kind</dt>
-						<dd>{input.kind}</dd>
-						<dt>Frame</dt>
-						<dd class="mono">{input.width} x {input.height}</dd>
-						<dt>Source rate</dt>
-						<dd class="mono">{formatFps(input.fps)} fps</dd>
-						<dt>Processing every</dt>
-						<dd class="mono">{input.process_every_nth_frame} frame</dd>
-						<dt>Target rate</dt>
-						<dd class="mono">{formatFps(targetFps)} fps</dd>
-						<dt>Processing rate</dt>
-						<dd class="mono" class:problem={fpsBehind}>{formatFps(input.processing_fps)} fps</dd>
-						<dt>Frames processed</dt>
-						<dd class="mono">{formatCount(input.frames_processed)}</dd>
-						<dt>Frames dropped</dt>
-						<dd class="mono" class:problem={dropping}>{formatCount(input.frames_dropped)}</dd>
-						{#if input.kind === 'file'}
-							<dt>Frames in file</dt>
-							<dd class="mono">{formatCount(input.total_frames)}</dd>
-						{/if}
-						<dt title="Seconds since capture started">Last frame at</dt>
-						<dd class="mono">
-							{input.last_frame_at === null || input.last_frame_at === undefined
-								? 'n/a'
-								: `${input.last_frame_at.toFixed(1)} s`}
-						</dd>
-					</dl>
-				</article>
-
-				<article class="card">
-					<h3>Detection</h3>
-					<dl>
-						<dt>Backend</dt>
-						<dd>{detection?.backend}</dd>
-						<dt>CUDA</dt>
-						<dd>{detection?.cuda_available ? 'available' : 'not available'}</dd>
-						<dt>Model</dt>
-						<dd class="mono wrap">{detection?.model}</dd>
-						{#if detection?.net_width && detection?.net_height}
-							<dt>Network input</dt>
-							<dd class="mono">{detection.net_width} x {detection.net_height}</dd>
-						{/if}
-						<dt>Inference</dt>
-						<dd class="mono">{formatMs(detection?.inference_ms)}</dd>
-						<dt>Postprocess</dt>
-						<dd class="mono">{formatMs(detection?.postprocess_ms)}</dd>
-						<dt>Tracking</dt>
-						<dd class="mono">{formatMs(detection?.tracking_ms)}</dd>
-					</dl>
-				</article>
-
-				<article class="card">
-					<h3>Tracking</h3>
-					<p class="card-text">{state.tracking.description}</p>
-				</article>
-
-				<article class="card">
-					<h3>Redis</h3>
-					<dl>
+						<dd class="mono">{$changeAPI}</dd>
 						<dt>State</dt>
-						<dd>{state.redis.enabled ? 'enabled' : 'disabled'}</dd>
-						<dt>Host</dt>
-						<dd class="mono">{state.redis.host}:{state.redis.port}</dd>
-						<dt>Channel</dt>
-						<dd class="mono">{state.redis.channel}</dd>
-					</dl>
-				</article>
-
-				<article class="card">
-					<h3>Logging</h3>
-					<dl>
-						<dt>Level</dt>
-						<dd>{state.logging.level}</dd>
-						<dt>File</dt>
-						<dd class="mono wrap">{state.logging.file ?? 'stdout only'}</dd>
-					</dl>
-				</article>
-
-				{#if state.restart_required}
-					<article class="card attention">
-						<h3>Waiting for a restart</h3>
-						<p class="card-text">
-							These settings are saved in the configuration file but the running process still uses
-							the previous ones.
-						</p>
-						{#if pendingChanges.length > 0}
-							<ul class="change-list">
-								{#each pendingChanges as change}
-									<li class="mono">{change}</li>
-								{/each}
-							</ul>
+						<dd>{connectionText}</dd>
+						<dt>Last answer</dt>
+						<dd>{lastAnswerAgo === null ? 'never' : `${lastAnswerAgo} s ago`}</dd>
+						{#if $connection.error}
+							<dt>Error</dt>
+							<dd class="problem">{$connection.error}</dd>
+							<dt>Failed attempts</dt>
+							<dd>{$connection.failures}</dd>
 						{/if}
+					</dl>
+				</article>
+
+				{#if state && input}
+					<article class="card">
+						<h3>Source</h3>
+						<dl>
+							<dt>Address</dt>
+							<dd class="mono wrap">
+								{showVideoSrc ? input.video_src : maskCredentials(input.video_src)}
+								{#if input.video_src !== maskCredentials(input.video_src)}
+									<button
+										type="button"
+										class="inline-toggle"
+										on:click={() => (showVideoSrc = !showVideoSrc)}
+									>
+										{showVideoSrc ? 'hide' : 'show'}
+									</button>
+								{/if}
+							</dd>
+							<dt>Processing rate</dt>
+							<dd class="mono" class:problem={fpsBehind}>{formatFps(input.processing_fps)} fps</dd>
+							<dt>Frames processed</dt>
+							<dd class="mono">{formatCount(input.frames_processed)}</dd>
+							<dt>Frames dropped</dt>
+							<dd class="mono" class:problem={dropping}>{formatCount(input.frames_dropped)}</dd>
+							<dt title="Seconds since capture started">Last frame at</dt>
+							<dd class="mono">
+								{input.last_frame_at === null || input.last_frame_at === undefined
+									? 'n/a'
+									: `${input.last_frame_at.toFixed(1)} s`}
+							</dd>
+						</dl>
 					</article>
 				{/if}
+			</div>
 
-				{#if problem}
-					<article class="card" class:attention={!problemIsError} class:alarm={problemIsError}>
-						<h3>Last problem</h3>
-						<dl>
-							<dt>Level</dt>
-							<dd>{problem.level}</dd>
-							{#if problem.scope}
-								<dt>Scope</dt>
-								<dd class="mono">{problem.scope}</dd>
-							{/if}
-							<dt>At</dt>
-							<dd class="mono">{formatTimestamp(problem.at)}</dd>
-						</dl>
-						<p class="card-text problem">{problem.message}</p>
-					</article>
+			{#if state}
+				<button
+					type="button"
+					class="config-toggle"
+					aria-expanded={configOpen}
+					on:click={() => (configOpen = !configOpen)}
+				>
+					<i class="material-icons">{configOpen ? 'expand_less' : 'expand_more'}</i>
+					How it is configured
+				</button>
+
+				{#if configOpen}
+					<div class="details-grid">
+						{#if input}
+							<article class="card">
+								<h3>Source setup</h3>
+								<dl>
+									<dt>Kind</dt>
+									<dd>{input.kind}</dd>
+									<dt>Frame</dt>
+									<dd class="mono">{input.width} x {input.height}</dd>
+									<dt>Source rate</dt>
+									<dd class="mono">{formatFps(input.fps)} fps</dd>
+									<dt>Processing every</dt>
+									<dd class="mono">{input.process_every_nth_frame} frame</dd>
+									<dt>Target rate</dt>
+									<dd class="mono">{formatFps(targetFps)} fps</dd>
+									{#if input.kind === 'file'}
+										<dt>Frames in file</dt>
+										<dd class="mono">{formatCount(input.total_frames)}</dd>
+									{/if}
+								</dl>
+							</article>
+						{/if}
+
+						<article class="card">
+							<h3>Detection</h3>
+							<dl>
+								<dt>Backend</dt>
+								<dd>{detection?.backend}</dd>
+								<dt>CUDA</dt>
+								<dd>{detection?.cuda_available ? 'available' : 'not available'}</dd>
+								<dt>Model</dt>
+								<dd class="mono wrap">{detection?.model}</dd>
+								{#if detection?.net_width && detection?.net_height}
+									<dt>Network input</dt>
+									<dd class="mono">{detection.net_width} x {detection.net_height}</dd>
+								{/if}
+								<dt>Inference</dt>
+								<dd class="mono">{formatMs(detection?.inference_ms)}</dd>
+								<dt>Postprocess</dt>
+								<dd class="mono">{formatMs(detection?.postprocess_ms)}</dd>
+								<dt>Tracking</dt>
+								<dd class="mono">{formatMs(detection?.tracking_ms)}</dd>
+							</dl>
+						</article>
+
+						<article class="card">
+							<h3>Tracking</h3>
+							<p class="card-text">{state.tracking.description}</p>
+						</article>
+
+						<article class="card">
+							<h3>Redis</h3>
+							<dl>
+								<dt>State</dt>
+								<dd>{state.redis.enabled ? 'enabled' : 'disabled'}</dd>
+								<dt>Host</dt>
+								<dd class="mono">{state.redis.host}:{state.redis.port}</dd>
+								<dt>Channel</dt>
+								<dd class="mono">{state.redis.channel}</dd>
+							</dl>
+						</article>
+
+						<article class="card">
+							<h3>Logging</h3>
+							<dl>
+								<dt>Level</dt>
+								<dd>{state.logging.level}</dd>
+								<dt>File</dt>
+								<dd class="mono wrap">{state.logging.file ?? 'stdout only'}</dd>
+							</dl>
+						</article>
+					</div>
 				{/if}
 			{/if}
 		</div>
@@ -406,11 +480,12 @@
 <style>
 	.status-bar {
 		display: flex;
-		align-items: center;
+		align-items: stretch;
 		gap: var(--space-md);
 		flex: 0 0 auto;
 		height: var(--statusbar-height);
-		padding: 0 var(--space-md);
+		/* No left padding: the tabs start at the edge of the window */
+		padding: 0 var(--space-md) 0 0;
 		background: var(--bg-secondary);
 		border-bottom: 1px solid var(--border-primary);
 		color: var(--text-primary);
@@ -428,9 +503,42 @@
 		min-width: 0;
 	}
 
-	/* Both sides claim the same share, so the metrics stay put when a badge appears */
+	.nav {
+		flex: 0 0 auto;
+		gap: 0;
+		margin-right: auto;
+	}
+
 	.identity {
-		flex: 1 1 0;
+		flex: 0 1 auto;
+	}
+
+	/* With no tab strip on the left there is nothing else pushing the cluster right */
+	.identity:not(.with-nav) {
+		margin-left: auto;
+	}
+
+	/* The summary and the panel behind it are one control, not a row plus a button */
+	.status-trigger {
+		padding: 0 var(--space-sm);
+		border-radius: var(--radius-sm);
+		cursor: pointer;
+	}
+
+	.status-trigger:hover {
+		background: var(--bg-tertiary);
+	}
+
+	.metrics {
+		display: flex;
+		align-items: center;
+		gap: var(--space-md);
+		min-width: 0;
+	}
+
+	.status-chevron {
+		font-size: var(--icon-md);
+		color: var(--text-secondary);
 	}
 
 	.metrics {
@@ -443,8 +551,7 @@
 	}
 
 	.actions {
-		flex: 1 1 0;
-		justify-content: flex-end;
+		flex: 0 0 auto;
 		gap: var(--space-sm);
 	}
 
@@ -692,45 +799,82 @@
 		font-size: var(--icon-md);
 	}
 
-	.details-backdrop {
-		position: fixed;
-		left: 0;
-		right: 0;
-		bottom: 0;
-		border: none;
-		background: transparent;
-		cursor: default;
-		z-index: 1100;
-	}
-
-	/* Fixed because the app shell clips overflow, and the panel must not push the workspace down */
+	/* Anchored under the status cluster it drops from, not stretched across the screen.
+	   Fixed because the app shell clips overflow at every level */
 	.details {
 		position: fixed;
-		left: 0;
 		right: 0;
-		max-height: 60vh;
+		width: 420px;
+		max-height: calc(100vh - var(--statusbar-height));
 		overflow-y: auto;
-		padding: var(--space-lg);
+		padding: var(--space-md) var(--space-lg) var(--space-lg);
 		background: var(--bg-secondary);
+		border-left: 1px solid var(--border-primary);
 		border-bottom: 1px solid var(--border-primary);
 		box-shadow: 0 var(--space-sm) var(--space-lg) var(--shadow);
 		z-index: 1101;
 	}
 
-	.details-note {
-		margin: 0 0 var(--space-lg) 0;
-		max-width: 80ch;
-		color: var(--text-secondary);
-		font-size: var(--text-sm);
-		line-height: 1.5;
+	/* Same rule as the settings panel: below 1024 the workspace stacks, so a side panel
+	   would sit on top of it. A sheet on the lower half keeps the frame and map in view */
+	@media (max-width: 1024px) {
+		.details {
+			top: auto !important;
+			left: 0;
+			right: 0;
+			bottom: 0;
+			width: auto;
+			max-height: 55vh;
+			border-left: none;
+			border-top: 1px solid var(--border-primary);
+			border-bottom: none;
+			border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+			box-shadow: 0 calc(-1 * var(--space-sm)) var(--space-lg) var(--shadow);
+		}
+	}
+
+	.details-inner {
+		max-width: none;
 	}
 
 	.details-grid {
 		display: grid;
-		/* min() keeps the track from forcing the panel wider than a phone screen */
-		grid-template-columns: repeat(auto-fill, minmax(min(260px, 100%), 1fr));
-		gap: var(--space-md);
+		grid-template-columns: 1fr;
+		gap: var(--space-sm);
 		align-items: start;
+	}
+
+	/* Whatever needs attention is the reason the panel was opened, so it leads */
+	.attention-grid {
+		margin-bottom: var(--space-md);
+	}
+
+	.config-toggle {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--space-xs);
+		margin-top: var(--space-lg);
+		padding: var(--space-xs) var(--space-sm) var(--space-xs) var(--space-2xs);
+		border: none;
+		border-radius: var(--radius-sm);
+		background: none;
+		color: var(--text-secondary);
+		font-family: inherit;
+		font-size: var(--text-md);
+		cursor: pointer;
+	}
+
+	.config-toggle:hover {
+		background: var(--bg-tertiary);
+		color: var(--text-primary);
+	}
+
+	.config-toggle i {
+		font-size: var(--icon-md);
+	}
+
+	.config-toggle[aria-expanded='true'] + .details-grid {
+		margin-top: var(--space-md);
 	}
 
 	.card {
@@ -817,17 +961,28 @@
 
 	@media (max-width: 1024px) {
 		.status-bar {
-			gap: var(--space-sm);
+			gap: var(--space-md);
 			padding: 0 var(--space-sm);
 		}
 
-		/* Badges and the details toggle keep their width, the identity gives way instead */
-		.identity {
-			flex: 1 1 auto;
+		/* A 12 px question mark is not a touch target, and the panel explains the same things */
+		.metric :global(.hint) {
+			display: none;
+		}
+
+		.badge {
+			height: 32px;
+			min-width: 32px;
+			justify-content: center;
 		}
 
 		.actions {
-			flex: 0 0 auto;
+			gap: var(--space-md);
+		}
+
+		.details-toggle {
+			width: 32px;
+			height: 32px;
 		}
 
 		.chip.version,
@@ -851,7 +1006,9 @@
 	}
 
 	@media (max-width: 640px) {
-		.connection-text,
+		/* "Connected" is what the green dot already says, but a phone must still spell out
+		   trouble: with no answer the metrics are gone anyway, so the words fit */
+		.connection.online .connection-text,
 		.chip:not(.address-chip),
 		.metric.uptime {
 			display: none;

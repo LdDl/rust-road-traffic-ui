@@ -1,9 +1,8 @@
 <script lang="ts">
-    import { onMount, onDestroy } from 'svelte'
+    import { onMount, onDestroy, tick } from 'svelte'
 	import type { Unsubscriber } from 'svelte/store';
     import MapComponent from '../components/MapComponent.svelte'
     import CanvasComponent from '../components/CanvasComponent.svelte'
-    import Switchers from '../components/Switchers.svelte'
     import ConfigurationStorage from '../components/ConfigurationStorage.svelte';
     import Toolbar from '../components/Toolbar.svelte';
     import StatusBar from '../components/StatusBar.svelte';
@@ -18,6 +17,7 @@
 	import type { ZoneFeature, ZonesCollection } from '$lib/zones';
 	import { saveTOML } from '$lib/rest_api_mutations';
 	import { registerEscapeLayer } from '$lib/escape_stack';
+	import { activeTab } from '../store/navigation';
 	import { States, SubscriberState } from '$lib/states';
 	import { bindVertexLabels, unbindVertexLabels, clearAllVertexLabels } from '$lib/vertex_labels';
 	import { bindEdgeLabels, unbindEdgeLabels } from '$lib/edge_labels';
@@ -39,7 +39,7 @@
     let startHeight = 0;
 
     // Mobile tab switching
-    let mobileTab: 'view' | 'zones' | 'settings' = 'view';
+    let mobileTab: 'view' | 'zones' = 'view';
 
     // Responsive detection via matchMedia
     let isMobile = false;
@@ -49,6 +49,15 @@
 
     const onMobileChange = (e: MediaQueryListEvent) => { isMobile = e.matches };
     const onLandscapeChange = (e: MediaQueryListEvent) => { isLandscape = e.matches };
+
+    // MapLibre measures nothing while its panel is hidden, so it needs a nudge on return
+    async function onTabChange(tab: string) {
+        if (tab !== 'setup') return
+        await tick()
+        mapComponent?.resize()
+    }
+
+    $: onTabChange($activeTab)
 
     // Cancel active mode when leaving View tab on mobile
     $: if (mobileTab !== 'view' && stateVariable !== States.Waiting) {
@@ -352,6 +361,7 @@
 
 <div id="main-app">
     <StatusBar />
+    <div class="tab-panel" class:tab-hidden={$activeTab !== 'setup'}>
     <div class="toolbar-wrapper" class:toolbar-hidden-mobile={mobileTab !== 'view'}>
         <Toolbar
             onAddToCanvas={stateAddToCanvas}
@@ -373,16 +383,11 @@
             <i class="material-icons">list</i>
             <span>Zones</span>
         </button>
-        <button class="mobile-tab" class:active={mobileTab === 'settings'} on:click={() => mobileTab = 'settings'}>
-            <i class="material-icons">settings</i>
-            <span>Settings</span>
-        </button>
     </div>
-    <Switchers klass={canvasFocused || mapFocused ? 'blurred noselect' : ''} forceOpen={mobileTab === 'settings'} compact={isMobile}/>
-    <div id="main_workspace" class:mobile-hidden={mobileTab === 'settings'} class:mobile={isMobile} style={isMobile ? '' : `grid-template-columns: ${leftPanelWidth}% 2px ${100 - leftPanelWidth}%`}>
+    <div id="main_workspace" class:mobile={isMobile} style={isMobile ? '' : `grid-template-columns: ${leftPanelWidth}% 2px ${100 - leftPanelWidth}%`}>
         <div id="left_workspace" bind:clientHeight={leftWorkspaceHeight} style={isMobile ? '' : `grid-template-rows: ${topPanelHeight}% 2px ${100 - topPanelHeight}%`}>
             <div class="canvas-panel" class:mobile-hidden={mobileTab === 'zones'}>
-                <CanvasComponent klass={!canvasFocused && mapFocused ? 'blurred noselect' : ''}/>
+                <CanvasComponent active={$activeTab === 'setup'} klass={!canvasFocused && mapFocused ? 'blurred noselect' : ''}/>
             </div>
             <div class="horizontal-splitter"
                 class:dragging={isHorizontalDragging}
@@ -431,6 +436,7 @@
                 <button class="overlay-cancel-btn" on:click={cancelCurrentAction}>Cancel</button>
             </div>
         </div>
+    </div>
     </div>
 </div>
 
@@ -658,6 +664,17 @@
         flex-direction: column;
         overflow: hidden;
         background: var(--bg-primary);
+    }
+
+    .tab-panel {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-height: 0;
+    }
+
+    .tab-panel.tab-hidden {
+        display: none;
     }
     
     .blurred {
