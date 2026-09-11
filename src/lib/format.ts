@@ -42,12 +42,3 @@ export function formatTimestamp(value: string | null | undefined): string {
 	const time = at.toLocaleTimeString('en-GB', { hour12: false });
 	return sameDay ? time : `${at.toLocaleDateString('en-GB')} ${time}`;
 }
-
-/**
- * Hides the password in a stream address. The API hands the address out in full,
- * so this only keeps it off a screen someone else may be looking at
- */
-export function maskCredentials(url: string | null | undefined): string {
-	if (!url) return '';
-	return url.replace(/(:\/\/[^:@/]+):[^@/]*@/, '$1:***@');
-}

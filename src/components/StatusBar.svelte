@@ -8,14 +8,7 @@
 	import { changeAPI } from '../store/state';
 	import { copyText } from '$lib/clipboard';
 	import { registerEscapeLayer } from '$lib/escape_stack';
-	import {
-		formatCount,
-		formatFps,
-		formatMs,
-		formatTimestamp,
-		formatUptime,
-		maskCredentials
-	} from '$lib/format';
+	import { formatCount, formatFps, formatMs, formatTimestamp, formatUptime } from '$lib/format';
 
 	/** How long a restart stays announced in the header after it was noticed */
 	const RESTART_NOTICE_MS = 20000;
@@ -29,7 +22,6 @@
 	/** Detection, tracking, Redis and logging are fixed at startup, so they stay folded away */
 	let configOpen = false;
 	let detailsEl: HTMLElement | undefined;
-	let showVideoSrc = false;
 	let now = Date.now();
 	let ticker: ReturnType<typeof setInterval> | undefined;
 	let copyResult: 'copied' | 'failed' | null = null;
@@ -83,6 +75,9 @@
 		input.processing_fps < targetFps * 0.9;
 
 	$: dropping = $droppedDelta > 0;
+	// No CUDA means the detector fell back to the processor, the usual reason an
+	// otherwise healthy install cannot keep up with its camera
+	$: onCpu = state !== null && detection?.cuda_available === false;
 	$: restartNoticeVisible = $lastRestartAt !== null && now - $lastRestartAt < RESTART_NOTICE_MS;
 	$: pendingChanges = state?.pending_changes ?? [];
 	$: problem = state?.last_problem ?? null;
@@ -358,18 +353,7 @@
 						<h3>Source</h3>
 						<dl>
 							<dt>Address</dt>
-							<dd class="mono wrap">
-								{showVideoSrc ? input.video_src : maskCredentials(input.video_src)}
-								{#if input.video_src !== maskCredentials(input.video_src)}
-									<button
-										type="button"
-										class="inline-toggle"
-										on:click={() => (showVideoSrc = !showVideoSrc)}
-									>
-										{showVideoSrc ? 'hide' : 'show'}
-									</button>
-								{/if}
-							</dd>
+							<dd class="mono wrap">{input.video_src}</dd>
 							<dt>Processing rate</dt>
 							<dd class="mono" class:problem={fpsBehind}>{formatFps(input.processing_fps)} fps</dd>
 							<dt>Frames processed</dt>
@@ -425,16 +409,8 @@
 						<article class="card">
 							<h3>Detection</h3>
 							<dl>
-								<dt>Backend</dt>
-								<dd>{detection?.backend}</dd>
-								<dt>CUDA</dt>
-								<dd>{detection?.cuda_available ? 'available' : 'not available'}</dd>
-								<dt>Model</dt>
-								<dd class="mono wrap">{detection?.model}</dd>
-								{#if detection?.net_width && detection?.net_height}
-									<dt>Network input</dt>
-									<dd class="mono">{detection.net_width} x {detection.net_height}</dd>
-								{/if}
+								<dt>Running on</dt>
+								<dd class:problem={onCpu}>{onCpu ? 'CPU' : 'GPU (CUDA)'}</dd>
 								<dt>Inference</dt>
 								<dd class="mono">{formatMs(detection?.inference_ms)}</dd>
 								<dt>Postprocess</dt>
@@ -940,17 +916,6 @@
 
 	.card .card-text.problem {
 		margin-top: var(--space-sm);
-	}
-
-	.inline-toggle {
-		margin-left: var(--space-xs);
-		padding: 0;
-		border: none;
-		background: none;
-		color: var(--accent-primary);
-		font-size: var(--text-xs);
-		cursor: pointer;
-		text-decoration: underline;
 	}
 
 	.change-list {

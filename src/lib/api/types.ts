@@ -18,13 +18,13 @@ export interface InputStatus {
 	last_frame_at?: number | null;
 }
 
+/**
+ * Only what can be observed while the app runs. Which model is loaded is chosen
+ * when the device is assembled and changed over SSH, so the API does not report
+ * it at all: it is not absent by accident and will not come back
+ */
 export interface DetectionStatus {
-	/** "opencv", "ort" or "tensorrt" */
-	backend: string;
 	cuda_available: boolean;
-	model: string;
-	net_width?: number | null;
-	net_height?: number | null;
 	inference_ms?: number | null;
 	postprocess_ms?: number | null;
 	tracking_ms?: number | null;
