@@ -190,3 +190,18 @@ export interface RedisCheckResponse {
 	/** Why it did not work, null when it did */
 	error?: string | null;
 }
+
+/** One setting the device did not accept */
+export interface FieldError {
+	/** Dotted path, spelled the way `changed` and `unsaved_changes` spell it */
+	field: string;
+	/** What is wrong with it, without repeating the path */
+	error: string;
+}
+
+export interface ErrorResponse {
+	/** What kind of refusal this is, for example "invalid settings" */
+	error_text: string;
+	/** Empty when the refusal is about the request rather than about the settings in it */
+	details: FieldError[];
+}

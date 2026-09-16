@@ -8,15 +8,17 @@
 	import type {
 		ConfigPatch,
 		ConfigView,
+		ErrorResponse,
 		RedisCheckResponse,
 		TrackingOptions
 	} from '$lib/api/types';
+	import { ApiError } from '$lib/api/client';
 
 	/** False while another tab is on screen. The view stays mounted so unapplied edits survive a tab switch */
 	export let active = false;
 
 	type SectionKey = keyof ConfigView;
-	type Result = { kind: 'ok' | 'same' | 'error'; text: string };
+	type Result = { kind: 'ok' | 'same' | 'error'; text: string; fields?: string[] };
 
 	// Only these accept null, and for them null means "not set". An empty input maps to it
 	const NULLABLE = new Set([
@@ -42,6 +44,8 @@
 	let redisCheck: RedisCheckResponse | null = null;
 	let redisCheckError: string | null = null;
 	let checkingRedis = false;
+	// What the device refused, by dotted path, with the value it refused
+	let refused: Record<string, { text: string; value: unknown }> = {};
 
 	const clone = (value: ConfigView): ConfigView => JSON.parse(JSON.stringify(value));
 
@@ -141,12 +145,27 @@
 			draft = { ...kept, [section]: clone(fresh)[section] } as ConfigView;
 			refreshStatus();
 		} catch (error) {
-			// The backend names the exact field and rule, which is worth showing as it is
+			// The refusal names the fields it is about, so each one is shown at its own input
+			const body =
+				error instanceof ApiError ? (error.payload as ErrorResponse | undefined) : undefined;
+			for (const detail of body?.details ?? []) {
+				refused = {
+					...refused,
+					[detail.field]: { text: detail.error, value: valueAt(detail.field) }
+				};
+			}
+			// The reason sits at each field, so the line only says which ones to look at
+			const named = (body?.details ?? []).map((detail) => detail.field);
 			results = {
 				...results,
 				[section]: {
 					kind: 'error',
-					text: error instanceof Error ? error.message : 'The device refused the change'
+					text: named.length
+						? `${body?.error_text ?? 'Refused'}: ${named.join(', ')}`
+						: error instanceof Error
+							? error.message
+							: 'The device refused the change',
+					fields: named
 				}
 			};
 		} finally {
@@ -154,10 +173,39 @@
 		}
 	}
 
+	function valueAt(path: string) {
+		const [section, field] = path.split('.');
+		if (!draft || !(section in draft)) return undefined;
+		return (draft[section as SectionKey] as Record<string, unknown>)[field];
+	}
+
+	// A refusal is about the value that was sent: once the field is edited it no longer applies
+	$: issues = draft
+		? Object.fromEntries(
+				Object.entries(refused)
+					.filter(([path, issue]) => valueAt(path) === issue.value)
+					.map(([path, issue]) => [path, issue.text])
+			)
+		: {};
+
+	// A refusal about named fields is over once they have all been edited: what the line
+	// should say then is that there are changes waiting, not what was refused before
+	$: shownResults = Object.fromEntries(
+		Object.entries(results).map(([section, result]) => [
+			section,
+			result?.kind === 'error' && result.fields?.length && !result.fields.some((f) => f in issues)
+				? undefined
+				: result
+		])
+	) as Partial<Record<SectionKey, Result>>;
+
 	function revert(section: SectionKey) {
 		if (!loaded || !draft) return;
 		draft = { ...draft, [section]: clone(loaded)[section] } as ConfigView;
 		results = { ...results, [section]: undefined };
+		refused = Object.fromEntries(
+			Object.entries(refused).filter(([path]) => !path.startsWith(`${section}.`))
+		);
 		if (section === 'redis_publisher') {
 			redisCheck = null;
 			redisCheckError = null;
@@ -234,7 +282,11 @@
 							autocomplete="off"
 							autocapitalize="off"
 							bind:value={draft.input.video_src}
+							class:invalid={!!issues['input.video_src']}
 						/>
+						{#if issues['input.video_src']}<span class="field-error"
+								>{issues['input.video_src']}</span
+							>{/if}
 						<span class="hint">Video file, RTSP URL, camera index or GStreamer pipeline</span>
 					</label>
 					<label class="field">
@@ -245,12 +297,16 @@
 							min="1"
 							step="1"
 							bind:value={draft.input.process_every_nth_frame}
+							class:invalid={!!issues['input.process_every_nth_frame']}
 						/>
+						{#if issues['input.process_every_nth_frame']}<span class="field-error"
+								>{issues['input.process_every_nth_frame']}</span
+							>{/if}
 						<span class="hint">2 means every second frame, which halves the load</span>
 					</label>
 				</div>
 				<SectionFooter
-					result={results.input}
+					result={shownResults.input}
 					changes={changes.input ?? 0}
 					busy={busy.input ?? false}
 					missing={missing.input ?? []}
@@ -274,14 +330,18 @@
 							autocomplete="off"
 							autocapitalize="off"
 							bind:value={draft.equipment_info.id}
+							class:invalid={!!issues['equipment_info.id']}
 						/>
+						{#if issues['equipment_info.id']}<span class="field-error"
+								>{issues['equipment_info.id']}</span
+							>{/if}
 						<span class="hint"
 							>Identifies this installation point in everything the device publishes</span
 						>
 					</label>
 				</div>
 				<SectionFooter
-					result={results.equipment_info}
+					result={shownResults.equipment_info}
 					changes={changes.equipment_info ?? 0}
 					busy={busy.equipment_info ?? false}
 					missing={missing.equipment_info ?? []}
@@ -304,7 +364,11 @@
 							min="1"
 							step="1000"
 							bind:value={draft.worker.reset_data_milliseconds}
+							class:invalid={!!issues['worker.reset_data_milliseconds']}
 						/>
+						{#if issues['worker.reset_data_milliseconds']}<span class="field-error"
+								>{issues['worker.reset_data_milliseconds']}</span
+							>{/if}
 						<span class="hint">
 							{windowSeconds === null ? 'Counts are collected' : `${windowSeconds} s:`} counts are collected
 							over this long, published, then start over
@@ -312,7 +376,7 @@
 					</label>
 				</div>
 				<SectionFooter
-					result={results.worker}
+					result={shownResults.worker}
 					changes={changes.worker ?? 0}
 					busy={busy.worker ?? false}
 					missing={missing.worker ?? []}
@@ -340,7 +404,11 @@
 							autocomplete="off"
 							autocapitalize="off"
 							bind:value={draft.redis_publisher.host}
+							class:invalid={!!issues['redis_publisher.host']}
 						/>
+						{#if issues['redis_publisher.host']}<span class="field-error"
+								>{issues['redis_publisher.host']}</span
+							>{/if}
 					</label>
 					<label class="field">
 						<span class="label">Port</span>
@@ -351,7 +419,11 @@
 							max="65535"
 							step="1"
 							bind:value={draft.redis_publisher.port}
+							class:invalid={!!issues['redis_publisher.port']}
 						/>
+						{#if issues['redis_publisher.port']}<span class="field-error"
+								>{issues['redis_publisher.port']}</span
+							>{/if}
 					</label>
 					<label class="field">
 						<span class="label">User</span>
@@ -363,7 +435,11 @@
 							autocapitalize="off"
 							placeholder="Default user"
 							bind:value={draft.redis_publisher.username}
+							class:invalid={!!issues['redis_publisher.username']}
 						/>
+						{#if issues['redis_publisher.username']}<span class="field-error"
+								>{issues['redis_publisher.username']}</span
+							>{/if}
 						<span class="hint">Only for a server with ACL users</span>
 					</label>
 					<label class="field">
@@ -376,7 +452,11 @@
 							autocapitalize="off"
 							placeholder="No password"
 							bind:value={draft.redis_publisher.password}
+							class:invalid={!!issues['redis_publisher.password']}
 						/>
+						{#if issues['redis_publisher.password']}<span class="field-error"
+								>{issues['redis_publisher.password']}</span
+							>{/if}
 					</label>
 					<label class="field">
 						<span class="label">Database</span>
@@ -386,7 +466,11 @@
 							min="0"
 							step="1"
 							bind:value={draft.redis_publisher.db_index}
+							class:invalid={!!issues['redis_publisher.db_index']}
 						/>
+						{#if issues['redis_publisher.db_index']}<span class="field-error"
+								>{issues['redis_publisher.db_index']}</span
+							>{/if}
 					</label>
 					<label class="field">
 						<span class="label">Channel</span>
@@ -397,7 +481,11 @@
 							autocomplete="off"
 							autocapitalize="off"
 							bind:value={draft.redis_publisher.channel_name}
+							class:invalid={!!issues['redis_publisher.channel_name']}
 						/>
+						{#if issues['redis_publisher.channel_name']}<span class="field-error"
+								>{issues['redis_publisher.channel_name']}</span
+							>{/if}
 					</label>
 				</div>
 
@@ -425,7 +513,7 @@
 				<p class="hint">Tries the values typed above, before anything is applied</p>
 
 				<SectionFooter
-					result={results.redis_publisher}
+					result={shownResults.redis_publisher}
 					changes={changes.redis_publisher ?? 0}
 					busy={busy.redis_publisher ?? false}
 					missing={missing.redis_publisher ?? []}
@@ -442,19 +530,27 @@
 				<div class="fields">
 					<label class="field">
 						<span class="label">Tracker</span>
-						<select bind:value={draft.tracking.type}>
+						<select bind:value={draft.tracking.type} class:invalid={!!issues['tracking.type']}>
 							{#each trackerTypes as type}
 								<option value={type}>{type}</option>
 							{/each}
 						</select>
+						{#if issues['tracking.type']}<span class="field-error">{issues['tracking.type']}</span
+							>{/if}
 					</label>
 					<label class="field">
 						<span class="label">Kalman filter</span>
-						<select bind:value={draft.tracking.kalman_filter}>
+						<select
+							bind:value={draft.tracking.kalman_filter}
+							class:invalid={!!issues['tracking.kalman_filter']}
+						>
 							{#each kalmanFilters as filter}
 								<option value={filter}>{filter}</option>
 							{/each}
 						</select>
+						{#if issues['tracking.kalman_filter']}<span class="field-error"
+								>{issues['tracking.kalman_filter']}</span
+							>{/if}
 					</label>
 					<label class="field">
 						<span class="label">Keep a lost track, s</span>
@@ -465,7 +561,11 @@
 							step="0.1"
 							placeholder="Not set"
 							bind:value={draft.tracking.max_lost_seconds}
+							class:invalid={!!issues['tracking.max_lost_seconds']}
 						/>
+						{#if issues['tracking.max_lost_seconds']}<span class="field-error"
+								>{issues['tracking.max_lost_seconds']}</span
+							>{/if}
 						<span class="hint">Leave empty to count frames instead, below</span>
 					</label>
 					<label class="field">
@@ -477,7 +577,11 @@
 							step="1"
 							placeholder="Not set"
 							bind:value={draft.tracking.max_no_match}
+							class:invalid={!!issues['tracking.max_no_match']}
 						/>
+						{#if issues['tracking.max_no_match']}<span class="field-error"
+								>{issues['tracking.max_no_match']}</span
+							>{/if}
 						<span class="hint">Used only when the seconds are empty</span>
 					</label>
 					<label class="field">
@@ -488,7 +592,11 @@
 							min="1"
 							step="1"
 							bind:value={draft.tracking.max_points_in_track}
+							class:invalid={!!issues['tracking.max_points_in_track']}
 						/>
+						{#if issues['tracking.max_points_in_track']}<span class="field-error"
+								>{issues['tracking.max_points_in_track']}</span
+							>{/if}
 					</label>
 					<label class="field">
 						<span class="label">IoU threshold</span>
@@ -500,12 +608,16 @@
 							step="0.05"
 							placeholder="Default"
 							bind:value={draft.tracking.iou_threshold}
+							class:invalid={!!issues['tracking.iou_threshold']}
 						/>
+						{#if issues['tracking.iou_threshold']}<span class="field-error"
+								>{issues['tracking.iou_threshold']}</span
+							>{/if}
 						<span class="hint">Leave empty for the default</span>
 					</label>
 				</div>
 				<SectionFooter
-					result={results.tracking}
+					result={shownResults.tracking}
 					changes={changes.tracking ?? 0}
 					busy={busy.tracking ?? false}
 					missing={missing.tracking ?? []}
@@ -521,11 +633,13 @@
 				<div class="fields">
 					<label class="field">
 						<span class="label">Level <span class="tag now">applies at once</span></span>
-						<select bind:value={draft.verbose.level}>
+						<select bind:value={draft.verbose.level} class:invalid={!!issues['verbose.level']}>
 							<option value={null}>Default</option>
 							<option value="info">info</option>
 							<option value="debug">debug</option>
 						</select>
+						{#if issues['verbose.level']}<span class="field-error">{issues['verbose.level']}</span
+							>{/if}
 					</label>
 					<label class="field">
 						<span class="label">Folder <span class="tag">after restart</span></span>
@@ -537,7 +651,11 @@
 							autocapitalize="off"
 							placeholder="Default"
 							bind:value={draft.verbose.logs_folder}
+							class:invalid={!!issues['verbose.logs_folder']}
 						/>
+						{#if issues['verbose.logs_folder']}<span class="field-error"
+								>{issues['verbose.logs_folder']}</span
+							>{/if}
 					</label>
 					<label class="field">
 						<span class="label">File size, MB <span class="tag">after restart</span></span>
@@ -548,7 +666,11 @@
 							step="1"
 							placeholder="Default"
 							bind:value={draft.verbose.max_file_size_mb}
+							class:invalid={!!issues['verbose.max_file_size_mb']}
 						/>
+						{#if issues['verbose.max_file_size_mb']}<span class="field-error"
+								>{issues['verbose.max_file_size_mb']}</span
+							>{/if}
 					</label>
 					<label class="field">
 						<span class="label">Files kept <span class="tag">after restart</span></span>
@@ -559,11 +681,15 @@
 							step="1"
 							placeholder="Default"
 							bind:value={draft.verbose.max_files}
+							class:invalid={!!issues['verbose.max_files']}
 						/>
+						{#if issues['verbose.max_files']}<span class="field-error"
+								>{issues['verbose.max_files']}</span
+							>{/if}
 					</label>
 				</div>
 				<SectionFooter
-					result={results.verbose}
+					result={shownResults.verbose}
 					changes={changes.verbose ?? 0}
 					busy={busy.verbose ?? false}
 					missing={missing.verbose ?? []}
@@ -693,6 +819,22 @@
 		color: var(--text-secondary);
 		text-transform: uppercase;
 		letter-spacing: 0.05em;
+	}
+
+	.field-error {
+		color: var(--danger-primary);
+		font-size: var(--text-sm);
+		line-height: 1.4;
+	}
+
+	input.invalid,
+	select.invalid {
+		border-color: var(--danger-primary);
+	}
+
+	input.invalid:focus,
+	select.invalid:focus {
+		box-shadow: 0 0 0 3px rgba(var(--danger-primary-rgb), 0.15);
 	}
 
 	.hint {
