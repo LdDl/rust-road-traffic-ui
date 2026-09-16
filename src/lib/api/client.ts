@@ -1,5 +1,7 @@
 import type {
 	ConfigPatch,
+	LogsQuery,
+	LogsResponse,
 	ConfigView,
 	RedisCheckRequest,
 	RedisCheckResponse,
@@ -143,3 +145,13 @@ export const checkRedis = (baseURL: string, body: RedisCheckRequest) =>
 		body,
 		timeoutMs: 10000
 	});
+
+/** The tail of the log file. It survives restarts, so it is the one view of what came before one */
+export const getLogs = (baseURL: string, query: LogsQuery = {}, signal?: AbortSignal) => {
+	const search = new URLSearchParams();
+	if (query.limit) search.set('limit', String(query.limit));
+	if (query.level) search.set('level', query.level);
+	if (query.scope) search.set('scope', query.scope);
+	const suffix = search.toString();
+	return request<LogsResponse>(baseURL, `/api/logs${suffix ? `?${suffix}` : ''}`, { signal });
+};

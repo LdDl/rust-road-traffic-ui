@@ -158,17 +158,21 @@
 				{/if}
 			{:else if phase === 'saving'}
 				<h2 id="restart-title">Saving</h2>
-				<p class="lead progress">
-					<i class="material-icons spin">autorenew</i>Writing the configuration file
-				</p>
+				<div class="phase">
+					<p class="lead">Writing the settings and the zones into the configuration file.</p>
+					<div class="track"><span class="bar"></span></div>
+				</div>
 			{:else if phase === 'restarting' || phase === 'waiting'}
 				<h2 id="restart-title">Restarting</h2>
-				<p class="lead progress">
-					<i class="material-icons spin">autorenew</i>
-					{phase === 'restarting'
-						? 'Asking the device to restart'
-						: `Waiting for the device to come back, ${waited} s`}
-				</p>
+				<div class="phase">
+					<p class="lead">
+						{phase === 'restarting'
+							? 'Asking the device to restart.'
+							: 'The device is starting again. The frame, the zones and the settings come back on their own, there is nothing to press.'}
+					</p>
+					<div class="track"><span class="bar"></span></div>
+					<p class="elapsed">{phase === 'waiting' ? `${waited} s` : 'just now'}</p>
+				</div>
 			{:else if phase === 'done'}
 				<h2 id="restart-title">The device is back</h2>
 				<p class="lead">Everything shown here has been read again from the new run.</p>
@@ -228,21 +232,48 @@
 		color: var(--danger-primary);
 	}
 
-	.progress {
+	/* Every transient phase keeps the same shape, so the dialog does not collapse into a
+	   strip after the question and does not jump about while it waits */
+	.phase {
 		display: flex;
-		align-items: center;
-		gap: var(--space-sm);
+		flex-direction: column;
+		justify-content: center;
+		min-height: 96px;
 	}
 
-	.spin {
-		font-size: var(--icon-lg);
-		animation: spin 1s linear infinite;
+	.track {
+		position: relative;
+		height: 4px;
+		margin-top: var(--space-lg);
+		border-radius: 2px;
+		background: var(--bg-tertiary);
+		overflow: hidden;
 	}
 
-	@keyframes spin {
-		to {
-			transform: rotate(360deg);
+	.bar {
+		position: absolute;
+		top: 0;
+		bottom: 0;
+		width: 40%;
+		border-radius: 2px;
+		background: var(--accent-primary);
+		animation: slide 1.4s ease-in-out infinite;
+	}
+
+	@keyframes slide {
+		from {
+			left: -40%;
 		}
+		to {
+			left: 100%;
+		}
+	}
+
+	.elapsed {
+		margin: var(--space-sm) 0 0 0;
+		color: var(--text-secondary);
+		font-size: var(--text-sm);
+		font-variant-numeric: tabular-nums;
 	}
 
 	.notice {

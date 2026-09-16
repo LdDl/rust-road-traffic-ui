@@ -1,7 +1,7 @@
 import { browser } from '$app/environment';
 import { writable } from 'svelte/store';
 
-export type TabId = 'setup' | 'device';
+export type TabId = 'setup' | 'device' | 'logs';
 
 export interface TabDefinition {
 	id: TabId;
@@ -23,6 +23,12 @@ export const TABS: TabDefinition[] = [
 		label: 'Device',
 		icon: 'settings_input_component',
 		description: 'Video source, tracking, Redis, logging and the other settings of the device'
+	},
+	{
+		id: 'logs',
+		label: 'Logs',
+		icon: 'subject',
+		description: 'What the device has been writing down, including what happened before a restart'
 	}
 ];
 

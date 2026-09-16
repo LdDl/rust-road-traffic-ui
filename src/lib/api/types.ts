@@ -205,3 +205,31 @@ export interface ErrorResponse {
 	/** Empty when the refusal is about the request rather than about the settings in it */
 	details: FieldError[];
 }
+
+export interface LogEntry {
+	/** "ERROR", "WARN", "INFO" or "DEBUG" */
+	level: string;
+	message: string;
+	/** Whatever else the line carried, different from line to line */
+	fields: Record<string, unknown>;
+	/** Which part of the app it came from, null for lines that name none */
+	scope?: string | null;
+	/** RFC 3339 */
+	timestamp?: string | null;
+}
+
+export interface LogsResponse {
+	returned: number;
+	/** Oldest first, so that reading them top to bottom follows the run */
+	entries: LogEntry[];
+	/** The file they were read from, null when the app only logs to stdout */
+	file?: string | null;
+}
+
+export interface LogsQuery {
+	/** At most 5000 */
+	limit?: number;
+	/** Lowest severity to include */
+	level?: string;
+	scope?: string;
+}

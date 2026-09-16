@@ -3,10 +3,13 @@
 	import Hint from './Hint.svelte';
 	import NavTabs from './NavTabs.svelte';
 	import { TABS } from '../store/navigation';
+
 	import SettingsPanel from './SettingsPanel.svelte';
 	import RestartDialog from './RestartDialog.svelte';
 	import { zonesDirty } from '../store/data_storage';
 	import { saveAll } from '$lib/save_flow';
+	import { goToTab } from '../store/navigation';
+	import { logsFilter } from '../store/logs';
 	import { acquireStatus, connection, droppedDelta, lastRestartAt, status } from '../store/status';
 	import { changeAPI } from '../store/state';
 	import { copyText } from '$lib/clipboard';
@@ -148,6 +151,13 @@
 		if (target instanceof Element && target.closest('.status-trigger, .badge')) return;
 		detailsOpen = false;
 	};
+
+	// The problem says which part of the app it came from, and that is exactly a log filter
+	function showProblemInLogs() {
+		logsFilter.set({ level: problemIsError ? 'error' : 'warn', scope: problem?.scope ?? '' });
+		goToTab('logs');
+		detailsOpen = false;
+	}
 
 	const onStatusKeydown = (event: KeyboardEvent) => {
 		if (event.key === 'Enter' || event.key === ' ') {
@@ -317,8 +327,8 @@
 				class="badge"
 				class:danger={problemIsError}
 				class:warn={!problemIsError}
-				on:click={openDetails}
-				title={problem.message}
+				on:click={showProblemInLogs}
+				title="{problem.message} (opens the log at this scope)"
 			>
 				<i class="material-icons">{problemIsError ? 'error_outline' : 'warning_amber'}</i>
 				<span class="badge-text">{problemIsError ? 'Error' : 'Warning'}</span>
@@ -405,6 +415,14 @@
 								<dd class="mono">{formatTimestamp(problem.at)}</dd>
 							</dl>
 							<p class="card-text problem">{problem.message}</p>
+							<button
+								type="button"
+								class="action-btn secondary card-action"
+								on:click={showProblemInLogs}
+							>
+								<i class="material-icons">subject</i>
+								Open the log here
+							</button>
 						</article>
 					{/if}
 				</div>
@@ -1003,6 +1021,10 @@
 
 	.card .card-text.problem {
 		margin-top: var(--space-sm);
+	}
+
+	.card-action {
+		margin-top: var(--space-md);
 	}
 
 	.change-tag {
