@@ -111,7 +111,7 @@ export const getConfig = (baseURL: string, signal?: AbortSignal) =>
 
 /** Changes the settings in memory only. Nothing reaches the file until saveToml */
 export const updateConfig = (baseURL: string, patch: ConfigPatch) =>
-	request<UpdateConfigResponse>(baseURL, '/api/config', { method: 'PUT', body: patch });
+	request<UpdateConfigResponse>(baseURL, '/api/config', { method: 'PATCH', body: patch });
 
 /** The same lists the backend validates against, so the dropdowns never offer a refused value */
 export const getTrackingOptions = (baseURL: string, signal?: AbortSignal) =>
