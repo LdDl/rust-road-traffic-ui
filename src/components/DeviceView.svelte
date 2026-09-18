@@ -2,6 +2,7 @@
 	import { onDestroy } from 'svelte';
 	import SectionFooter from './SectionFooter.svelte';
 	import { tabBadges } from '../store/navigation';
+	import { askForRestart } from '../store/restart';
 	import { refreshStatus, restartEpoch } from '../store/status';
 	import { changeAPI } from '../store/state';
 	import { checkRedis, getConfig, getTrackingOptions, updateConfig } from '$lib/api/client';
@@ -697,6 +698,23 @@
 					onRevert={() => revert('verbose')}
 				/>
 			</article>
+
+			<article class="card">
+				<header class="card-header">
+					<h3>Restart</h3>
+				</header>
+				<p class="hint">
+					Reads the configuration file again and starts the detector over. Processing stops for a
+					few seconds and the current statistics window begins again. Anything not saved is asked
+					about first.
+				</p>
+				<div class="restart-row">
+					<button type="button" class="action-btn secondary" on:click={askForRestart}>
+						<i class="material-icons">restart_alt</i>
+						Restart the device
+					</button>
+				</div>
+			</article>
 		{/if}
 	</div>
 </section>
@@ -904,6 +922,10 @@
 		height: 18px;
 		margin: 0;
 		accent-color: var(--accent-primary);
+	}
+
+	.restart-row {
+		margin-top: var(--space-lg);
 	}
 
 	.check-row {

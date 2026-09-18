@@ -6,6 +6,7 @@
 	import { getStatus, restartApp } from '$lib/api/client';
 	import { saveAll } from '$lib/save_flow';
 	import { registerEscapeLayer } from '$lib/escape_stack';
+	import { restartRequests } from '../store/restart';
 
 	type Phase = 'closed' | 'confirm' | 'saving' | 'restarting' | 'waiting' | 'done' | 'failed';
 
@@ -99,6 +100,14 @@
 		fail(new Error(`The device has not come back in ${COME_BACK_TIMEOUT_MS / 1000} s`));
 	}
 
+	// Opened from elsewhere, for example the Device tab, which offers a restart at any time
+	let seenRequests = 0;
+	const unsubscribeRequests = restartRequests.subscribe((count) => {
+		if (count === seenRequests) return;
+		seenRequests = count;
+		if (phase === 'closed' || phase === 'failed') begin();
+	});
+
 	// Escape may cancel the question, never a restart that is already under way
 	let releaseEscape: (() => void) | undefined;
 	function updateEscapeLayer(current: Phase) {
@@ -109,6 +118,7 @@
 	$: updateEscapeLayer(phase);
 
 	onDestroy(() => {
+		unsubscribeRequests();
 		releaseEscape?.();
 		if (closeTimer !== undefined) clearTimeout(closeTimer);
 	});
