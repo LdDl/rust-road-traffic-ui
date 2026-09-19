@@ -14,6 +14,10 @@ export function resizeCanvas(canvasState: FabricCanvasWrap): void {
     const newWidth = imageElem.clientWidth;
     const newHeight = imageElem.clientHeight;
 
+    // A hidden panel measures zero, and scaling every object by zero cannot be undone
+    if (newWidth === 0 || newHeight === 0) return;
+    if (!canvasState.width || !canvasState.height) return;
+
     if (canvasState.width === newWidth && canvasState.height === newHeight) return;
 
     const scaleX = newWidth / canvasState.width;

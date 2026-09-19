@@ -10,12 +10,17 @@
 	import { dataStorage, deattachCanvasFromSpatial, deleteFromDataStorage, updateDataStorage } from '../store/data_storage.js';
 	import { draw } from '../store/map.js';
 	import { writable } from 'svelte/store';
+	import { restartEpoch } from '../store/status';
 	import { lineControl } from '$lib/custom_control_zone.js';
 	import { changeDirectionControl, deleteVirtualLineControl } from '$lib/custom_control_line.js';
 	import { CUSTOM_CONTROL_TYPES } from '$lib/custom_control.js';
     import { resizeCanvas } from '$lib/custom_canvas_resize.js';
 
     export let klass: string = ''
+    /** False while another tab is on screen: the MJPEG stream is a long lived connection */
+    export let active: boolean = true
+
+    let imgElement: HTMLImageElement | undefined
 
     const { apiURL } = apiUrlStore
     let initialAPIURL = `${$apiURL}`
@@ -37,6 +42,26 @@
         imgSrcLoaded.set(true)
         canvasReady.set(true)
     }
+
+    // Dropping the attribute closes the stream; an empty src would fetch the page itself
+    function applyStreamSource(on: boolean, baseURL: string) {
+        if (!imgElement) return
+        const wanted = `${baseURL}/live_streaming`
+        if (on) {
+            if (imgElement.getAttribute('src') !== wanted) imgElement.src = wanted
+        } else if (imgElement.hasAttribute('src')) {
+            imgElement.removeAttribute('src')
+        }
+    }
+
+    $: applyStreamSource(active, initialAPIURL)
+
+    // A restart drops the stream connection and the frame freezes on its last image
+    const unsubRestart = restartEpoch.subscribe(epoch => {
+        if (epoch === 0 || !imgElement || !active) return
+        imgElement.removeAttribute('src')
+        requestAnimationFrame(() => applyStreamSource(active, initialAPIURL))
+    })
 
     const unsubApiChange = changeAPI.subscribe(value => {
         if (initialAPIURL !== value) {
@@ -66,6 +91,7 @@
             resizeObserver.disconnect();
         }
         unsubApiChange()
+        unsubRestart()
         canvasState.set(undefined)
     });
 
@@ -254,7 +280,7 @@
 
 <div id="mjpeg" class={"mjpeg-canvas" + ' ' + klass}>
     <!-- svelte-ignore a11y-missing-attribute -->
-    <img id="fit_img" src="{initialAPIURL}/live_streaming" on:load={imageLoaded}>
+    <img id="fit_img" bind:this={imgElement} src="{initialAPIURL}/live_streaming" on:load={imageLoaded}>
     <!-- <img id="fit_img" src="https://pngimg.com/uploads/google/google_PNG19632.png" on:load={imageLoaded}> -->
     <canvas id="fit_canvas" ></canvas>
     <div id="loading-message" class={$imgSrcLoaded? 'd-none' : 'd-block'} aria-live="polite" aria-busy={!$imgSrcLoaded}>
