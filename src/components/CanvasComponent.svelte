@@ -10,7 +10,7 @@
 	import { dataStorage, deattachCanvasFromSpatial, deleteFromDataStorage, updateDataStorage } from '../store/data_storage.js';
 	import { draw } from '../store/map.js';
 	import { writable } from 'svelte/store';
-	import { restartEpoch } from '../store/status';
+	import { playMjpeg, type MjpegPlayer, type StreamState } from '$lib/mjpeg_stream';
 	import { lineControl } from '$lib/custom_control_zone.js';
 	import { changeDirectionControl, deleteVirtualLineControl } from '$lib/custom_control_line.js';
 	import { CUSTOM_CONTROL_TYPES } from '$lib/custom_control.js';
@@ -32,8 +32,18 @@
     let resizeObserver: ResizeObserver | undefined;
     let handleResize: (() => void) | undefined;
 
+    let player: MjpegPlayer | undefined
+    let shownObjectUrl: string | null = null
+    let streamState: StreamState = 'connecting'
+    let firstFrameShown = false
+    let mounted = false
+
+    // Now that every frame arrives on its own, this fires many times a second. Setting a
+    // store notifies its subscribers even when the value does not change, and redrawing
+    // the zones on every frame is not something to do by accident
     const imageLoaded = () => {
-        console.log('Image source reloaded')
+        if (firstFrameShown) return
+        firstFrameShown = true
         if ($canvasState === null || $canvasState === undefined) {
             console.log('Prepare canvas on first initialization')
             const fbCanvas = initializeCanvas()
@@ -43,36 +53,43 @@
         canvasReady.set(true)
     }
 
-    // Dropping the attribute closes the stream; an empty src would fetch the page itself
-    function applyStreamSource(on: boolean, baseURL: string) {
-        if (!imgElement) return
-        const wanted = `${baseURL}/live_streaming`
-        if (on) {
-            if (imgElement.getAttribute('src') !== wanted) imgElement.src = wanted
-        } else if (imgElement.hasAttribute('src')) {
-            imgElement.removeAttribute('src')
+    function showFrame(objectUrl: string) {
+        if (!imgElement) {
+            URL.revokeObjectURL(objectUrl)
+            return
         }
+        const previous = shownObjectUrl
+        shownObjectUrl = objectUrl
+        imgElement.src = objectUrl
+        // The frame on screen is already decoded, so its URL is no longer needed
+        if (previous) URL.revokeObjectURL(previous)
     }
 
-    $: applyStreamSource(active, initialAPIURL)
+    function syncStream(on: boolean, baseURL: string) {
+        player?.stop()
+        player = undefined
+        if (!on) return
+        // A lost connection, a restarted device or a stalled stream all end up here:
+        // the player reconnects by itself instead of leaving a frozen picture
+        player = playMjpeg(`${baseURL}/live_streaming`, showFrame, (value) => (streamState = value))
+    }
 
-    // A restart drops the stream connection and the frame freezes on its last image
-    const unsubRestart = restartEpoch.subscribe(epoch => {
-        if (epoch === 0 || !imgElement || !active) return
-        imgElement.removeAttribute('src')
-        requestAnimationFrame(() => applyStreamSource(active, initialAPIURL))
-    })
+    $: if (mounted) syncStream(active, initialAPIURL)
 
     const unsubApiChange = changeAPI.subscribe(value => {
         if (initialAPIURL !== value) {
             console.log(`Need to change API URL for MJPEG: '${$apiURL}'`)
             initialAPIURL = value
+            // The loader belongs back on screen, and the first frame of the new device
+            // has to go through the whole of imageLoaded again
+            firstFrameShown = false
             imgSrcLoaded.set(false)
         }
     })
 
     onMount(() => {
         console.log('Mounted canvas component')
+        mounted = true
         document.getElementById('fit_canvas')?.addEventListener('contextmenu', function(e) {
             e.preventDefault();
             return false;
@@ -91,7 +108,8 @@
             resizeObserver.disconnect();
         }
         unsubApiChange()
-        unsubRestart()
+        player?.stop()
+        if (shownObjectUrl) URL.revokeObjectURL(shownObjectUrl)
         canvasState.set(undefined)
     });
 
@@ -280,7 +298,13 @@
 
 <div id="mjpeg" class={"mjpeg-canvas" + ' ' + klass}>
     <!-- svelte-ignore a11y-missing-attribute -->
-    <img id="fit_img" bind:this={imgElement} src="{initialAPIURL}/live_streaming" on:load={imageLoaded}>
+    <img id="fit_img" bind:this={imgElement} on:load={imageLoaded}>
+    {#if firstFrameShown && streamState !== 'playing'}
+        <div class="stream-state">
+            <i class="material-icons">sync_problem</i>
+            {streamState === 'stalled' ? 'The video stopped, reconnecting' : 'Reconnecting the video'}
+        </div>
+    {/if}
     <!-- <img id="fit_img" src="https://pngimg.com/uploads/google/google_PNG19632.png" on:load={imageLoaded}> -->
     <canvas id="fit_canvas" ></canvas>
     <div id="loading-message" class={$imgSrcLoaded? 'd-none' : 'd-block'} aria-live="polite" aria-busy={!$imgSrcLoaded}>
@@ -298,6 +322,27 @@
     .d-none {
         display: none;
     }
+    .stream-state {
+        position: absolute;
+        top: var(--space-sm);
+        left: var(--space-sm);
+        display: flex;
+        align-items: center;
+        gap: var(--space-xs);
+        padding: var(--space-xs) var(--space-sm);
+        border-radius: var(--radius-sm);
+        background: var(--warning-bg);
+        border: 1px solid var(--warning-border);
+        color: var(--warning-text);
+        font-size: var(--text-sm);
+        z-index: 5;
+        pointer-events: none;
+    }
+
+    .stream-state i {
+        font-size: var(--icon-sm);
+    }
+
     #mjpeg {
         position: relative;
         grid-area: A;
