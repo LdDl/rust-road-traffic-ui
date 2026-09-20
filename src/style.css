@@ -28,6 +28,9 @@
     --warning-border: #fcd34d;
     --loading-bg: rgba(128, 128, 128, 0.8);
     --blank-map-bg: #e5e5e5;
+    /* Height of the status header, floating panels sit below it */
+    --statusbar-height: 40px;
+
     --radius-xs: 3px;
     --radius-sm: 4px;
     --radius-md: 8px;
@@ -109,4 +112,62 @@
 
 :global(:focus:not(:focus-visible)) {
     outline: none;
+}
+/* Buttons for the forms and dialogs. Not ".btn": daisyUI owns that name */
+.action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-xs);
+    min-height: 36px;
+    padding: 0 var(--space-lg);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-sm);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: var(--text-base);
+    font-weight: 500;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.action-btn i {
+    font-size: var(--icon-md);
+}
+
+.action-btn:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.action-btn.primary {
+    border-color: var(--accent-primary);
+    background: var(--accent-primary);
+    color: #fff;
+}
+
+.action-btn.primary:not(:disabled):hover {
+    border-color: var(--accent-hover);
+    background: var(--accent-hover);
+}
+
+.action-btn.secondary:not(:disabled):hover {
+    background: var(--bg-tertiary);
+}
+
+.action-btn.danger {
+    border-color: var(--danger-primary);
+    color: var(--danger-primary);
+}
+
+.action-btn.danger:not(:disabled):hover {
+    background: var(--danger-bg);
+}
+
+@media (max-width: 1024px) {
+    .action-btn {
+        min-height: 40px;
+    }
 }

@@ -1,314 +1,448 @@
 <script lang="ts">
-    import { onMount, onDestroy } from 'svelte'
-    import ThreeDotLoader from './ThreeDotLoader.svelte'
-    import { Line, Shadow, FabricText, FabricObject, Point } from 'fabric'
-    import { canvasReady, canvasState, apiUrlStore, changeAPI, state } from '../store/state.js'
-	import { ExtendedCanvas, prepareContour, verticesChars, type FabricCanvasWrap, CustomPolygon } from '$lib/custom_canvas.js';
-    import { CustomLineGroup } from '$lib/custom_line.js';
+	import { onMount, onDestroy } from 'svelte';
+	import ThreeDotLoader from './ThreeDotLoader.svelte';
+	import { Line, Shadow, FabricText, FabricObject, Point } from 'fabric';
+	import { canvasReady, canvasState, apiUrlStore, changeAPI, state } from '../store/state.js';
+	import {
+		ExtendedCanvas,
+		prepareContour,
+		verticesChars,
+		type FabricCanvasWrap,
+		CustomPolygon
+	} from '$lib/custom_canvas.js';
+	import { CustomLineGroup } from '$lib/custom_line.js';
 	import { States } from '$lib/states.js';
 	import { getClickPoint, rgba2array } from '$lib/utils.js';
-	import { dataStorage, deattachCanvasFromSpatial, deleteFromDataStorage, updateDataStorage } from '../store/data_storage.js';
+	import {
+		dataStorage,
+		deattachCanvasFromSpatial,
+		deleteFromDataStorage,
+		updateDataStorage
+	} from '../store/data_storage.js';
 	import { draw } from '../store/map.js';
 	import { writable } from 'svelte/store';
+	import { playMjpeg, type MjpegPlayer, type StreamState } from '$lib/mjpeg_stream';
 	import { lineControl } from '$lib/custom_control_zone.js';
 	import { changeDirectionControl, deleteVirtualLineControl } from '$lib/custom_control_line.js';
 	import { CUSTOM_CONTROL_TYPES } from '$lib/custom_control.js';
-    import { resizeCanvas } from '$lib/custom_canvas_resize.js';
+	import { resizeCanvas } from '$lib/custom_canvas_resize.js';
 
-    export let klass: string = ''
+	export let klass: string = '';
+	/** False while another tab is on screen: the MJPEG stream is a long lived connection */
+	export let active: boolean = true;
 
-    const { apiURL } = apiUrlStore
-    let initialAPIURL = `${$apiURL}`
-    
-    let stateVariable: States;
-    state.subscribe((value) => stateVariable = value)
-    
-    let imgSrcLoaded = writable(false)
-    let resizeObserver: ResizeObserver | undefined;
-    let handleResize: (() => void) | undefined;
+	let imgElement: HTMLImageElement | undefined;
 
-    const imageLoaded = () => {
-        console.log('Image source reloaded')
-        if ($canvasState === null || $canvasState === undefined) {
-            console.log('Prepare canvas on first initialization')
-            const fbCanvas = initializeCanvas()
-            canvasState.set(fbCanvas)
-        }
-        imgSrcLoaded.set(true)
-        canvasReady.set(true)
-    }
+	const { apiURL } = apiUrlStore;
+	let initialAPIURL = `${$apiURL}`;
 
-    const unsubApiChange = changeAPI.subscribe(value => {
-        if (initialAPIURL !== value) {
-            console.log(`Need to change API URL for MJPEG: '${$apiURL}'`)
-            initialAPIURL = value
-            imgSrcLoaded.set(false)
-        }
-    })
+	let stateVariable: States;
+	state.subscribe((value) => (stateVariable = value));
 
-    onMount(() => {
-        console.log('Mounted canvas component')
-        document.getElementById('fit_canvas')?.addEventListener('contextmenu', function(e) {
-            e.preventDefault();
-            return false;
-        }, false);
-    });
+	let imgSrcLoaded = writable(false);
+	let resizeObserver: ResizeObserver | undefined;
+	let handleResize: (() => void) | undefined;
 
-    onDestroy(() => {
-        canvasReady.set(false)
-        $canvasState?.getObjects().forEach(obj => {
-            $canvasState.remove(obj);
-        })
-        if (handleResize) {
-            window.removeEventListener('resize', handleResize);
-        }
-        if (resizeObserver) {
-            resizeObserver.disconnect();
-        }
-        unsubApiChange()
-        canvasState.set(undefined)
-    });
+	let player: MjpegPlayer | undefined;
+	let shownObjectUrl: string | null = null;
+	let streamState: StreamState = 'connecting';
+	let firstFrameShown = false;
+	let mounted = false;
 
-    const deleteZoneFromCanvas = (extendedCanvas: FabricCanvasWrap, zoneID: string) => {
-        extendedCanvas.getObjects().forEach((object) => {
-            if (object instanceof CustomPolygon && object.unid === zoneID) {
-                // FIX: The signature '(eventName: "mouseout"): void' of 'object.off' is deprecated.
-                object.off('mouseout');
-                object.off('mouseover');
-                object.off('mousedown');
-                object.off('modified');
-                object.off('virtual_line:created');
-                object.off('virtual_line:modified');
-                object.off('virtual_line:removed');
-                if (object.virtual_line) {
-                    extendedCanvas.remove(object.virtual_line)                    
-                }
-                object.notation.forEach((textObject) => {
-                    extendedCanvas.remove(textObject)
-                })
-                object.edge_labels.forEach((label) => {
-                    extendedCanvas.remove(label)
-                })
-                object.skeleton_lines.forEach((line) => {
-                    extendedCanvas.remove(line)
-                })
-                object.skeleton_labels.forEach((label) => {
-                    extendedCanvas.remove(label)
-                })
-                extendedCanvas.remove(object)
-            }
-        })
-        deattachCanvasFromSpatial($dataStorage, $draw, zoneID)
-        deleteFromDataStorage(zoneID)
-    }
-    
-    const initializeCanvas = (): FabricCanvasWrap => {
-        const canvasElem = document.getElementById('fit_canvas') as HTMLCanvasElement
-        const imageElem = document.getElementById('fit_img') as HTMLImageElement
-        canvasElem.width = imageElem.clientWidth
-        canvasElem.height = imageElem.clientHeight
-        const fbCanvas = new ExtendedCanvas('fit_canvas', {
-            containerClass: 'custom-container-canvas'
-        })
-        fbCanvas.scaleWidth = imageElem.clientWidth/imageElem.naturalWidth
-        fbCanvas.scaleHeight = imageElem.clientHeight/imageElem.naturalHeight
+	// Now that every frame arrives on its own, this fires many times a second. Setting a
+	// store notifies its subscribers even when the value does not change, and redrawing
+	// the zones on every frame is not something to do by accident
+	let frameSize = '';
 
-        handleResize = () => {
-            if ($canvasState) {
-                resizeCanvas($canvasState);
-            }
-        };
-        if (typeof ResizeObserver !== 'undefined') {
-            // Now handleResize is guaranteed to be defined via "!"
-            resizeObserver = new ResizeObserver(() => setTimeout(handleResize!, 10));
-            resizeObserver.observe(imageElem);
-        }
-        window.addEventListener('resize', handleResize);
+	const imageLoaded = () => {
+		if (imgElement) {
+			const size = `${imgElement.naturalWidth}x${imgElement.naturalHeight}`;
+			if (size !== frameSize) {
+				frameSize = size;
+				// Another video source can have another resolution while the picture keeps
+				// its size on screen, and then every zone would be drawn at the old scale
+				if ($canvasState) resizeCanvas($canvasState);
+			}
+		}
+		if (firstFrameShown) return;
+		firstFrameShown = true;
+		if ($canvasState === null || $canvasState === undefined) {
+			console.log('Prepare canvas on first initialization');
+			const fbCanvas = initializeCanvas();
+			canvasState.set(fbCanvas);
+		}
+		imgSrcLoaded.set(true);
+		canvasReady.set(true);
+	};
 
-        // FabricJS 7 changed default origin from left/top to center/center
-        // Restore old behavior for backward compatibility
-        FabricObject.ownDefaults.originX = 'left';
-        FabricObject.ownDefaults.originY = 'top';
+	function showFrame(objectUrl: string) {
+		if (!imgElement) {
+			URL.revokeObjectURL(objectUrl);
+			return;
+		}
+		const previous = shownObjectUrl;
+		shownObjectUrl = objectUrl;
+		imgElement.src = objectUrl;
+		// The frame on screen is already decoded, so its URL is no longer needed
+		if (previous) URL.revokeObjectURL(previous);
+	}
 
-        if (!FabricObject.prototype.controls) {
-            FabricObject.prototype.controls = {};
-        }
-        FabricObject.prototype.controls[CUSTOM_CONTROL_TYPES.LINE_CONTROL] = lineControl;
-        FabricObject.prototype.controls[CUSTOM_CONTROL_TYPES.CHANGE_DIRECTION_CONTROL] = changeDirectionControl;
-        FabricObject.prototype.controls[CUSTOM_CONTROL_TYPES.DELETE_VIRTUAL_LINE_CONTROL] = deleteVirtualLineControl;
+	function syncStream(on: boolean, baseURL: string) {
+		player?.stop();
+		player = undefined;
+		if (!on) return;
+		// A lost connection, a restarted device or a stalled stream all end up here:
+		// the player reconnects by itself instead of leaving a frozen picture
+		player = playMjpeg(`${baseURL}/live_streaming`, showFrame, (value) => (streamState = value));
+	}
 
-        const fbCanvasParent = document.getElementsByClassName('custom-container-canvas')[0];
-        fbCanvasParent.id = "fbcanvas";
-        fbCanvas.on('selection:created', (options: any) => {
-            if (stateVariable === States.DeletingZoneCanvas) {
-                deleteZoneFromCanvas(fbCanvas, options.selected[0].unid);
-                state.set(States.Waiting)
-            }
-        })
-        fbCanvas.on('selection:updated', (options: any) => {
-            if (stateVariable === States.DeletingZoneCanvas) {
-                deleteZoneFromCanvas(fbCanvas, options.selected[0].unid);
-                state.set(States.Waiting)
-            }
-        })
-        fbCanvas.on('mouse:move', (options: any) => {
-            if (fbCanvas.contourTemporary[0] !== null && fbCanvas.contourTemporary[0] !== undefined && stateVariable === States.AddingZoneCanvas) {
-                const clicked = getClickPoint(fbCanvas, options)
-                fbCanvas.contourTemporary[fbCanvas.contourTemporary.length - 1].set({ x2: clicked.x, y2: clicked.y })
-                fbCanvas.renderAll()
-            }
-        });
-        fbCanvas.on('mouse:down', (options: any) => {
-            if (stateVariable !== States.AddingZoneCanvas) {
-                return
-            }
-            fbCanvas.selection = false
-            const clicked = getClickPoint(fbCanvas, options)
-            fbCanvas.contourFinalized.push({ x: clicked.x, y: clicked.y })
-            const points = [clicked.x, clicked.y, clicked.x, clicked.y] as [number, number, number, number]
-            const textShadow = new Shadow({
-                color: 'rgba(255, 255, 255, 0.7)',
-                blur: 10,
-                offsetX: 0,
-                offsetY: 0
-            });
-            const contourColor = getComputedStyle(document.documentElement).getPropertyValue('--accent-primary').trim() || '#007bff';
-            const contourStroke = getComputedStyle(document.documentElement).getPropertyValue('--text-primary').trim() || '#212529';
-            const newLine = new Line(points, {
-                strokeWidth: 3,
-                selectable: false,
-                stroke: contourColor,
-            })
-            const newVertexNotation = new FabricText(verticesChars[fbCanvas.contourFinalized.length-1], {
-                left: clicked.x,
-                top: clicked.y,
-                fontSize: 24,
-                fontFamily: 'Roboto',
-                fill: contourColor,
-                shadow: textShadow,
-                stroke: contourStroke,
-                strokeWidth: 0.9,
-            })
-            fbCanvas.contourNotationTemporary.push(newVertexNotation)
-            fbCanvas.contourTemporary.push(newLine)
-            fbCanvas.add(newLine)
-            fbCanvas.add(newVertexNotation)
-            fbCanvas.on('mouse:up', function (options: any) {
-                fbCanvas.selection = true;
-            })
-            if (fbCanvas.contourFinalized.length <= 3) {
-                // Return till there are four points in contour atleast
-                return
-            }
-            fbCanvas.contourTemporary.forEach((value) => {
-                fbCanvas.remove(value)
-            })
-            fbCanvas.contourNotationTemporary.forEach((value) => {
-                fbCanvas.remove(value)
-            })
+	$: if (mounted) syncStream(active, initialAPIURL);
 
-            const contour = prepareContour(fbCanvas.contourFinalized, state, dataStorage, updateDataStorage)
-            const rgbArray = rgba2array(contour.inner.stroke?.toString() || undefined);
-            const newContour = {
-                type: 'Feature',
-                id: contour.unid,
-                properties: {
-                    color_rgb: rgbArray,
-                    color_rgb_str: `rgb(${rgbArray[0]},${rgbArray[1]},${rgbArray[2]})`,
-                    //@ts-ignore
-                    coordinates: contour.inner.current_points.map((element: { x: number; y: number; }) => {
-                        return [
-                            Math.floor(element.x/fbCanvas.scaleWidth),
-                            Math.floor(element.y/fbCanvas.scaleHeight)
-                        ]
-                    }),
-                    road_lane_direction: -1,
-                    road_lane_num: -1,
-                    spatial_object_id: undefined
-                },
-                geometry: {
-                    type: 'Polygon',
-                    coordinates: [[[-1, -1], [-1, -1], [-1, -1], [-1, -1], [-1, -1]]]
-                }
-            }
-            updateDataStorage(contour.unid, newContour)
-            fbCanvas.add(contour.inner)
-            contour.notation.forEach((vertextNotation: FabricText) => {
-                fbCanvas.add(vertextNotation)
-            })
-            contour.edge_labels.forEach((label) => fbCanvas.add(label))
-            contour.skeleton_lines.forEach((line) => fbCanvas.add(line))
-            contour.skeleton_labels.forEach((label) => fbCanvas.add(label))
-            fbCanvas.renderAll()
-            fbCanvas.contourTemporary = []
-            fbCanvas.contourNotationTemporary = []
-            fbCanvas.contourFinalized = []
-            state.set(States.Waiting)
-            $draw.changeMode('simple_select')
-        })
+	const unsubApiChange = changeAPI.subscribe((value) => {
+		if (initialAPIURL !== value) {
+			console.log(`Need to change API URL for MJPEG: '${$apiURL}'`);
+			initialAPIURL = value;
+			// The loader belongs back on screen, and the first frame of the new device
+			// has to go through the whole of imageLoaded again
+			firstFrameShown = false;
+			imgSrcLoaded.set(false);
+		}
+	});
 
-        return fbCanvas
-    }
+	onMount(() => {
+		console.log('Mounted canvas component');
+		mounted = true;
+		document.getElementById('fit_canvas')?.addEventListener(
+			'contextmenu',
+			function (e) {
+				e.preventDefault();
+				return false;
+			},
+			false
+		);
+	});
 
+	onDestroy(() => {
+		canvasReady.set(false);
+		$canvasState?.getObjects().forEach((obj) => {
+			$canvasState.remove(obj);
+		});
+		if (handleResize) {
+			window.removeEventListener('resize', handleResize);
+		}
+		if (resizeObserver) {
+			resizeObserver.disconnect();
+		}
+		unsubApiChange();
+		player?.stop();
+		if (shownObjectUrl) URL.revokeObjectURL(shownObjectUrl);
+		canvasState.set(undefined);
+	});
+
+	const deleteZoneFromCanvas = (extendedCanvas: FabricCanvasWrap, zoneID: string) => {
+		extendedCanvas.getObjects().forEach((object) => {
+			if (object instanceof CustomPolygon && object.unid === zoneID) {
+				// FIX: The signature '(eventName: "mouseout"): void' of 'object.off' is deprecated.
+				object.off('mouseout');
+				object.off('mouseover');
+				object.off('mousedown');
+				object.off('modified');
+				object.off('virtual_line:created');
+				object.off('virtual_line:modified');
+				object.off('virtual_line:removed');
+				if (object.virtual_line) {
+					extendedCanvas.remove(object.virtual_line);
+				}
+				object.notation.forEach((textObject) => {
+					extendedCanvas.remove(textObject);
+				});
+				object.edge_labels.forEach((label) => {
+					extendedCanvas.remove(label);
+				});
+				object.skeleton_lines.forEach((line) => {
+					extendedCanvas.remove(line);
+				});
+				object.skeleton_labels.forEach((label) => {
+					extendedCanvas.remove(label);
+				});
+				extendedCanvas.remove(object);
+			}
+		});
+		deattachCanvasFromSpatial($dataStorage, $draw, zoneID);
+		deleteFromDataStorage(zoneID);
+	};
+
+	const initializeCanvas = (): FabricCanvasWrap => {
+		const canvasElem = document.getElementById('fit_canvas') as HTMLCanvasElement;
+		const imageElem = document.getElementById('fit_img') as HTMLImageElement;
+		canvasElem.width = imageElem.clientWidth;
+		canvasElem.height = imageElem.clientHeight;
+		const fbCanvas = new ExtendedCanvas('fit_canvas', {
+			containerClass: 'custom-container-canvas'
+		});
+		fbCanvas.scaleWidth = imageElem.clientWidth / imageElem.naturalWidth;
+		fbCanvas.scaleHeight = imageElem.clientHeight / imageElem.naturalHeight;
+
+		handleResize = () => {
+			if ($canvasState) {
+				resizeCanvas($canvasState);
+			}
+		};
+		if (typeof ResizeObserver !== 'undefined') {
+			// Now handleResize is guaranteed to be defined via "!"
+			resizeObserver = new ResizeObserver(() => setTimeout(handleResize!, 10));
+			resizeObserver.observe(imageElem);
+		}
+		window.addEventListener('resize', handleResize);
+
+		// FabricJS 7 changed default origin from left/top to center/center
+		// Restore old behavior for backward compatibility
+		FabricObject.ownDefaults.originX = 'left';
+		FabricObject.ownDefaults.originY = 'top';
+
+		if (!FabricObject.prototype.controls) {
+			FabricObject.prototype.controls = {};
+		}
+		FabricObject.prototype.controls[CUSTOM_CONTROL_TYPES.LINE_CONTROL] = lineControl;
+		FabricObject.prototype.controls[CUSTOM_CONTROL_TYPES.CHANGE_DIRECTION_CONTROL] =
+			changeDirectionControl;
+		FabricObject.prototype.controls[CUSTOM_CONTROL_TYPES.DELETE_VIRTUAL_LINE_CONTROL] =
+			deleteVirtualLineControl;
+
+		const fbCanvasParent = document.getElementsByClassName('custom-container-canvas')[0];
+		fbCanvasParent.id = 'fbcanvas';
+		fbCanvas.on('selection:created', (options: any) => {
+			if (stateVariable === States.DeletingZoneCanvas) {
+				deleteZoneFromCanvas(fbCanvas, options.selected[0].unid);
+				state.set(States.Waiting);
+			}
+		});
+		fbCanvas.on('selection:updated', (options: any) => {
+			if (stateVariable === States.DeletingZoneCanvas) {
+				deleteZoneFromCanvas(fbCanvas, options.selected[0].unid);
+				state.set(States.Waiting);
+			}
+		});
+		fbCanvas.on('mouse:move', (options: any) => {
+			if (
+				fbCanvas.contourTemporary[0] !== null &&
+				fbCanvas.contourTemporary[0] !== undefined &&
+				stateVariable === States.AddingZoneCanvas
+			) {
+				const clicked = getClickPoint(fbCanvas, options);
+				fbCanvas.contourTemporary[fbCanvas.contourTemporary.length - 1].set({
+					x2: clicked.x,
+					y2: clicked.y
+				});
+				fbCanvas.renderAll();
+			}
+		});
+		fbCanvas.on('mouse:down', (options: any) => {
+			if (stateVariable !== States.AddingZoneCanvas) {
+				return;
+			}
+			fbCanvas.selection = false;
+			const clicked = getClickPoint(fbCanvas, options);
+			fbCanvas.contourFinalized.push({ x: clicked.x, y: clicked.y });
+			const points = [clicked.x, clicked.y, clicked.x, clicked.y] as [
+				number,
+				number,
+				number,
+				number
+			];
+			const textShadow = new Shadow({
+				color: 'rgba(255, 255, 255, 0.7)',
+				blur: 10,
+				offsetX: 0,
+				offsetY: 0
+			});
+			const contourColor =
+				getComputedStyle(document.documentElement).getPropertyValue('--accent-primary').trim() ||
+				'#007bff';
+			const contourStroke =
+				getComputedStyle(document.documentElement).getPropertyValue('--text-primary').trim() ||
+				'#212529';
+			const newLine = new Line(points, {
+				strokeWidth: 3,
+				selectable: false,
+				stroke: contourColor
+			});
+			const newVertexNotation = new FabricText(
+				verticesChars[fbCanvas.contourFinalized.length - 1],
+				{
+					left: clicked.x,
+					top: clicked.y,
+					fontSize: 24,
+					fontFamily: 'Roboto',
+					fill: contourColor,
+					shadow: textShadow,
+					stroke: contourStroke,
+					strokeWidth: 0.9
+				}
+			);
+			fbCanvas.contourNotationTemporary.push(newVertexNotation);
+			fbCanvas.contourTemporary.push(newLine);
+			fbCanvas.add(newLine);
+			fbCanvas.add(newVertexNotation);
+			fbCanvas.on('mouse:up', function (options: any) {
+				fbCanvas.selection = true;
+			});
+			if (fbCanvas.contourFinalized.length <= 3) {
+				// Return till there are four points in contour atleast
+				return;
+			}
+			fbCanvas.contourTemporary.forEach((value) => {
+				fbCanvas.remove(value);
+			});
+			fbCanvas.contourNotationTemporary.forEach((value) => {
+				fbCanvas.remove(value);
+			});
+
+			const contour = prepareContour(
+				fbCanvas.contourFinalized,
+				state,
+				dataStorage,
+				updateDataStorage
+			);
+			const rgbArray = rgba2array(contour.inner.stroke?.toString() || undefined);
+			const newContour = {
+				type: 'Feature',
+				id: contour.unid,
+				properties: {
+					color_rgb: rgbArray,
+					color_rgb_str: `rgb(${rgbArray[0]},${rgbArray[1]},${rgbArray[2]})`,
+					//@ts-ignore
+					coordinates: contour.inner.current_points.map((element: { x: number; y: number }) => {
+						return [
+							Math.floor(element.x / fbCanvas.scaleWidth),
+							Math.floor(element.y / fbCanvas.scaleHeight)
+						];
+					}),
+					road_lane_direction: -1,
+					road_lane_num: -1,
+					spatial_object_id: undefined
+				},
+				geometry: {
+					type: 'Polygon',
+					coordinates: [
+						[
+							[-1, -1],
+							[-1, -1],
+							[-1, -1],
+							[-1, -1],
+							[-1, -1]
+						]
+					]
+				}
+			};
+			updateDataStorage(contour.unid, newContour);
+			fbCanvas.add(contour.inner);
+			contour.notation.forEach((vertextNotation: FabricText) => {
+				fbCanvas.add(vertextNotation);
+			});
+			contour.edge_labels.forEach((label) => fbCanvas.add(label));
+			contour.skeleton_lines.forEach((line) => fbCanvas.add(line));
+			contour.skeleton_labels.forEach((label) => fbCanvas.add(label));
+			fbCanvas.renderAll();
+			fbCanvas.contourTemporary = [];
+			fbCanvas.contourNotationTemporary = [];
+			fbCanvas.contourFinalized = [];
+			state.set(States.Waiting);
+			$draw.changeMode('simple_select');
+		});
+
+		return fbCanvas;
+	};
 </script>
 
-<div id="mjpeg" class={"mjpeg-canvas" + ' ' + klass}>
-    <!-- svelte-ignore a11y-missing-attribute -->
-    <img id="fit_img" src="{initialAPIURL}/live_streaming" on:load={imageLoaded}>
-    <!-- <img id="fit_img" src="https://pngimg.com/uploads/google/google_PNG19632.png" on:load={imageLoaded}> -->
-    <canvas id="fit_canvas" ></canvas>
-    <div id="loading-message" class={$imgSrcLoaded? 'd-none' : 'd-block'} aria-live="polite" aria-busy={!$imgSrcLoaded}>
-        <div class={$imgSrcLoaded? 'd-none' : 'loading d-block'}>
-            <ThreeDotLoader msgText="Please wait until image is loaded"/>
-        </div>
-    </div>
+<div id="mjpeg" class={'mjpeg-canvas' + ' ' + klass}>
+	<!-- svelte-ignore a11y-missing-attribute -->
+	<img id="fit_img" bind:this={imgElement} on:load={imageLoaded} />
+	{#if firstFrameShown && streamState !== 'playing'}
+		<div class="stream-state">
+			<i class="material-icons">sync_problem</i>
+			{streamState === 'stalled' ? 'The video stopped, reconnecting' : 'Reconnecting the video'}
+		</div>
+	{/if}
+	<!-- <img id="fit_img" src="https://pngimg.com/uploads/google/google_PNG19632.png" on:load={imageLoaded}> -->
+	<canvas id="fit_canvas"></canvas>
+	<div
+		id="loading-message"
+		class={$imgSrcLoaded ? 'd-none' : 'd-block'}
+		aria-live="polite"
+		aria-busy={!$imgSrcLoaded}
+	>
+		<div class={$imgSrcLoaded ? 'd-none' : 'loading d-block'}>
+			<ThreeDotLoader msgText="Please wait until image is loaded" />
+		</div>
+	</div>
 </div>
 
-
 <style scoped>
-    .d-block {
-        display: block;
-    }
-    .d-none {
-        display: none;
-    }
-    #mjpeg {
-        position: relative;
-        grid-area: A;
-        height: 100%;
-        background-color: var(--loading-bg);
-        overflow: hidden;
-    }
-    #fit_img {
-        height: 100%;
-        width: 100%;
-    }
-    #fit_canvas {
-        height: 100%;
-        width: 100%;
-        background-color: transparent;
-        position: absolute;
-        left: 0;
-        top: 0;
-    }
-    #loading-message {
-        justify-content: center;
-        align-items: center;
-        position: absolute;
-        top: 0;
-        height: 100%;
-        width: 100%;
-        background-color: var(--loading-bg);
-    }
-    .loading {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background-color: var(--loading-bg);
-        padding: var(--space-md);
-        border-radius: var(--radius-sm);
-        pointer-events: none;
-        font-size: 2rem;
-    }
+	.d-block {
+		display: block;
+	}
+	.d-none {
+		display: none;
+	}
+	.stream-state {
+		position: absolute;
+		top: var(--space-sm);
+		left: var(--space-sm);
+		display: flex;
+		align-items: center;
+		gap: var(--space-xs);
+		padding: var(--space-xs) var(--space-sm);
+		border-radius: var(--radius-sm);
+		background: var(--warning-bg);
+		border: 1px solid var(--warning-border);
+		color: var(--warning-text);
+		font-size: var(--text-sm);
+		z-index: 5;
+		pointer-events: none;
+	}
+
+	.stream-state i {
+		font-size: var(--icon-sm);
+	}
+
+	#mjpeg {
+		position: relative;
+		grid-area: A;
+		height: 100%;
+		background-color: var(--loading-bg);
+		overflow: hidden;
+	}
+	#fit_img {
+		height: 100%;
+		width: 100%;
+	}
+	#fit_canvas {
+		height: 100%;
+		width: 100%;
+		background-color: transparent;
+		position: absolute;
+		left: 0;
+		top: 0;
+	}
+	#loading-message {
+		justify-content: center;
+		align-items: center;
+		position: absolute;
+		top: 0;
+		height: 100%;
+		width: 100%;
+		background-color: var(--loading-bg);
+	}
+	.loading {
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		transform: translate(-50%, -50%);
+		background-color: var(--loading-bg);
+		padding: var(--space-md);
+		border-radius: var(--radius-sm);
+		pointer-events: none;
+		font-size: 2rem;
+	}
 </style>
