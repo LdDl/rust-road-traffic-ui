@@ -253,9 +253,9 @@
 							<tr>
 								<th>Zone</th>
 								<th>Class</th>
-								<th class="right">Vehicles</th>
-								<th class="right">Speed measured</th>
-								<th class="right">Average speed</th>
+								<th class="num">Vehicles</th>
+								<th class="num">Speed measured</th>
+								<th class="num">Average speed</th>
 							</tr>
 						</thead>
 						<tbody>
@@ -267,9 +267,9 @@
 											{zoneName(zone)}
 										</td>
 										<td>{name}</td>
-										<td class="right">{countOf(zone, name)}</td>
-										<td class="right">{measuredOf(zone, name)}</td>
-										<td class="right">{formatSpeed(speedOf(zone, name))}</td>
+										<td class="num">{countOf(zone, name)}</td>
+										<td class="num">{measuredOf(zone, name)}</td>
+										<td class="num">{formatSpeed(speedOf(zone, name))}</td>
 									</tr>
 								{/each}
 							{/each}
@@ -933,9 +933,9 @@
 		color: #101418;
 	}
 
-	.numbers .right,
-	.right {
-		text-align: right;
+	/* The heading stands over the middle of its own column of numbers */
+	.numbers .num {
+		text-align: center;
 		font-variant-numeric: tabular-nums;
 	}
 
