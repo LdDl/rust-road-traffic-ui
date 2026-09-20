@@ -35,7 +35,8 @@ const emptyState = (): PollState => ({
 });
 
 export function createPoller(options: PollerOptions) {
-	const { intervalMs, maxIntervalMs = 15000, pauseWhenHidden = true, run } = options;
+	const { maxIntervalMs = 15000, pauseWhenHidden = true, run } = options;
+	let intervalMs = options.intervalMs;
 	const store = writable<PollState>(emptyState());
 
 	let running = false;
@@ -133,6 +134,15 @@ export function createPoller(options: PollerOptions) {
 		/** Fetches at once and restarts the interval from now */
 		refresh() {
 			schedule(0);
+		},
+		/**
+		 * Some cadences are the device's to decide and are known only once it has answered,
+		 * so the interval can be replaced after the poller is already running
+		 */
+		setIntervalMs(ms: number) {
+			if (ms === intervalMs) return;
+			intervalMs = ms;
+			if (running) schedule(ms);
 		},
 		/** Forgets the connection state, for when the poller is pointed at another backend */
 		reset() {

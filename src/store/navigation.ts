@@ -1,7 +1,7 @@
 import { browser } from '$app/environment';
 import { writable } from 'svelte/store';
 
-export type TabId = 'setup' | 'device' | 'logs';
+export type TabId = 'setup' | 'analytics' | 'device' | 'logs';
 
 export interface TabDefinition {
 	id: TabId;
@@ -17,6 +17,12 @@ export const TABS: TabDefinition[] = [
 		label: 'Setup',
 		icon: 'polyline',
 		description: 'Draw each zone on the camera frame and on the map, then link the two'
+	},
+	{
+		id: 'analytics',
+		label: 'Analytics',
+		icon: 'insights',
+		description: 'Vehicles counted per zone in the window the device has just finished'
 	},
 	{
 		id: 'device',

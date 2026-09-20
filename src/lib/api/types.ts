@@ -253,3 +253,39 @@ export interface ZonesRealtime {
 	equipment_id: string;
 	data: ZoneRealtime[];
 }
+
+export interface VehicleTypeStats {
+	/** Average over the vehicles of this class that got a speed, km/h. -1 means none did */
+	estimated_avg_speed: number;
+	estimated_sum_intensity: number;
+	/** Of those vehicles, how many had a usable speed. Never greater than the intensity */
+	estimated_defined_sum_intensity: number;
+}
+
+export interface TrafficFlowInfo {
+	/** km/h, or -1 when no vehicle in the window got a speed */
+	avg_speed: number;
+	sum_intensity: number;
+	defined_sum_intensity: number;
+	/** Seconds between one vehicle arriving and the next */
+	avg_headway: number;
+}
+
+export interface ZoneStats {
+	/** The same identifier /api/polygons/geojson reports */
+	id: string;
+	lane_number: number;
+	lane_direction: number;
+	period_start: string;
+	period_end: string;
+	/** By vehicle class, the classes the model knows, zeros included */
+	statistics: Record<string, VehicleTypeStats>;
+	traffic_flow_parameters: TrafficFlowInfo;
+}
+
+export interface AllZonesStats {
+	equipment_id: string;
+	data: ZoneStats[];
+	/** From key to key, both "ld-{lane_direction}_ln-{lane_number}" */
+	od_matrix: Record<string, Record<string, number>>;
+}

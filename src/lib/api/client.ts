@@ -1,4 +1,5 @@
 import type {
+	AllZonesStats,
 	ConfigPatch,
 	LogsQuery,
 	LogsResponse,
@@ -160,3 +161,7 @@ export const getLogs = (baseURL: string, query: LogsQuery = {}, signal?: AbortSi
 /** How many vehicles are in each zone right now. Instantaneous, unlike the windowed statistics */
 export const getOccupancy = (baseURL: string, signal?: AbortSignal) =>
 	request<ZonesRealtime>(baseURL, '/api/realtime/occupancy', { signal });
+
+/** The last completed window. Its numbers do not move until the next one ends */
+export const getStats = (baseURL: string, signal?: AbortSignal) =>
+	request<AllZonesStats>(baseURL, '/api/stats/all', { signal });

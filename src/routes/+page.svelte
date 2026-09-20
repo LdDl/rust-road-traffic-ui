@@ -8,6 +8,7 @@
 	import StatusBar from '../components/StatusBar.svelte';
 	import DeviceView from '../components/DeviceView.svelte';
 	import LogsView from '../components/LogsView.svelte';
+	import AnalyticsView from '../components/AnalyticsView.svelte';
 	import {
 		state,
 		canvasReady,
@@ -427,6 +428,7 @@
 <div id="main-app">
 	<StatusBar />
 	<DeviceView active={$activeTab === 'device'} />
+	<AnalyticsView active={$activeTab === 'analytics'} />
 	<LogsView active={$activeTab === 'logs'} />
 	<div class="tab-panel" class:tab-hidden={$activeTab !== 'setup'}>
 		<div class="toolbar-wrapper" class:toolbar-hidden-mobile={mobileTab !== 'view'}>
