@@ -118,7 +118,8 @@
     .toolbar-side {
         position: fixed;
         right: 0;
-        top: 50%;
+        /* Centred on the workspace, not on the viewport: the status header takes the top strip */
+        top: calc(50% + var(--statusbar-height) / 2);
         transform: translateY(-50%);
         background: var(--bg-primary);
         border-radius: var(--radius-md) 0 0 var(--radius-md);

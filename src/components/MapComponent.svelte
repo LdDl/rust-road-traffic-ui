@@ -15,6 +15,11 @@
 
     export let klass: string = ''
 
+    /** Called after the map comes back from a hidden tab: MapLibre measures nothing while hidden */
+    export function resize() {
+        $map?.resize()
+    }
+
     let mapContainer: HTMLElement;
     const { accepted_uri } = mapStyleStore;
     let initialStylesURI = $accepted_uri

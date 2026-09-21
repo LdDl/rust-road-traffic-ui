@@ -4,57 +4,69 @@ import { CustomPolygon } from './custom_canvas.js';
 import { CustomLineGroup } from './custom_line.js';
 
 export function resizeCanvas(canvasState: FabricCanvasWrap): void {
-    if (!canvasState) return;
+	if (!canvasState) return;
 
-    const canvasElem = document.getElementById('fit_canvas') as HTMLCanvasElement;
-    const imageElem = document.getElementById('fit_img') as HTMLImageElement;
-    
-    if (!canvasElem || !imageElem) return;
+	const canvasElem = document.getElementById('fit_canvas') as HTMLCanvasElement;
+	const imageElem = document.getElementById('fit_img') as HTMLImageElement;
 
-    const newWidth = imageElem.clientWidth;
-    const newHeight = imageElem.clientHeight;
+	if (!canvasElem || !imageElem) return;
 
-    if (canvasState.width === newWidth && canvasState.height === newHeight) return;
+	const newWidth = imageElem.clientWidth;
+	const newHeight = imageElem.clientHeight;
+	const naturalWidth = imageElem.naturalWidth;
+	const naturalHeight = imageElem.naturalHeight;
 
-    const scaleX = newWidth / canvasState.width;
-    const scaleY = newHeight / canvasState.height;
+	// A hidden panel measures zero, and scaling every object by zero cannot be undone
+	if (newWidth === 0 || newHeight === 0) return;
+	if (!naturalWidth || !naturalHeight) return;
+	if (!canvasState.width || !canvasState.height) return;
 
-    // Scale all objects
-    canvasState.getObjects().forEach(obj => {
-        obj.scaleX = (obj.scaleX || 1) * scaleX;
-        obj.scaleY = (obj.scaleY || 1) * scaleY;
-        obj.left = (obj.left || 0) * scaleX;
-        obj.top = (obj.top || 0) * scaleY;
-        obj.setCoords();
+	// How much one pixel of the source frame measures on screen. Another video source
+	// changes this even when the picture keeps its size on screen, and zones are placed
+	// by multiplying their source pixels by exactly this
+	const wantedScaleWidth = newWidth / naturalWidth;
+	const wantedScaleHeight = newHeight / naturalHeight;
 
-        if (obj instanceof CustomPolygon && obj.current_points) {
-            obj.current_points = obj.current_points.map(point => 
-                new Point(point.x * scaleX, point.y * scaleY)
-            );
-        }
+	const scaleX = canvasState.scaleWidth ? wantedScaleWidth / canvasState.scaleWidth : 1;
+	const scaleY = canvasState.scaleHeight ? wantedScaleHeight / canvasState.scaleHeight : 1;
+	const sameSize = canvasState.width === newWidth && canvasState.height === newHeight;
+	const sameScale = Math.abs(scaleX - 1) < 1e-6 && Math.abs(scaleY - 1) < 1e-6;
+	if (sameSize && sameScale) return;
 
-        if (obj instanceof CustomLineGroup && obj.current_points) {
-            obj.current_points = obj.current_points.map(point => [
-                point[0] * scaleX,
-                point[1] * scaleY
-            ]) as [[number, number], [number, number]];
-        }
-    });
+	// Scale all objects
+	canvasState.getObjects().forEach((obj) => {
+		obj.scaleX = (obj.scaleX || 1) * scaleX;
+		obj.scaleY = (obj.scaleY || 1) * scaleY;
+		obj.left = (obj.left || 0) * scaleX;
+		obj.top = (obj.top || 0) * scaleY;
+		obj.setCoords();
 
-    // Scale background image
-    const bgImage = canvasState.backgroundImage;
-    if (bgImage) {
-        bgImage.scaleX = (bgImage.scaleX || 1) * scaleX;
-        bgImage.scaleY = (bgImage.scaleY || 1) * scaleY;
-    }
+		if (obj instanceof CustomPolygon && obj.current_points) {
+			obj.current_points = obj.current_points.map(
+				(point) => new Point(point.x * scaleX, point.y * scaleY)
+			);
+		}
 
-    // Update canvas
-    canvasState.discardActiveObject();
-    canvasState.setDimensions({
-        width: canvasState.getWidth() * scaleX,
-        height: canvasState.getHeight() * scaleY
-    });
-    canvasState.scaleWidth = newWidth / imageElem.naturalWidth;
-    canvasState.scaleHeight = newHeight / imageElem.naturalHeight;
-    canvasState.renderAll();
+		if (obj instanceof CustomLineGroup && obj.current_points) {
+			obj.current_points = obj.current_points.map((point) => [
+				point[0] * scaleX,
+				point[1] * scaleY
+			]) as [[number, number], [number, number]];
+		}
+	});
+
+	// Scale background image
+	const bgImage = canvasState.backgroundImage;
+	if (bgImage) {
+		bgImage.scaleX = (bgImage.scaleX || 1) * scaleX;
+		bgImage.scaleY = (bgImage.scaleY || 1) * scaleY;
+	}
+
+	// Update canvas
+	canvasState.discardActiveObject();
+	// The canvas always covers the picture, whatever changed underneath
+	canvasState.setDimensions({ width: newWidth, height: newHeight });
+	canvasState.scaleWidth = wantedScaleWidth;
+	canvasState.scaleHeight = wantedScaleHeight;
+	canvasState.renderAll();
 }
