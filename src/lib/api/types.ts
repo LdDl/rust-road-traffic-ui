@@ -1,5 +1,4 @@
-// Mirrors the schemas in swagger.json. Everything the backend marks nullable is
-// optional here as well, so a missing key and an explicit null read the same way.
+// Mirrors the backend OpenAPI schemas, including nullable configuration fields.
 
 export interface InputStatus {
 	video_src: string;
@@ -39,6 +38,21 @@ export interface RedisStatus {
 	host: string;
 	port: number;
 	channel: string;
+	vehicle_events?: RedisVehicleEventsStatus;
+}
+
+export interface RedisVehicleEventsStatus {
+	enabled: boolean;
+	host: string;
+	port: number;
+	db_index: number;
+	channel: string;
+	separate_connection: boolean;
+}
+
+export interface AnprStatus {
+	enabled: boolean;
+	image: EventImage;
 }
 
 export interface LoggingStatus {
@@ -80,6 +94,7 @@ export interface StatusResponse extends ChangeState {
 	detection: DetectionStatus;
 	tracking: TrackingStatus;
 	redis: RedisStatus;
+	anpr?: AnprStatus;
 	logging: LoggingStatus;
 	last_problem?: LoggedProblem | null;
 }
@@ -92,7 +107,40 @@ export interface ReplaceZonesResponse extends ChangeState {
 	zones_ids: string[];
 }
 
+export type EventImage = '' | 'full' | 'vehicle' | 'plate';
+
+export interface AnprSettings {
+	enable: boolean;
+	image: EventImage;
+}
+
+export interface RedisConnectionSettings {
+	host: string;
+	port: number;
+	username: string | null;
+	password: string;
+	db_index: number;
+}
+
+export interface RedisVehicleEventsSettings {
+	enable: boolean;
+	channel_name: string;
+	connection: RedisConnectionSettings | null;
+}
+
+export interface RedisVehicleEventsPatch {
+	enable?: boolean;
+	channel_name?: string;
+	connection?: Partial<RedisConnectionSettings> | null;
+}
+
+export interface AnprPatch {
+	enable?: boolean;
+	image?: EventImage;
+}
+
 export interface ConfigView {
+	anpr: AnprSettings | null;
 	equipment_info: { id: string };
 	input: { video_src: string; process_every_nth_frame: number };
 	tracking: {
@@ -112,6 +160,7 @@ export interface ConfigView {
 		db_index: number;
 		channel_name: string;
 		password: string;
+		vehicle_events: RedisVehicleEventsSettings;
 	};
 	verbose: {
 		level: string | null;
@@ -126,6 +175,7 @@ export interface ConfigView {
  * "clear" only for the ones typed with `| null` here; elsewhere it is not a value to send
  */
 export interface ConfigPatch {
+	anpr?: AnprPatch;
 	equipment_info?: { id?: string };
 	input?: { video_src?: string; process_every_nth_frame?: number };
 	tracking?: {
@@ -148,6 +198,7 @@ export interface ConfigPatch {
 		db_index?: number;
 		channel_name?: string;
 		password?: string;
+		vehicle_events?: RedisVehicleEventsPatch;
 	};
 	verbose?: {
 		level?: string | null;

@@ -14,6 +14,7 @@
 	import { changeAPI } from '../store/state';
 	import { copyText } from '$lib/clipboard';
 	import { registerEscapeLayer } from '$lib/escape_stack';
+	import type { EventImage } from '$lib/api/types';
 	import {
 		formatCount,
 		formatFps,
@@ -36,8 +37,14 @@
 	let barHeight = 0;
 	let detailsOpen = false;
 	let settingsOpen = false;
-	/** Detection, tracking, Redis and logging are fixed at startup, so they stay folded away */
+	/** Configuration details stay folded away until requested */
 	let configOpen = false;
+	const imageLabels: Record<EventImage, string> = {
+		'': 'none',
+		full: 'full frame',
+		vehicle: 'vehicle',
+		plate: 'plate'
+	};
 	let detailsEl: HTMLElement | undefined;
 	let now = Date.now();
 	let ticker: ReturnType<typeof setInterval> | undefined;
@@ -527,7 +534,7 @@
 						</article>
 
 						<article class="card">
-							<h3>Redis</h3>
+							<h3>Redis statistics</h3>
 							<dl>
 								<dt>State</dt>
 								<dd>{state.redis.enabled ? 'enabled' : 'disabled'}</dd>
@@ -536,6 +543,46 @@
 								<dt>Channel</dt>
 								<dd class="mono">{state.redis.channel}</dd>
 							</dl>
+						</article>
+
+						<article class="card">
+							<h3>Redis vehicle events</h3>
+							{#if state.redis.vehicle_events}
+								<dl>
+									<dt>State</dt>
+									<dd>{state.redis.vehicle_events.enabled ? 'enabled' : 'disabled'}</dd>
+									<dt>Connection</dt>
+									<dd>
+										{state.redis.vehicle_events.separate_connection
+											? 'separate'
+											: 'shared with statistics'}
+									</dd>
+									<dt>Host</dt>
+									<dd class="mono">
+										{state.redis.vehicle_events.host}:{state.redis.vehicle_events.port}
+									</dd>
+									<dt>Database</dt>
+									<dd class="mono">{state.redis.vehicle_events.db_index}</dd>
+									<dt>Channel</dt>
+									<dd class="mono">{state.redis.vehicle_events.channel}</dd>
+								</dl>
+							{:else}
+								<p class="card-text">Not reported by this backend.</p>
+							{/if}
+						</article>
+
+						<article class="card">
+							<h3>ANPR</h3>
+							{#if state.anpr}
+								<dl>
+									<dt>Recognition</dt>
+									<dd>{state.anpr.enabled ? 'enabled' : 'disabled'}</dd>
+									<dt>Event image</dt>
+									<dd>{state.anpr.enabled ? imageLabels[state.anpr.image] : 'none'}</dd>
+								</dl>
+							{:else}
+								<p class="card-text">Not reported by this backend.</p>
+							{/if}
 						</article>
 
 						<article class="card">
