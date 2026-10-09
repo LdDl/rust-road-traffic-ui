@@ -1,6 +1,18 @@
 <script lang="ts">
 	import { onDestroy } from 'svelte';
 	import SectionFooter from './SectionFooter.svelte';
+	import ModelSettingsFields from './ModelSettingsFields.svelte';
+	import {
+		configDraft,
+		configSections,
+		sectionPatch as buildSectionPatch,
+		changedFields,
+		missingFields,
+		valueAt as readValue,
+		sameValue,
+		type ConfigDraft,
+		type SectionKey
+	} from '$lib/api/config-form';
 	import { tabBadges } from '../store/navigation';
 	import { askForRestart } from '../store/restart';
 	import { refreshStatus, restartEpoch } from '../store/status';
@@ -8,7 +20,6 @@
 	import { checkRedis, getConfig, getTrackingOptions, updateConfig } from '$lib/api/client';
 	import type {
 		ConfigPatch,
-		ConfigView,
 		ErrorResponse,
 		RedisCheckResponse,
 		TrackingOptions
@@ -18,25 +29,10 @@
 	/** False while another tab is on screen. The view stays mounted so unapplied edits survive a tab switch */
 	export let active = false;
 
-	type SectionKey = keyof ConfigView;
 	type Result = { kind: 'ok' | 'same' | 'error'; text: string; fields?: string[] };
 
-	// Only these accept null, and for them null means "not set". An empty input maps to it
-	const NULLABLE = new Set([
-		'tracking.max_lost_seconds',
-		'tracking.max_no_match',
-		'tracking.iou_threshold',
-		'redis_publisher.username',
-		'verbose.level',
-		'verbose.logs_folder',
-		'verbose.max_file_size_mb',
-		'verbose.max_files'
-	]);
-	// An empty Redis password is a real value: the server has none
-	const EMPTY_ALLOWED = new Set(['redis_publisher.password']);
-
-	let loaded: ConfigView | null = null;
-	let draft: ConfigView | null = null;
+	let loaded: ConfigDraft | null = null;
+	let draft: ConfigDraft | null = null;
 	let options: TrackingOptions | null = null;
 	let loading = false;
 	let loadError: string | null = null;
@@ -48,7 +44,7 @@
 	// What the device refused, by dotted path, with the value it refused
 	let refused: Record<string, { text: string; value: unknown }> = {};
 
-	const clone = (value: ConfigView): ConfigView => JSON.parse(JSON.stringify(value));
+	const clone = (value: ConfigDraft): ConfigDraft => structuredClone(value);
 
 	async function loadAll() {
 		loading = true;
@@ -58,8 +54,9 @@
 				getConfig($changeAPI),
 				getTrackingOptions($changeAPI)
 			]);
-			loaded = config;
-			draft = clone(config);
+			loaded = configDraft(config);
+			draft = clone(loaded);
+			refused = {};
 			options = tracking;
 			results = {};
 			redisCheck = null;
@@ -80,53 +77,31 @@
 		loadAll();
 	}
 
-	function normalise(section: SectionKey, field: string, value: unknown) {
-		if (value === '' && NULLABLE.has(`${section}.${field}`)) return null;
-		return value;
-	}
-
 	function sectionPatch(section: SectionKey): Record<string, unknown> {
-		if (!loaded || !draft) return {};
-		const before = loaded[section] as Record<string, unknown>;
-		const after = draft[section] as Record<string, unknown>;
-		const patch: Record<string, unknown> = {};
-		for (const field of Object.keys(after)) {
-			const value = normalise(section, field, after[field]);
-			// Both sides, so an empty string from the device and an emptied input agree
-			if (value !== normalise(section, field, before[field])) patch[field] = value;
-		}
-		return patch;
+		return loaded && draft ? buildSectionPatch(loaded, draft, section) : {};
 	}
 
 	function missingRequired(section: SectionKey): string[] {
-		if (!draft) return [];
-		const values = draft[section] as Record<string, unknown>;
-		return Object.keys(values).filter((field) => {
-			const path = `${section}.${field}`;
-			if (NULLABLE.has(path)) return false;
-			const value = values[field];
-			if (value === '' && EMPTY_ALLOWED.has(path)) return false;
-			return value === null || value === undefined || value === '';
-		});
+		return draft ? missingFields(draft, section) : [];
 	}
 
 	// Both recompute on every keystroke, since the inputs are bound into draft
-	$: changes = draft && loaded ? perSection(draft, (s) => Object.keys(sectionPatch(s)).length) : {};
-	$: missing = draft ? perSection(draft, missingRequired) : {};
+	$: changes = draft && loaded ? perSection((s) => changedFields(sectionPatch(s))) : {};
+	$: missing = draft ? perSection(missingRequired) : {};
 
 	// Edits typed but not applied yet, counted on the tab so they are not forgotten elsewhere
 	$: unappliedTotal = Object.values(changes).reduce((sum, count) => sum + (count ?? 0), 0);
 	$: tabBadges.update((badges) => ({ ...badges, device: unappliedTotal }));
 	onDestroy(() => tabBadges.update((badges) => ({ ...badges, device: 0 })));
 
-	function perSection(value: ConfigView, compute: (section: SectionKey) => any) {
-		const out: Partial<Record<SectionKey, any>> = {};
-		for (const section of Object.keys(value) as SectionKey[]) out[section] = compute(section);
+	function perSection<T>(compute: (section: SectionKey) => T) {
+		const out: Partial<Record<SectionKey, T>> = {};
+		for (const section of configSections) out[section] = compute(section);
 		return out;
 	}
 
 	async function apply(section: SectionKey) {
-		if (!draft) return;
+		if (!draft || busy[section] || missingRequired(section).length) return;
 		const patch = { [section]: sectionPatch(section) } as ConfigPatch;
 		busy = { ...busy, [section]: true };
 		try {
@@ -140,10 +115,10 @@
 			};
 			// The device is the reference now: take its values for this section and keep
 			// whatever is still being edited in the others
-			const fresh = await getConfig($changeAPI);
+			const fresh = configDraft(await getConfig($changeAPI));
 			const kept = clone(draft);
 			loaded = fresh;
-			draft = { ...kept, [section]: clone(fresh)[section] } as ConfigView;
+			draft = { ...kept, [section]: clone(fresh)[section] } as ConfigDraft;
 			refreshStatus();
 		} catch (error) {
 			// The refusal names the fields it is about, so each one is shown at its own input
@@ -152,7 +127,7 @@
 			for (const detail of body?.details ?? []) {
 				refused = {
 					...refused,
-					[detail.field]: { text: detail.error, value: valueAt(detail.field) }
+					[detail.field]: { text: detail.error, value: structuredClone(valueAt(detail.field)) }
 				};
 			}
 			// The reason sits at each field, so the line only says which ones to look at
@@ -175,16 +150,18 @@
 	}
 
 	function valueAt(path: string) {
-		const [section, field] = path.split('.');
-		if (!draft || !(section in draft)) return undefined;
-		return (draft[section as SectionKey] as Record<string, unknown>)[field];
+		if (path.endsWith('.net_width/net_height')) {
+			const model = path.slice(0, -'net_width/net_height'.length);
+			return [readValue(draft, `${model}net_width`), readValue(draft, `${model}net_height`)];
+		}
+		return readValue(draft, path);
 	}
 
 	// A refusal is about the value that was sent: once the field is edited it no longer applies
 	$: issues = draft
 		? Object.fromEntries(
 				Object.entries(refused)
-					.filter(([path, issue]) => valueAt(path) === issue.value)
+					.filter(([path, issue]) => sameValue(valueAt(path), issue.value))
 					.map(([path, issue]) => [path, issue.text])
 			)
 		: {};
@@ -202,7 +179,7 @@
 
 	function revert(section: SectionKey) {
 		if (!loaded || !draft) return;
-		draft = { ...draft, [section]: clone(loaded)[section] } as ConfigView;
+		draft = { ...draft, [section]: clone(loaded)[section] } as ConfigDraft;
 		results = { ...results, [section]: undefined };
 		refused = Object.fromEntries(
 			Object.entries(refused).filter(([path]) => !path.startsWith(`${section}.`))
@@ -213,25 +190,46 @@
 		}
 	}
 
-	async function runRedisCheck() {
+	async function runRedisCheck(events = false) {
 		if (!draft) return;
-		const redis = draft.redis_publisher;
+		const redis = events
+			? (draft.redis_publisher.vehicle_events.connection ?? draft.redis_publisher)
+			: draft.redis_publisher;
+		const checked = JSON.stringify([$changeAPI, draft.redis_publisher]);
 		checkingRedis = true;
 		redisCheck = null;
 		redisCheckError = null;
 		try {
-			redisCheck = await checkRedis($changeAPI, {
+			const response = await checkRedis($changeAPI, {
 				host: redis.host,
 				port: redis.port,
-				username: redis.username === '' ? null : redis.username,
+				username: redis.username ?? '',
 				password: redis.password,
 				db_index: redis.db_index
 			});
+			if (checked === JSON.stringify([$changeAPI, draft?.redis_publisher])) redisCheck = response;
 		} catch (error) {
-			redisCheckError = error instanceof Error ? error.message : 'The check did not run';
+			if (checked === JSON.stringify([$changeAPI, draft?.redis_publisher])) {
+				redisCheckError = error instanceof Error ? error.message : 'The check did not run';
+			}
 		} finally {
 			checkingRedis = false;
 		}
+	}
+
+	let checkedSettings = '';
+	$: currentRedisSettings = JSON.stringify([$changeAPI, draft?.redis_publisher]);
+	$: if (currentRedisSettings !== checkedSettings) {
+		checkedSettings = currentRedisSettings;
+		redisCheck = null;
+		redisCheckError = null;
+	}
+
+	function setSeparateRedis(separate: boolean) {
+		if (!draft) return;
+		draft.redis_publisher.vehicle_events.connection = separate
+			? { host: '', port: 6379, username: null, password: '', db_index: 0 }
+			: null;
 	}
 
 	// A value the device already uses stays selectable even if the list does not name it
@@ -252,8 +250,8 @@
 		<header class="view-header">
 			<h2>Device</h2>
 			<p>
-				<strong>Apply</strong> changes the running app. <strong>Save</strong> in the header writes
-				everything to the configuration file, and most settings take effect only after a
+				<strong>Apply</strong> updates settings in memory. <strong>Save</strong> in the header
+				writes everything to the configuration file, and most settings take effect only after a
 				<strong>restart</strong>, which is also in the header.
 			</p>
 		</header>
@@ -490,16 +488,98 @@
 					</label>
 				</div>
 
+				<h4 class="subheading">Vehicle events</h4>
+				<div class="fields">
+					<label class="field wide toggle-field">
+						<input type="checkbox" bind:checked={draft.redis_publisher.vehicle_events.enable} />
+						<span>Publish vehicle events to Redis</span>
+					</label>
+					<label class="field wide">
+						<span class="label">Event channel</span>
+						<input
+							type="text"
+							class="mono"
+							bind:value={draft.redis_publisher.vehicle_events.channel_name}
+							class:invalid={!!issues['redis_publisher.vehicle_events.channel_name']}
+						/>
+						{#if issues['redis_publisher.vehicle_events.channel_name']}<span class="field-error"
+								>{issues['redis_publisher.vehicle_events.channel_name']}</span
+							>{/if}
+					</label>
+					<label class="field wide toggle-field">
+						<input
+							type="checkbox"
+							checked={draft.redis_publisher.vehicle_events.connection !== null}
+							on:change={(event) => setSeparateRedis(event.currentTarget.checked)}
+						/>
+						<span>Use a separate Redis connection for events</span>
+					</label>
+					{#if draft.redis_publisher.vehicle_events.connection}
+						{#each ['host', 'username', 'password'] as field}
+							<label class="field">
+								<span class="label">{field === 'username' ? 'User' : field}</span>
+								<input
+									type="text"
+									class="mono"
+									autocomplete="off"
+									spellcheck="false"
+									bind:value={
+										draft.redis_publisher.vehicle_events.connection[
+											field as 'host' | 'username' | 'password'
+										]
+									}
+									class:invalid={!!issues[`redis_publisher.vehicle_events.connection.${field}`]}
+								/>
+								{#if issues[`redis_publisher.vehicle_events.connection.${field}`]}<span
+										class="field-error"
+										>{issues[`redis_publisher.vehicle_events.connection.${field}`]}</span
+									>{/if}
+							</label>
+						{/each}
+						{#each ['port', 'db_index'] as field}
+							<label class="field">
+								<span class="label">{field === 'port' ? 'Port' : 'Database'}</span>
+								<input
+									type="number"
+									min={field === 'port' ? 1 : 0}
+									max={field === 'port' ? 65535 : undefined}
+									step="1"
+									bind:value={
+										draft.redis_publisher.vehicle_events.connection[field as 'port' | 'db_index']
+									}
+									class:invalid={!!issues[`redis_publisher.vehicle_events.connection.${field}`]}
+								/>
+								{#if issues[`redis_publisher.vehicle_events.connection.${field}`]}<span
+										class="field-error"
+										>{issues[`redis_publisher.vehicle_events.connection.${field}`]}</span
+									>{/if}
+							</label>
+						{/each}
+					{:else}
+						<p class="hint">
+							Events use the connection above, even when statistics publishing is disabled.
+						</p>
+					{/if}
+				</div>
+
 				<div class="check-row">
 					<button
 						type="button"
 						class="action-btn secondary"
 						disabled={checkingRedis}
-						on:click={runRedisCheck}
+						on:click={() => runRedisCheck()}
 					>
 						<i class="material-icons">{checkingRedis ? 'hourglass_empty' : 'lan'}</i>
-						{checkingRedis ? 'Checking' : 'Check connection'}
+						{checkingRedis ? 'Checking' : 'Check main connection'}
 					</button>
+					{#if draft.redis_publisher.vehicle_events.connection}
+						<button
+							type="button"
+							class="action-btn secondary"
+							disabled={checkingRedis}
+							on:click={() => runRedisCheck(true)}>Check event connection</button
+						>
+					{/if}
 					{#if redisCheck}
 						<span class="check-result" class:ok={redisCheck.ok} class:error={!redisCheck.ok}>
 							{redisCheck.ok
@@ -520,6 +600,44 @@
 					missing={missing.redis_publisher ?? []}
 					onApply={() => apply('redis_publisher')}
 					onRevert={() => revert('redis_publisher')}
+				/>
+			</article>
+
+			<article class="card" class:pending={(changes.anpr ?? 0) > 0}>
+				<header class="card-header">
+					<h3>ANPR</h3>
+					<span class="tag">after restart</span>
+				</header>
+				<div class="fields">
+					<label class="field wide toggle-field">
+						<input type="checkbox" bind:checked={draft.anpr.enable} />
+						<span>Recognize license plates</span>
+					</label>
+					<label class="field wide">
+						<span class="label">Event image</span>
+						<select bind:value={draft.anpr.image}>
+							<option value="">None</option>
+							<option value="full">Full frame</option>
+							<option value="vehicle">Vehicle</option>
+							<option value="plate">Plate</option>
+						</select>
+					</label>
+				</div>
+				<p class="hint model-note">Model files must be available on the device.</p>
+				<ModelSettingsFields
+					title="Plate detection"
+					path="anpr.plates"
+					bind:model={draft.anpr.plates}
+					{issues}
+				/>
+				<ModelSettingsFields title="OCR" path="anpr.ocr" bind:model={draft.anpr.ocr} {issues} />
+				<SectionFooter
+					result={shownResults.anpr}
+					changes={changes.anpr ?? 0}
+					busy={busy.anpr ?? false}
+					missing={missing.anpr ?? []}
+					onApply={() => apply('anpr')}
+					onRevert={() => revert('anpr')}
 				/>
 			</article>
 
@@ -926,6 +1044,16 @@
 
 	.restart-row {
 		margin-top: var(--space-lg);
+	}
+
+	.subheading {
+		margin: var(--space-lg) 0 var(--space-md);
+		font-size: var(--text-md);
+		color: var(--text-primary);
+	}
+
+	.model-note {
+		margin-top: var(--space-md);
 	}
 
 	.check-row {
