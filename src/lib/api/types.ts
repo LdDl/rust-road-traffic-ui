@@ -109,20 +109,9 @@ export interface ReplaceZonesResponse extends ChangeState {
 
 export type EventImage = '' | 'full' | 'vehicle' | 'plate';
 
-export interface InferenceModelSettings {
-	network_weights: string;
-	conf_threshold: number;
-	nms_threshold: number;
-	net_width: number | null;
-	net_height: number | null;
-	net_classes: string[];
-}
-
 export interface AnprSettings {
 	enable: boolean;
 	image: EventImage;
-	plates: InferenceModelSettings;
-	ocr: InferenceModelSettings;
 }
 
 export interface RedisConnectionSettings {
@@ -148,8 +137,6 @@ export interface RedisVehicleEventsPatch {
 export interface AnprPatch {
 	enable?: boolean;
 	image?: EventImage;
-	plates?: Partial<InferenceModelSettings>;
-	ocr?: Partial<InferenceModelSettings>;
 }
 
 export interface ConfigView {

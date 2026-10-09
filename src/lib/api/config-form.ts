@@ -1,16 +1,8 @@
-import type { AnprSettings, ConfigView, InferenceModelSettings } from './types';
+import type { AnprSettings, ConfigView } from './types';
 
 export type ConfigDraft = Omit<ConfigView, 'anpr'> & { anpr: AnprSettings };
 export type SectionKey = keyof ConfigView;
 
-const modelFields = [
-	'network_weights',
-	'conf_threshold',
-	'nms_threshold',
-	'net_width',
-	'net_height',
-	'net_classes'
-];
 const connectionFields = ['host', 'port', 'username', 'password', 'db_index'];
 const fields: Record<SectionKey, string[]> = {
 	input: ['video_src', 'process_every_nth_frame'],
@@ -33,12 +25,7 @@ const fields: Record<SectionKey, string[]> = {
 		'vehicle_events.channel_name',
 		...connectionFields.map((f) => `vehicle_events.connection.${f}`)
 	],
-	anpr: [
-		'enable',
-		'image',
-		...modelFields.map((f) => `plates.${f}`),
-		...modelFields.map((f) => `ocr.${f}`)
-	]
+	anpr: ['enable', 'image']
 };
 
 export const configSections = Object.keys(fields) as SectionKey[];
@@ -52,11 +39,7 @@ const nullable = new Set([
 	'verbose.level',
 	'verbose.logs_folder',
 	'verbose.max_file_size_mb',
-	'verbose.max_files',
-	'anpr.plates.net_width',
-	'anpr.plates.net_height',
-	'anpr.ocr.net_width',
-	'anpr.ocr.net_height'
+	'verbose.max_files'
 ]);
 const emptyAllowed = new Set([
 	'redis_publisher.password',
@@ -64,22 +47,11 @@ const emptyAllowed = new Set([
 	'anpr.image'
 ]);
 
-function defaultModel(): InferenceModelSettings {
-	return {
-		network_weights: '',
-		conf_threshold: 0.4,
-		nms_threshold: 0.2,
-		net_width: null,
-		net_height: null,
-		net_classes: []
-	};
-}
-
 export function configDraft(config: ConfigView): ConfigDraft {
 	const copy = structuredClone(config);
 	return {
 		...copy,
-		anpr: copy.anpr ?? { enable: false, image: '', plates: defaultModel(), ocr: defaultModel() }
+		anpr: copy.anpr ?? { enable: false, image: '' }
 	};
 }
 
@@ -152,12 +124,6 @@ export function missingFields(draft: ConfigDraft, section: SectionKey): string[]
 		const path = `${section}.${field}`;
 		if (nullable.has(path)) return false;
 		if (path.startsWith(`${connectionPath}.`) && !valueAt(draft, connectionPath)) return false;
-		if (
-			section === 'anpr' &&
-			!draft.anpr.enable &&
-			(field.endsWith('.network_weights') || field.endsWith('.net_classes'))
-		)
-			return false;
 		const value = valueAt(draft, path);
 		if (value === '' && emptyAllowed.has(path)) return false;
 		return (

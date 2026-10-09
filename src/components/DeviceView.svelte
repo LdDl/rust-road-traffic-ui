@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { onDestroy } from 'svelte';
 	import SectionFooter from './SectionFooter.svelte';
-	import ModelSettingsFields from './ModelSettingsFields.svelte';
 	import {
 		configDraft,
 		configSections,
@@ -150,10 +149,6 @@
 	}
 
 	function valueAt(path: string) {
-		if (path.endsWith('.net_width/net_height')) {
-			const model = path.slice(0, -'net_width/net_height'.length);
-			return [readValue(draft, `${model}net_width`), readValue(draft, `${model}net_height`)];
-		}
 		return readValue(draft, path);
 	}
 
@@ -623,14 +618,6 @@
 						</select>
 					</label>
 				</div>
-				<p class="hint model-note">Model files must be available on the device.</p>
-				<ModelSettingsFields
-					title="Plate detection"
-					path="anpr.plates"
-					bind:model={draft.anpr.plates}
-					{issues}
-				/>
-				<ModelSettingsFields title="OCR" path="anpr.ocr" bind:model={draft.anpr.ocr} {issues} />
 				<SectionFooter
 					result={shownResults.anpr}
 					changes={changes.anpr ?? 0}
@@ -1050,10 +1037,6 @@
 		margin: var(--space-lg) 0 var(--space-md);
 		font-size: var(--text-md);
 		color: var(--text-primary);
-	}
-
-	.model-note {
-		margin-top: var(--space-md);
 	}
 
 	.check-row {
