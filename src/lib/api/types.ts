@@ -38,6 +38,21 @@ export interface RedisStatus {
 	host: string;
 	port: number;
 	channel: string;
+	vehicle_events?: RedisVehicleEventsStatus;
+}
+
+export interface RedisVehicleEventsStatus {
+	enabled: boolean;
+	host: string;
+	port: number;
+	db_index: number;
+	channel: string;
+	separate_connection: boolean;
+}
+
+export interface AnprStatus {
+	enabled: boolean;
+	image: EventImage;
 }
 
 export interface LoggingStatus {
@@ -79,6 +94,7 @@ export interface StatusResponse extends ChangeState {
 	detection: DetectionStatus;
 	tracking: TrackingStatus;
 	redis: RedisStatus;
+	anpr?: AnprStatus;
 	logging: LoggingStatus;
 	last_problem?: LoggedProblem | null;
 }
