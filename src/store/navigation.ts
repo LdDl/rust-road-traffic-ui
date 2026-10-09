@@ -1,7 +1,7 @@
 import { browser } from '$app/environment';
 import { writable } from 'svelte/store';
 
-export type TabId = 'setup' | 'analytics' | 'device' | 'logs';
+export type TabId = 'setup' | 'analytics' | 'anpr' | 'device' | 'logs';
 
 export interface TabDefinition {
 	id: TabId;
@@ -23,6 +23,12 @@ export const TABS: TabDefinition[] = [
 		label: 'Analytics',
 		icon: 'insights',
 		description: 'Vehicles counted per zone in the window the device has just finished'
+	},
+	{
+		id: 'anpr',
+		label: 'ANPR',
+		icon: 'directions_car',
+		description: 'Completed passages, vehicle images and license plate recognition'
 	},
 	{
 		id: 'device',

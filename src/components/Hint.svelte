@@ -9,6 +9,7 @@
 	export let text: string;
 	export let label: string = 'What this means';
 	export let size: 'sm' | 'md' = 'sm';
+	export let triggerText = '';
 
 	const BUBBLE_WIDTH = 260;
 	const GAP = 6;
@@ -63,12 +64,13 @@
 		bind:this={trigger}
 		type="button"
 		class="hint-trigger"
+		class:text-trigger={!!triggerText}
 		class:active={open}
 		aria-label={label}
 		aria-expanded={open}
 		on:click|stopPropagation={toggle}
 	>
-		<i class="material-icons">help_outline</i>
+		{#if triggerText}{triggerText}{:else}<i class="material-icons">help_outline</i>{/if}
 	</button>
 </span>
 
@@ -107,6 +109,14 @@
 		font-size: var(--icon-xs);
 	}
 
+	.hint-trigger.text-trigger {
+		font: inherit;
+		color: inherit;
+		opacity: 1;
+		text-decoration: underline dotted;
+		text-underline-offset: 4px;
+	}
+
 	.hint.md .hint-trigger i {
 		font-size: var(--icon-sm);
 	}
@@ -123,5 +133,6 @@
 		font-size: var(--text-sm);
 		line-height: 1.45;
 		font-weight: 400;
+		white-space: pre-line;
 	}
 </style>
